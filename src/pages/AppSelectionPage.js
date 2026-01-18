@@ -41,6 +41,19 @@ const AppSelectionPage = () => {
         },
         {
             id: 3,
+            name: 'Personal Loan App',
+            description: 'Personal finance and loan management',
+            icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm0 8.25a3 3 0 100 6 3 3 0 000-6z" />
+                    <path d="M12 15.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zm.75-4.5a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5z" />
+                </svg>
+            ),
+            path: '/personal-loan/user/dashboard',
+            isActive: true
+        },
+        {
+            id: 4,
             name: 'Two Wheeler Finance App',
             description: 'Vehicle financing and loan management',
             icon: (
@@ -82,19 +95,36 @@ const AppSelectionPage = () => {
                         <div className="flex items-center space-x-4">
                             {/* User Avatar and Name */}
                             <div className="hidden sm:flex items-center space-x-3">
-                                <div className="w-10 h-10 rounded-full bg-gray-600 flex items-center justify-center border-2 border-gray-200">
-                                    <span className="text-white text-sm font-bold">
-                                        {(user?.results?.userDetail?.userName || 'User').charAt(0).toUpperCase()}
-                                    </span>
+                                <div className="relative">
+                                    <img
+                                        src={user?.results?.userDetail?.user_image_s3_image || user?.results?.user_image_s3_image || 'https://i.imgur.com/ndu6pfe.png'}
+                                        alt={user?.results?.userDetail?.userName || user?.results?.firstname || user?.results?.name || 'User'}
+                                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 shadow-md"
+                                        onError={(e) => {
+                                            e.target.src = 'https://i.imgur.com/ndu6pfe.png';
+                                        }}
+                                    />
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm font-medium text-gray-900">
-                                        Welcome, {user?.results?.userDetail?.userName || 'User'}!
+                                        Welcome, {user?.results?.userDetail?.userName || user?.results?.firstname || user?.results?.name || 'User'}!
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                        {user?.results?.userDetail?.userRole || 'User'}
+                                        {user?.results?.userDetail?.userRole || user?.results?.userDetail?.role || 'User'}
                                     </p>
                                 </div>
+                            </div>
+                            
+                            {/* Mobile User Avatar */}
+                            <div className="sm:hidden">
+                                <img
+                                    src={user?.results?.userDetail?.user_image_s3_image || user?.results?.user_image_s3_image || 'https://i.imgur.com/ndu6pfe.png'}
+                                    alt={user?.results?.userDetail?.userName || user?.results?.firstname || user?.results?.name || 'User'}
+                                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 shadow-md"
+                                    onError={(e) => {
+                                        e.target.src = 'https://i.imgur.com/ndu6pfe.png';
+                                    }}
+                                />
                             </div>
 
                             {/* Logout Button */}

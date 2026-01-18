@@ -15,6 +15,7 @@ import DailyCollectionAdminLayout from './components/dailyCollection/DailyCollec
 import DailyCollectionCustomerLayout from './components/dailyCollection/DailyCollectionCustomerLayout';
 import DailyCollectionCollectorLayout from './components/dailyCollection/DailyCollectionCollectorLayout';
 import TwoWheelerFinanceLayout from './components/twoWheelerFinance/TwoWheelerFinanceLayout';
+import PersonalLoanAdminLayout from './components/personalLoan/PersonalLoanAdminLayout';
 
 // Legacy layouts for backward compatibility (can be removed later)
 import SubscriberLayout from './components/subscriber/layout/SubscriberLayout';
@@ -52,6 +53,9 @@ function App() {
 
                         {/* Two Wheeler Finance App Routes */}
                         <Route path="/two-wheeler-finance" component={TwoWheelerFinanceLayout} />
+
+                        {/* Personal Loan App Routes */}
+                        <Route path="/personal-loan/user" component={PersonalLoanAdminLayout} />
 
                         {/* Legacy Routes for Backward Compatibility */}
                         <Route path="/customer" render={() => <Redirect to="/chit-fund/subscriber" />} />
