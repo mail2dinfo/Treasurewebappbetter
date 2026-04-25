@@ -15,7 +15,7 @@ const AppSelectionPage = () => {
     const apps = [
         {
             id: 1,
-            name: 'MyTreasure - Chit Fund App',
+            name: 'MyTreasure - Chit Fund',
             description: 'Manage chit groups and auctions',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -27,7 +27,7 @@ const AppSelectionPage = () => {
         },
         {
             id: 2,
-            name: 'MyTreasure - Daily Collection App',
+            name: 'MyTreasure - Daily Collection',
             description: 'Track daily loans and collections',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -41,7 +41,7 @@ const AppSelectionPage = () => {
         },
         {
             id: 3,
-            name: 'Personal Loan App',
+            name: 'Mytreasure - Personal loan',
             description: 'Personal finance and loan management',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -54,7 +54,7 @@ const AppSelectionPage = () => {
         },
         {
             id: 4,
-            name: 'Two Wheeler Finance App',
+            name: 'MyTreasure - Two Wheeler Finance',
             description: 'Vehicle financing and loan management',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">

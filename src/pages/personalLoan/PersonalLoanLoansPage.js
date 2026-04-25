@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
-import { FiPlus, FiDollarSign, FiUser, FiCalendar, FiTrendingUp, FiTrendingDown, FiEye, FiX } from 'react-icons/fi';
+import { FiPlus, FiDollarSign, FiUser, FiCalendar, FiTrendingUp, FiTrendingDown, FiEye, FiX, FiDownload } from 'react-icons/fi';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 import { usePersonalLoanContext } from '../../context/personalLoan/PersonalLoanContext';
+import { useUserContext } from '../../context/user_context';
 import PersonalLoanLoanDisbursementForm from '../../components/personalLoan/PersonalLoanLoanDisbursementForm';
 import PersonalLoanLoanCollectionForm from '../../components/personalLoan/PersonalLoanLoanCollectionForm';
 import PersonalLoanLoanForeclosureModal from '../../components/personalLoan/PersonalLoanLoanForeclosureModal';
+import PersonalLoanListPDF from '../../components/personalLoan/PDF/PersonalLoanListPDF';
+import PersonalLoanDetailsPDF from '../../components/personalLoan/PDF/PersonalLoanDetailsPDF';
 
 const PersonalLoanLoansPage = () => {
     const history = useHistory();
     const location = useLocation();
-    const { loans, fetchLoans, isLoading, getLoanById, error } = usePersonalLoanContext();
+    const { loans, fetchLoans, isLoading, getLoanById, error, companies, fetchCompanies } = usePersonalLoanContext();
+    const { user } = useUserContext();
     const [activeTab, setActiveTab] = useState('ACTIVE');
     const [showDisbursementForm, setShowDisbursementForm] = useState(false);
     const [showCollectionForm, setShowCollectionForm] = useState(false);
@@ -19,9 +24,12 @@ const PersonalLoanLoansPage = () => {
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const hasFetchedRef = useRef(false);
 
-    // Fetch loans when component mounts
+    // Fetch loans and companies when component mounts
     useEffect(() => {
         fetchLoans();
+        if (fetchCompanies) {
+            fetchCompanies();
+        }
         hasFetchedRef.current = true;
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -103,6 +111,55 @@ const PersonalLoanLoansPage = () => {
 
     const displayLoans = activeTab === 'ACTIVE' ? activeLoans : closedLoans;
 
+    // Get company data for PDF
+    const getCompanyDataForPDF = () => {
+        const plCompany = companies?.[0];
+        const chitFundCompany = user?.results?.userCompany?.[0];
+
+        if (plCompany) {
+            return {
+                name: plCompany.company_name || 'Personal Loan Company',
+                logo_base64format: plCompany.company_logo || null,
+                phone: plCompany.contact_no || 'N/A',
+                street_address: plCompany.address || '',
+                city: '',
+                state: '',
+                zipcode: '',
+                country: '',
+                email: '',
+                registration_no: plCompany.registration_no || '',
+                company_since: plCompany.company_since || '',
+            };
+        } else if (chitFundCompany) {
+            return {
+                name: chitFundCompany.name || 'Company',
+                logo_base64format: chitFundCompany.logo_base64format || null,
+                phone: chitFundCompany.phone || 'N/A',
+                street_address: chitFundCompany.street_address || '',
+                city: chitFundCompany.city || '',
+                state: chitFundCompany.state || '',
+                zipcode: chitFundCompany.zipcode || '',
+                country: chitFundCompany.country || '',
+                email: chitFundCompany.email || '',
+                registration_no: chitFundCompany.registration_no || '',
+                company_since: chitFundCompany.company_since || '',
+            };
+        }
+        return {
+            name: 'Personal Loan Company',
+            logo_base64format: null,
+            phone: 'N/A',
+            street_address: '',
+            city: '',
+            state: '',
+            zipcode: '',
+            country: '',
+            email: '',
+            registration_no: '',
+            company_since: '',
+        };
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
             <div className="max-w-7xl mx-auto">
@@ -112,13 +169,34 @@ const PersonalLoanLoansPage = () => {
                         <h1 className="text-3xl font-bold text-gray-900">Loans Management</h1>
                         <p className="text-gray-600 mt-1">Manage loan disbursements and collections</p>
                     </div>
-                    <button
-                        onClick={() => setShowDisbursementForm(true)}
-                        className="mt-4 sm:mt-0 flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-md"
-                    >
-                        <FiPlus className="w-5 h-5 mr-2" />
-                        Disburse New Loan
-                    </button>
+                    <div className="mt-4 sm:mt-0 flex items-center gap-3">
+                        {activeTab === 'ACTIVE' && activeLoans.length > 0 && (
+                            <PDFDownloadLink
+                                document={
+                                    <PersonalLoanListPDF
+                                        loans={activeLoans}
+                                        companyData={getCompanyDataForPDF()}
+                                    />
+                                }
+                                fileName={`active-loans-${new Date().toISOString().split('T')[0]}.pdf`}
+                                className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md"
+                            >
+                                {({ loading }) => (
+                                    <>
+                                        <FiDownload className="w-5 h-5 mr-2" />
+                                        {loading ? 'Generating PDF...' : 'Download PDF'}
+                                    </>
+                                )}
+                            </PDFDownloadLink>
+                        )}
+                        <button
+                            onClick={() => setShowDisbursementForm(true)}
+                            className="flex items-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-md"
+                        >
+                            <FiPlus className="w-5 h-5 mr-2" />
+                            Disburse New Loan
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats Cards */}
@@ -346,17 +424,36 @@ const PersonalLoanLoansPage = () => {
                         <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                                 <h2 className="text-2xl font-bold text-gray-900">Loan Details</h2>
-                                <button
-                                    onClick={() => {
-                                        setSelectedLoanDetails(null);
-                                        setIsLoadingDetails(false);
-                                        // Refresh loans when closing the modal to ensure data is up to date
-                                        fetchLoans();
-                                    }}
-                                    className="text-gray-400 hover:text-gray-600"
-                                >
-                                    <FiX className="w-6 h-6" />
-                                </button>
+                                <div className="flex items-center gap-3">
+                                    <PDFDownloadLink
+                                        document={
+                                            <PersonalLoanDetailsPDF
+                                                loanData={selectedLoanDetails}
+                                                companyData={getCompanyDataForPDF()}
+                                            />
+                                        }
+                                        fileName={`loan-details-${selectedLoanDetails.id}-${new Date().toISOString().split('T')[0]}.pdf`}
+                                        className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md"
+                                    >
+                                        {({ loading }) => (
+                                            <>
+                                                <FiDownload className="w-5 h-5 mr-2" />
+                                                {loading ? 'Generating...' : 'Download PDF'}
+                                            </>
+                                        )}
+                                    </PDFDownloadLink>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedLoanDetails(null);
+                                            setIsLoadingDetails(false);
+                                            // Refresh loans when closing the modal to ensure data is up to date
+                                            fetchLoans();
+                                        }}
+                                        className="text-gray-400 hover:text-gray-600"
+                                    >
+                                        <FiX className="w-6 h-6" />
+                                    </button>
+                                </div>
                             </div>
                             {isLoadingDetails ? (
                                 <div className="p-8 text-center">

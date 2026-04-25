@@ -736,6 +736,45 @@ export function PersonalLoanProvider({ children }) {
         }
     };
 
+    // Fetch all receipts
+    const fetchReceipts = useCallback(async () => {
+        if (!user?.results?.token) {
+            return { success: false, error: "User not authenticated" };
+        }
+
+        const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+        if (!membershipId) {
+            return { success: false, error: 'Membership ID not found' };
+        }
+
+        dispatch({ type: 'SET_LOADING', payload: true });
+
+        try {
+            const url = `${API_BASE_URL}/pl/receipts?parent_membership_id=${membershipId}`;
+            const res = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${user.results.token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Failed to fetch receipts");
+            }
+
+            const data = await res.json();
+            dispatch({ type: 'SET_RECEIPTS', payload: data.results || [] });
+            dispatch({ type: 'CLEAR_ERROR' });
+            return { success: true };
+        } catch (error) {
+            const errorMessage = error.message || "Unknown error occurred";
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    }, [user]);
+
     // Fetch all ledger accounts
     const fetchLedgerAccounts = useCallback(async () => {
         if (!user?.results?.token) {
@@ -973,6 +1012,7 @@ export function PersonalLoanProvider({ children }) {
         forecloseLoan,
         collectPayment,
         fetchReceivablesByLoan,
+        fetchReceipts,
         fetchLedgerAccounts,
         createLedgerAccount,
         fetchLedgerEntries,

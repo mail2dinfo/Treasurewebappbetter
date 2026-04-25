@@ -1,6 +1,6 @@
 // apiConfig.js
-
 const isProduction = process.env.REACT_APP_DEPLOY_ENV === "production";
+
 console.log("=================================", process.env.REACT_APP_DEPLOY_ENV);
 
 export const API_BASE_URL = isProduction
