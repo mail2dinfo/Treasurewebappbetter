@@ -1,32 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { usePayablesContext } from '../context/payables_context';
 import { useAobContext } from '../context/aob_context';
-import { useUserContext } from '../context/user_context';
 import PayablePaymentModal from '../components/PayablePaymentModal';
-import ReceivableReceitPdf from '../components/PDF/ReceivableReceitPdf';
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import { FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiTrendingUp, FiDownload, FiPlus, FiMinus } from 'react-icons/fi';
-
-const getPaymentsList = (person) => {
-  if (!person?.payments) return [];
-  if (Array.isArray(person.payments)) return person.payments;
-  if (typeof person.payments === 'string') {
-    try {
-      return JSON.parse(person.payments);
-    } catch {
-      return [];
-    }
-  }
-  return [];
-};
+import { FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiTrendingUp } from 'react-icons/fi';
 
 const Payables = () => {
   const { fetchPayables, payables, isLoading } = usePayablesContext();
-  const { user } = useUserContext();
-  const userCompany = user?.results?.userCompany;
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPayable, setSelectedPayable] = useState(null);
-  const [expandedPayableId, setExpandedPayableId] = useState(null);
   const { aobs, fetchAobs } = useAobContext();
 
   useEffect(() => {
@@ -172,9 +153,6 @@ const Payables = () => {
                   payment_for,
                 } = person;
 
-                const paymentsList = getPaymentsList(person);
-                const isExpanded = expandedPayableId === unique_id;
-
                 return (
                   <div key={unique_id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                     {/* Card Header */}
@@ -246,77 +224,6 @@ const Payables = () => {
                           <div className="text-lg font-bold text-red-700">{formatCurrency(pbdue || 0)}</div>
                         </div>
                       </div>
-
-                      {paymentsList.length > 0 && (
-                        <div className="mb-4">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedPayableId(isExpanded ? null : unique_id)}
-                            className="w-full py-2 px-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2"
-                          >
-                            {isExpanded ? <FiMinus className="w-4 h-4" /> : <FiPlus className="w-4 h-4" />}
-                            {isExpanded ? 'Hide Payments' : `View Payments (${paymentsList.length})`}
-                          </button>
-
-                          {isExpanded && (
-                            <div className="mt-3 bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                              <div className="overflow-x-auto">
-                                <table className="w-full min-w-[520px]">
-                                  <thead>
-                                    <tr className="bg-gray-100">
-                                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Billno</th>
-                                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Download</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {paymentsList.map((payment) => (
-                                      <tr key={payment.id} className="border-t border-gray-100">
-                                        <td className="px-3 py-2 text-sm font-semibold text-gray-800">{payment.id}</td>
-                                        <td className="px-3 py-2 text-sm text-gray-700">
-                                          {payment.created_at ? formatDate(payment.created_at) : '-'}
-                                        </td>
-                                        <td className="px-3 py-2 text-sm text-gray-800">{formatCurrency(payment.payment_amount || 0)}</td>
-                                        <td className="px-3 py-2">
-                                          <PDFDownloadLink
-                                            key={`payable-payment-${payment.id}`}
-                                            document={
-                                              <ReceivableReceitPdf
-                                                receivableData={{
-                                                  subscriberName: name,
-                                                  billNumber: payment.id,
-                                                  paymentId: payment.id,
-                                                  paymentType: payment.payment_type,
-                                                  paymentMethod: payment.payment_method,
-                                                  groupName: group_name,
-                                                  auctionDate: formatDate(auct_date),
-                                                  createdAt: payment.created_at ? formatDate(payment.created_at) : null,
-                                                  created_at: payment.created_at,
-                                                  paymentAmount: payment.payment_amount,
-                                                }}
-                                                companyData={userCompany}
-                                              />
-                                            }
-                                            fileName={`Receipt-${payment.id}-${name}-${Date.now()}.pdf`}
-                                          >
-                                            {({ loading }) => (
-                                              <button className="px-2 py-1 bg-custom-red text-white text-xs rounded-md flex items-center gap-1 hover:bg-red-700">
-                                                <FiDownload className="w-3 h-3" />
-                                                {loading ? 'Preparing...' : 'PDF'}
-                                              </button>
-                                            )}
-                                          </PDFDownloadLink>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
 
                       {/* Action Button */}
                       <button

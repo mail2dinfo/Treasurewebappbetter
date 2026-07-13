@@ -34,6 +34,9 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: 'bold',
     },
+    headerMetaColumn: {
+        alignItems: 'flex-end',
+    },
     fieldGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -62,12 +65,19 @@ const styles = StyleSheet.create({
     },
 });
 
-const Field = ({ label, value }) => (
-    <View style={styles.fieldBox}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.value}>{value || '-'}</Text>
-    </View>
-);
+const Field = ({ label, value }) => {
+    const displayValue =
+        value !== undefined && value !== null && value !== ''
+            ? String(value)
+            : '-';
+
+    return (
+        <View style={styles.fieldBox}>
+            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.value}>{displayValue}</Text>
+        </View>
+    );
+};
 
 const formatCurrency = (amount) => {
     if (!amount) return '-';
@@ -79,6 +89,11 @@ const formatCurrency = (amount) => {
 
 const ReceivableReceitPdf = ({ receivableData = {}, companyData = {} }) => {
     const today = new Date().toLocaleDateString();
+    const billNumberRaw = receivableData.billNumber ?? receivableData.receiptId;
+    const billNumber =
+        billNumberRaw !== undefined && billNumberRaw !== null && billNumberRaw !== ''
+            ? String(billNumberRaw)
+            : '-';
 
     return (
         <Document>
@@ -89,13 +104,15 @@ const ReceivableReceitPdf = ({ receivableData = {}, companyData = {} }) => {
                 {/* Section Title with Date */}
                 <View style={styles.sectionTitleRow}>
                     <Text style={styles.sectionTitle}>Receivable Details</Text>
-                    <View style={styles.rightAlignedText}>
+                    <View style={styles.headerMetaColumn}>
+                        <Text style={styles.billDateInline}>Billno: {billNumber}</Text>
                         <Text style={styles.billDateInline}>Bill Date: {today}</Text>
                     </View>
                 </View>
 
                 {/* Data Fields */}
                 <View style={styles.fieldGrid}>
+                    <Field label="Billno" value={billNumber} />
                     <Field label="Name" value={receivableData.subscriberName} />
                     <Field label="Payment Type" value={receivableData.paymentType} />
                     <Field label="Payment Method" value={receivableData.paymentMethod} />

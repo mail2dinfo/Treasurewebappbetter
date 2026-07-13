@@ -11,7 +11,6 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const PayablePaymentModal = ({ isOpen, onClose, payable, fetchPayables }) => {
     const { user } = useUserContext();
-    const userCompany = user?.results?.userCompany;
     const { ledgerAccounts, fetchLedgerAccounts } = useLedgerAccountContext();
     const { fetchLedgerEntries } = useLedgerEntryContext();
     const [isConfirming, setIsConfirming] = useState(false);
@@ -19,7 +18,6 @@ const PayablePaymentModal = ({ isOpen, onClose, payable, fetchPayables }) => {
     const [paymentType, setPaymentType] = useState("full");
     const [partialAmount, setPartialAmount] = useState("");
     const [loading, setLoading] = useState(false);
-    const [isDownloading, setIsDownloading] = useState(false);
     const [receiptData, setReceiptData] = useState(null);
     const [payableDate, setPayableDate] = useState(() => {
         const today = new Date().toISOString().split("T")[0];
@@ -102,14 +100,7 @@ const PayablePaymentModal = ({ isOpen, onClose, payable, fetchPayables }) => {
 
             if (response.ok) {
                 const data = await response.json();
-                const billNumber = data.results?.paymentId;
-                setReceiptData({
-                    ...payload,
-                    subscriberName: name,
-                    billNumber,
-                    paymentId: billNumber,
-                    transactedDate: payableDate,
-                });
+                setReceiptData({ ...payload, subscriberName: name });
                 setTimeout(() => fetchPayables(), 2000);
                 fetchLedgerAccounts();
                 fetchLedgerEntries();
@@ -295,10 +286,6 @@ const PayablePaymentModal = ({ isOpen, onClose, payable, fetchPayables }) => {
 
                             <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Billno:</span>
-                                    <span className="font-semibold">{receiptData.billNumber ?? '-'}</span>
-                                </div>
-                                <div className="flex justify-between">
                                     <span className="text-gray-600">Subscriber Name:</span>
                                     <span className="font-semibold">{receiptData.subscriberName}</span>
                                 </div>
@@ -340,34 +327,9 @@ const PayablePaymentModal = ({ isOpen, onClose, payable, fetchPayables }) => {
                                     <FiPrinter className="w-5 h-5" />
                                     Print
                                 </button>
-                                <PDFDownloadLink
-                                    key={`payable-pdf-${receiptData.billNumber ?? receiptData.paymentId ?? 'new'}`}
-                                    document={
-                                        <ReceivableReceitPdf
-                                            receivableData={{
-                                                ...receiptData,
-                                                billNumber: receiptData.billNumber ?? receiptData.paymentId,
-                                            }}
-                                            companyData={userCompany}
-                                        />
-                                    }
-                                    fileName={`Receipt-${receiptData.billNumber || receiptData.subscriberName}-${Date.now()}.pdf`}
-                                    className="flex-1"
-                                    onClick={() => {
-                                        setIsDownloading(true);
-                                        setTimeout(() => setIsDownloading(false), 3000);
-                                    }}
-                                >
-                                    {({ loading: pdfLoading }) => (
-                                        <button className="w-full py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center justify-center gap-2">
-                                            <FiDownload className="w-5 h-5" />
-                                            {pdfLoading || isDownloading ? "Downloading..." : "Download PDF"}
-                                        </button>
-                                    )}
-                                </PDFDownloadLink>
                                 <button
                                     onClick={onClose}
-                                    className="flex-1 py-3 px-4 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center gap-2"
+                                    className="flex-1 py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center justify-center gap-2"
                                 >
                                     <FiCheck className="w-5 h-5" />
                                     Close

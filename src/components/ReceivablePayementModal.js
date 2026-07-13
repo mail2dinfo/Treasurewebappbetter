@@ -131,7 +131,14 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
 
             if (response.ok) {
                 const data = await response.json();
-                setReceiptData({ ...payload, subscriberName: name });
+                const billNumber = data.results?.receiptId;
+                setReceiptData({
+                    ...payload,
+                    subscriberName: name,
+                    billNumber,
+                    receiptId: billNumber,
+                    transactedDate: receivableDate,
+                });
                 setTimeout(() => fetchReceivables(), 2000);
                 fetchLedgerAccounts();
                 fetchLedgerEntries();
@@ -315,6 +322,10 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
 
                             <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
                                 <div className="flex justify-between">
+                                    <span className="text-gray-600">Billno:</span>
+                                    <span className="font-semibold">{receiptData.billNumber ?? '-'}</span>
+                                </div>
+                                <div className="flex justify-between">
                                     <span className="text-gray-600">Subscriber Name:</span>
                                     <span className="font-semibold">{receiptData.subscriberName}</span>
                                 </div>
@@ -357,8 +368,17 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                     Print
                                 </button>
                                 <PDFDownloadLink
-                                    document={<ReceivableReceitPdf receivableData={receiptData} companyData={userCompany} />}
-                                    fileName={`Receipt-${receiptData.subscriberName}-${Date.now()}.pdf`}
+                                    key={`receipt-pdf-${receiptData.billNumber ?? receiptData.receiptId ?? 'new'}`}
+                                    document={
+                                        <ReceivableReceitPdf
+                                            receivableData={{
+                                                ...receiptData,
+                                                billNumber: receiptData.billNumber ?? receiptData.receiptId,
+                                            }}
+                                            companyData={userCompany}
+                                        />
+                                    }
+                                    fileName={`Receipt-${receiptData.billNumber || receiptData.subscriberName}-${Date.now()}.pdf`}
                                     className="flex-1"
                                     onClick={() => {
                                         setIsDownloading(true);

@@ -99,6 +99,12 @@ import { useUserContext } from '../context/user_context';
 import { useGroupDetailsContext } from '../context/group_context';
 import loadingImage from '../images/preloader.gif';
 
+const toAmount = (value) => {
+  if (value === '' || value === null || value === undefined) return 0;
+  const num = Number(value);
+  return Number.isNaN(num) ? 0 : num;
+};
+
 const UserDue = () => {
   const { groupId } = useParams();
   const { user, isLoading, setIsLoading } = useUserContext();
@@ -106,9 +112,9 @@ const UserDue = () => {
   const [data, setData] = useState([]);
   const [GroupWiseOverallUserDuedata, setGroupWiseOverallUserDuedata] = useState({
     group_id: '',
-    total_supposed_to_pay: '',
-    total_paid_amount: '',
-    total_outstanding_balance: '',
+    total_supposed_to_pay: 0,
+    total_paid_amount: 0,
+    total_outstanding_balance: 0,
   });
 
   useEffect(() => {
@@ -134,9 +140,16 @@ const UserDue = () => {
         if (firstGroup) {
           setGroupWiseOverallUserDuedata({
             group_id: firstGroup.group_id || '',
-            total_supposed_to_pay: firstGroup.total_supposed_to_pay || '',
-            total_paid_amount: firstGroup.total_paid_amount || '',
-            total_outstanding_balance: firstGroup.total_outstanding_balance || '',
+            total_supposed_to_pay: toAmount(firstGroup.total_supposed_to_pay),
+            total_paid_amount: toAmount(firstGroup.total_paid_amount),
+            total_outstanding_balance: toAmount(firstGroup.total_outstanding_balance),
+          });
+        } else {
+          setGroupWiseOverallUserDuedata({
+            group_id: '',
+            total_supposed_to_pay: 0,
+            total_paid_amount: 0,
+            total_outstanding_balance: 0,
           });
         }
 

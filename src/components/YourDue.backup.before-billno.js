@@ -1,9 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
-import { FiUsers, FiUserPlus, FiUser, FiArrowLeft, FiArrowUp, FiDownload } from 'react-icons/fi';
-import { FaMoneyBillWave, FaCheckCircle, FaExclamationCircle, FaPlus, FaMinus } from "react-icons/fa";
+import { GoRepo } from 'react-icons/go';
+import { FiUsers, FiUserPlus, FiUser, FiArrowLeft, FiArrowUp } from 'react-icons/fi';
+import { FaMoneyBillWave, FaCheckCircle, FaExclamationCircle } from "react-icons/fa";
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import AuctionWinnerReceiptPdf from '../components/PDF/AuctionWinnerReceiptPdf';
-import ReceivableReceitPdf from '../components/PDF/ReceivableReceitPdf';
 import { useUserContext } from '../context/user_context';
 import { useGroupDetailsContext } from '../context/group_context';
 import { useHistory } from 'react-router-dom';
@@ -16,25 +17,6 @@ const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString(undefined, options);
 };
 
-const normalizeAmount = (value) => {
-    if (value === '' || value === null || value === undefined) return 0;
-    const num = Number(value);
-    return Number.isNaN(num) ? 0 : num;
-};
-
-const getPaymentsList = (item) => {
-    if (!item?.payments) return [];
-    if (Array.isArray(item.payments)) return item.payments;
-    if (typeof item.payments === 'string') {
-        try {
-            return JSON.parse(item.payments);
-        } catch {
-            return [];
-        }
-    }
-    return [];
-};
-
 const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
     const { user } = useUserContext();
     const { state } = useGroupDetailsContext();
@@ -42,16 +24,18 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
     const userCompany = user?.results?.userCompany;
     const groupData = groupDetailsData || state?.data;
 
+    // Debug: Log group data to see the structure
+    console.log('Group Data for PDF:', groupData);
+    console.log('Group Data Results:', groupData?.results);
+    console.log('Group Name:', groupData?.results?.groupName);
+    console.log('Group Amount:', groupData?.results?.amount);
+    console.log('Group Start Date:', groupData?.results?.startDate);
+
     const [accountWiseData, setAccountWiseData] = useState([]);
     const [totalDue, setTotalDue] = useState('0');
     const [totalPaid, setTotalPaid] = useState('0');
     const [totalOutstanding, setTotalOutstanding] = useState('0');
     const [showScrollButton, setShowScrollButton] = useState(false);
-    const [expandedRowIndex, setExpandedRowIndex] = useState(null);
-
-    const toggleExpandRow = (index) => {
-        setExpandedRowIndex(expandedRowIndex === index ? null : index);
-    };
 
     useEffect(() => {
         if (data?.results?.groupsAccountWiseResult) {
@@ -65,9 +49,9 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                 total_outstanding_balance,
             } = GroupWiseOverallUserDuedata;
 
-            setTotalDue(normalizeAmount(total_supposed_to_pay));
-            setTotalPaid(normalizeAmount(total_paid_amount));
-            setTotalOutstanding(normalizeAmount(total_outstanding_balance));
+            setTotalDue(total_supposed_to_pay ?? 0);
+            setTotalPaid(total_paid_amount ?? 0);
+            setTotalOutstanding(total_outstanding_balance ?? 0);
         }
     }, [data, GroupWiseOverallUserDuedata]);
 
@@ -104,9 +88,9 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
         },
         {
             id: 2,
-            icon: <FaCheckCircle className="icon" />,
+            icon: <FaCheckCircle className="icon" />, // Green check for paid
             label: 'Total Paid',
-            value: totalPaid,
+            value: totalPaid ?? '0',
             color: 'green',
         },
         {
@@ -150,7 +134,7 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                                             {icon}
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="text-2xl font-bold text-gray-900 mb-1">₹{normalizeAmount(value)}</h3>
+                                            <h3 className="text-2xl font-bold text-gray-900 mb-1">₹{value ?? 0}</h3>
                                             <p className="text-gray-600 font-medium">{label}</p>
                                         </div>
                                     </div>
@@ -254,10 +238,10 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
 
                     {/* Table Rows */}
                     <div className="divide-y divide-gray-200">
-                        {accountWiseData.map((item, index) => {
+                        {accountWiseData.map((item) => {
                             const {
                                 auct_date,
-                                groupaccountid,
+                                id,
                                 user_image_from_s3,
                                 user_image_base64format,
                                 name,
@@ -268,94 +252,12 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                             } = item;
 
                             const formattedAuctionDate = formatDate(auct_date);
-                            const paymentsList = getPaymentsList(item);
-                            const groupName = groupData?.results?.groupName || groupData?.groupName || 'N/A';
-                            const rowKey = groupaccountid || `${auct_date}-${index}`;
-
-                            const renderPaymentDownloads = () => {
-                                if (!paymentsList.length) return null;
-
-                                return (
-                                    <div className="bg-gray-50 border-t border-gray-200 px-4 py-4 md:px-6">
-                                        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full min-w-[640px]">
-                                                    <thead>
-                                                        <tr className="bg-gray-100">
-                                                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Billno</th>
-                                                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Created At</th>
-                                                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Amount</th>
-                                                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Method</th>
-                                                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Type</th>
-                                                            <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Download</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {paymentsList.map((payment) => (
-                                                            <tr key={payment.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200">
-                                                                <td className="px-3 py-2 text-sm font-semibold text-gray-800">{payment.id}</td>
-                                                                <td className="px-3 py-2 text-sm text-gray-700">
-                                                                    {payment.created_at ? new Date(payment.created_at).toLocaleDateString() : 'N/A'}
-                                                                </td>
-                                                                <td className="px-3 py-2 text-sm font-medium text-gray-800">₹{payment.payment_amount}</td>
-                                                                <td className="px-3 py-2 text-sm text-gray-600">{payment.payment_method || '-'}</td>
-                                                                <td className="px-3 py-2 text-sm text-gray-600">{payment.payment_type || '-'}</td>
-                                                                <td className="px-3 py-2">
-                                                                    <PDFDownloadLink
-                                                                        key={`your-due-payment-${payment.id}`}
-                                                                        document={
-                                                                            <ReceivableReceitPdf
-                                                                                receivableData={{
-                                                                                    subscriberName: name,
-                                                                                    billNumber: payment.id,
-                                                                                    paymentId: payment.id,
-                                                                                    paymentType: payment.payment_type,
-                                                                                    paymentMethod: payment.payment_method,
-                                                                                    groupName,
-                                                                                    auctionDate: formattedAuctionDate,
-                                                                                    createdAt: payment.created_at
-                                                                                        ? new Date(payment.created_at).toLocaleDateString()
-                                                                                        : null,
-                                                                                    created_at: payment.created_at,
-                                                                                    paymentAmount: payment.payment_amount,
-                                                                                }}
-                                                                                companyData={userCompany}
-                                                                            />
-                                                                        }
-                                                                        fileName={`Receipt-${payment.id}-${name}-${formattedAuctionDate}.pdf`}
-                                                                    >
-                                                                        {({ loading }) => (
-                                                                            <button className="px-3 py-1 bg-custom-red text-white text-xs rounded-md border-none cursor-pointer flex items-center gap-1 hover:bg-red-700 transition-colors duration-200 shadow-sm hover:shadow-md">
-                                                                                <FiDownload size={12} />
-                                                                                {loading ? 'Preparing...' : `Billno ${payment.id}`}
-                                                                            </button>
-                                                                        )}
-                                                                    </PDFDownloadLink>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            };
 
                             return (
-                                <div key={rowKey}>
+                                <div key={id}>
                                     {/* Desktop View */}
                                     <div className="hidden md:grid grid-cols-7 gap-4 px-6 py-4 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200">
-                                        <div className="text-gray-700 flex items-center">
-                                            {paymentsList.length > 0 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleExpandRow(index)}
-                                                    className="mr-2 p-1 text-custom-red hover:bg-red-100 rounded-full transition-colors duration-200"
-                                                >
-                                                    {expandedRowIndex === index ? <FaMinus size={12} /> : <FaPlus size={12} />}
-                                                </button>
-                                            )}
+                                        <div className="text-gray-700">
                                             {formattedAuctionDate}
                                         </div>
 
@@ -373,33 +275,37 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                                         </div>
 
                                         <div className="font-bold text-custom-red">
-                                            ₹{normalizeAmount(total_supposed_to_pay)}
+                                            ₹{total_supposed_to_pay ?? 0}
                                         </div>
 
                                         <div className="font-medium text-green-600">
-                                            ₹{normalizeAmount(total_paid_amount)}
+                                            ₹{total_paid_amount ?? 0}
                                         </div>
 
-                                        <div className={`font-medium ${normalizeAmount(total_outstanding_balance) > 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                            ₹{normalizeAmount(total_outstanding_balance)}
+                                        <div className={`font-medium ${(total_outstanding_balance ?? 0) > 0 ? 'text-red-600' : 'text-gray-800'}`}>
+                                            ₹{total_outstanding_balance ?? 0}
                                         </div>
 
-                                        <div className="flex flex-col gap-2 items-start">
+                                        <div className="flex items-center">
                                             <PDFDownloadLink
                                                 document={
                                                     <AuctionWinnerReceiptPdf
-                                                        winnerData={{
-                                                            winnerImage: user_image_base64format,
-                                                            winnerName: name,
-                                                            auctionDate: formattedAuctionDate,
-                                                            amountTaken: total_supposed_to_pay ?? 0,
-                                                            prizeMoney: total_supposed_to_pay ?? 0,
-                                                            balance: total_outstanding_balance ?? 0,
-                                                            paymentMode: payment_mode ?? 'Online',
-                                                            groupName,
-                                                            amount: groupData?.results?.amount || groupData?.amount || 'N/A',
-                                                            startDate: formatDate(groupData?.results?.startDate) || formatDate(groupData?.results?.start_date) || formatDate(groupData?.startDate) || formatDate(groupData?.start_date) || 'N/A',
-                                                        }}
+                                                        winnerData={(() => {
+                                                            const pdfData = {
+                                                                winnerImage: user_image_base64format,
+                                                                winnerName: name,
+                                                                auctionDate: formattedAuctionDate,
+                                                                amountTaken: total_supposed_to_pay ?? 0,
+                                                                prizeMoney: total_supposed_to_pay ?? 0,
+                                                                balance: total_outstanding_balance ?? 0,
+                                                                paymentMode: payment_mode ?? 'Online',
+                                                                groupName: groupData?.results?.groupName || groupData?.groupName || 'N/A',
+                                                                amount: groupData?.results?.amount || groupData?.amount || 'N/A',
+                                                                startDate: formatDate(groupData?.results?.startDate) || formatDate(groupData?.results?.start_date) || formatDate(groupData?.startDate) || formatDate(groupData?.start_date) || 'N/A',
+                                                            };
+                                                            console.log('PDF Data being sent:', pdfData);
+                                                            return pdfData;
+                                                        })()}
                                                         companyData={userCompany}
                                                     />
                                                 }
@@ -418,19 +324,14 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                                 </svg>
-                                                                Auction PDF
+                                                                Download
                                                             </>
                                                         )}
                                                     </>
                                                 )}
                                             </PDFDownloadLink>
-                                            {paymentsList.length > 0 && (
-                                                <span className="text-xs text-gray-500">Expand row for Billno downloads</span>
-                                            )}
                                         </div>
                                     </div>
-
-                                    {expandedRowIndex === index && renderPaymentDownloads()}
 
                                     {/* Mobile View */}
                                     <div className="md:hidden p-6 border-b border-gray-200 last:border-b-0">
@@ -442,18 +343,7 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                                                 onError={(e) => { e.target.src = "default-image.jpg"; }}
                                             />
                                             <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    {paymentsList.length > 0 && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => toggleExpandRow(index)}
-                                                            className="p-1 text-custom-red hover:bg-red-100 rounded-full transition-colors duration-200"
-                                                        >
-                                                            {expandedRowIndex === index ? <FaMinus size={12} /> : <FaPlus size={12} />}
-                                                        </button>
-                                                    )}
-                                                    <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
-                                                </div>
+                                                <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
                                                 <p className="text-sm text-gray-600">{formattedAuctionDate}</p>
                                             </div>
                                         </div>
@@ -461,36 +351,40 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                                         <div className="grid grid-cols-2 gap-4 mb-4">
                                             <div className="bg-blue-50 rounded-lg p-3">
                                                 <p className="text-xs text-blue-600 font-medium mb-1">Total Amount</p>
-                                                <p className="text-lg font-bold text-blue-800">₹{normalizeAmount(total_supposed_to_pay)}</p>
+                                                <p className="text-lg font-bold text-blue-800">₹{total_supposed_to_pay ?? 0}</p>
                                             </div>
                                             <div className="bg-green-50 rounded-lg p-3">
                                                 <p className="text-xs text-green-600 font-medium mb-1">Paid</p>
-                                                <p className="text-lg font-bold text-green-800">₹{normalizeAmount(total_paid_amount)}</p>
+                                                <p className="text-lg font-bold text-green-800">₹{total_paid_amount ?? 0}</p>
                                             </div>
                                         </div>
 
                                         <div className="flex items-center justify-between">
                                             <div className="bg-red-50 rounded-lg p-3 flex-1 mr-4">
                                                 <p className="text-xs text-red-600 font-medium mb-1">Outstanding</p>
-                                                <p className={`text-lg font-bold ${normalizeAmount(total_outstanding_balance) > 0 ? 'text-red-800' : 'text-gray-800'}`}>
-                                                    ₹{normalizeAmount(total_outstanding_balance)}
+                                                <p className={`text-lg font-bold ${(total_outstanding_balance ?? 0) > 0 ? 'text-red-800' : 'text-gray-800'}`}>
+                                                    ₹{total_outstanding_balance ?? 0}
                                                 </p>
                                             </div>
                                             <PDFDownloadLink
                                                 document={
                                                     <AuctionWinnerReceiptPdf
-                                                        winnerData={{
-                                                            winnerImage: user_image_base64format,
-                                                            winnerName: name,
-                                                            auctionDate: formattedAuctionDate,
-                                                            amountTaken: total_supposed_to_pay ?? 0,
-                                                            prizeMoney: total_supposed_to_pay ?? 0,
-                                                            balance: total_outstanding_balance ?? 0,
-                                                            paymentMode: payment_mode ?? 'Online',
-                                                            groupName,
-                                                            amount: groupData?.results?.amount || groupData?.amount || 'N/A',
-                                                            startDate: formatDate(groupData?.results?.startDate) || formatDate(groupData?.results?.start_date) || formatDate(groupData?.startDate) || formatDate(groupData?.start_date) || 'N/A',
-                                                        }}
+                                                        winnerData={(() => {
+                                                            const pdfData = {
+                                                                winnerImage: user_image_base64format,
+                                                                winnerName: name,
+                                                                auctionDate: formattedAuctionDate,
+                                                                amountTaken: total_supposed_to_pay ?? 0,
+                                                                prizeMoney: total_supposed_to_pay ?? 0,
+                                                                balance: total_outstanding_balance ?? 0,
+                                                                paymentMode: payment_mode ?? 'Online',
+                                                                groupName: groupData?.results?.groupName || groupData?.groupName || 'N/A',
+                                                                amount: groupData?.results?.amount || groupData?.amount || 'N/A',
+                                                                startDate: formatDate(groupData?.results?.startDate) || formatDate(groupData?.results?.start_date) || formatDate(groupData?.startDate) || formatDate(groupData?.start_date) || 'N/A',
+                                                            };
+                                                            console.log('PDF Data being sent (Mobile):', pdfData);
+                                                            return pdfData;
+                                                        })()}
                                                         companyData={userCompany}
                                                     />
                                                 }
@@ -509,15 +403,13 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                                                 </svg>
-                                                                Auction PDF
+                                                                Download
                                                             </>
                                                         )}
                                                     </>
                                                 )}
                                             </PDFDownloadLink>
                                         </div>
-
-                                        {expandedRowIndex === index && renderPaymentDownloads()}
                                     </div>
                                 </div>
                             );
