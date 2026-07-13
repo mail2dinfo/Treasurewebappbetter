@@ -104,8 +104,12 @@ function Login() {
     } else if (selectedRole.includes('Accountant')) {
       history.push('/accountant-page');
     } else if (selectedRole.includes('Collector')) {
-
-      history.push(`/chit-fund/collector/dashboard`);
+      const collectorUser = userObjectFromAPI?.results;
+      if (collectorUser?.token) {
+        localStorage.setItem('collector_token', collectorUser.token);
+        localStorage.setItem('collector_user', JSON.stringify(collectorUser));
+      }
+      history.push(`/chit-fund/collector/receivables`);
     } else {
       // Handle unknown account names
       history.push('/unknown-account-page');

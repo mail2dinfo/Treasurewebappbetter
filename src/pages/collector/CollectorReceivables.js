@@ -1,20 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiDollarSign, FiUsers, FiTrendingUp, FiEye, FiArrowLeft, FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiCreditCard, FiRefreshCw } from 'react-icons/fi';
+import { FiDollarSign, FiUsers, FiTrendingUp, FiEye, FiArrowLeft, FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiCreditCard, FiRefreshCw, FiGrid, FiList } from 'react-icons/fi';
 import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import loadingImage from '../../images/preloader.gif';
 import CollectorPaymentModal from '../../components/collector/CollectorPaymentModal';
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const CollectorReceivables = () => {
     const {
         receivables,
         selectedArea,
         areaReceivables,
-        isLoading,
+        isFetchingReceivables,
         error,
         fetchReceivables,
         fetchAreaReceivables,
-        getAreaSummary
+        getAreaSummary,
+        getReceivablesSummary,
+        user,
+        isAuthenticated,
     } = useCollector();
 
     // Fetch ledger accounts (payment methods) for the collector
@@ -37,25 +42,21 @@ const CollectorReceivables = () => {
     // Advance 360° modal state
     const [showAdvanceModal, setShowAdvanceModal] = useState(false);
     const [selectedAdvanceReceivable, setSelectedAdvanceReceivable] = useState(null);
+    const [viewMode, setViewMode] = useState('list');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
 
     useEffect(() => {
-        console.log('🔄 CollectorReceivables useEffect triggered');
-        console.log('  - receivables.length:', receivables?.length);
-        console.log('  - isLoading:', isLoading);
-        console.log('  - error:', error);
+        if (!isAuthenticated || !user) return;
 
-        // Fetch receivables if we don't have any data and we're not already loading
-        if (receivables?.length === 0 && !isLoading && !error) {
-            console.log('🔄 Calling fetchReceivables...');
+        if (receivables.length === 0 && !isFetchingReceivables && !error) {
             fetchReceivables();
         }
 
-        // Fetch ledger accounts (payment methods) for payment processing
         if (ledgerAccounts.length === 0 && !isLoadingAccounts) {
-            console.log('🔄 Calling fetchLedgerAccounts...');
             fetchLedgerAccounts();
         }
-    }, []); // Empty dependency array - only run once on mount
+    }, [isAuthenticated, user, receivables.length, isFetchingReceivables, error, fetchReceivables, ledgerAccounts.length, isLoadingAccounts, fetchLedgerAccounts]);
 
     // Debug logging for ledger accounts
     useEffect(() => {
@@ -65,12 +66,16 @@ const CollectorReceivables = () => {
         console.log('  - isLoadingAccounts:', isLoadingAccounts);
     }, [ledgerAccounts, isLoadingAccounts]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [areaFilter, customerFilter, showAreaDetails, selectedArea, pageSize]);
+
     const areaSummary = getAreaSummary();
 
     // Show debug info on screen temporarily
     const debugInfo = {
         receivablesCount: receivables?.length || 0,
-        isLoading,
+        isFetchingReceivables,
         error,
         areaCount: Object.keys(areaSummary).length
     };
@@ -90,17 +95,153 @@ const CollectorReceivables = () => {
         setShowAreaDetails(false);
     };
 
+    const matchesCustomerFilter = (receivable) => {
+        if (!customerFilter.trim()) return true;
+
+        const search = customerFilter.toLowerCase().trim();
+        const customerName = (receivable.name || receivable.customer_name || '').toLowerCase();
+        const customerPhone = (receivable.phone || receivable.customer_phone || '').toLowerCase();
+
+        return customerName.includes(search) || customerPhone.includes(search);
+    };
+
+    const matchesAreaFilter = (receivable) => {
+        if (!areaFilter.trim()) return true;
+        return (receivable.aob || '').toLowerCase().includes(areaFilter.toLowerCase());
+    };
+
     // Filter receivables based on area and customer name
-    const filteredReceivables = receivables.filter(({ aob, customer_name }) => {
-        const areaMatch = !areaFilter || (aob || "").toLowerCase().includes(areaFilter.toLowerCase());
-        const customerMatch = !customerFilter || (customer_name || "").toLowerCase().includes(customerFilter.toLowerCase());
-        return areaMatch && customerMatch;
-    });
+    const filteredReceivables = receivables.filter((receivable) => (
+        matchesAreaFilter(receivable) && matchesCustomerFilter(receivable)
+    ));
+
+    const filteredAreaReceivables = areaReceivables.filter((receivable) => (
+        matchesCustomerFilter(receivable)
+    ));
 
     // Clear all filters
     const clearFilters = () => {
         setAreaFilter("");
         setCustomerFilter("");
+        setCurrentPage(1);
+    };
+
+    const getPaginationMeta = (items) => {
+        const totalItems = items.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const safePage = Math.min(currentPage, totalPages);
+        const startIndex = (safePage - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, totalItems);
+
+        return {
+            totalItems,
+            totalPages,
+            safePage,
+            startIndex,
+            endIndex,
+            paginatedItems: items.slice(startIndex, endIndex),
+        };
+    };
+
+    const getVisiblePageNumbers = (totalPages) => (
+        Array.from({ length: totalPages }, (_, index) => index + 1)
+    );
+
+    const renderPagination = (items) => {
+        const { totalItems, totalPages, safePage, startIndex, endIndex } = getPaginationMeta(items);
+
+        if (totalItems === 0) return null;
+
+        const pageNumbers = getVisiblePageNumbers(totalPages);
+
+        return (
+            <div className="mt-4 bg-white rounded-xl shadow-lg border border-gray-200 p-4 md:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-gray-600">
+                        <span>
+                            Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to{' '}
+                            <span className="font-semibold text-gray-900">{endIndex}</span> of{' '}
+                            <span className="font-semibold text-gray-900">{totalItems}</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <label htmlFor="collector-page-size" className="text-sm text-gray-600">Per page</label>
+                            <select
+                                id="collector-page-size"
+                                value={pageSize}
+                                onChange={(e) => setPageSize(Number(e.target.value))}
+                                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-600 focus:border-transparent bg-white"
+                            >
+                                {PAGE_SIZE_OPTIONS.map((size) => (
+                                    <option key={size} value={size}>{size}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-center sm:justify-end gap-1 overflow-x-auto">
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                                disabled={safePage === 1}
+                                aria-label="Previous page"
+                                className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold transition-colors ${safePage === 1
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                &lt;
+                            </button>
+
+                            {pageNumbers.map((pageNum) => (
+                                <button
+                                    key={pageNum}
+                                    type="button"
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold transition-colors ${safePage === pageNum
+                                        ? 'bg-red-600 text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        }`}
+                                >
+                                    {pageNum}
+                                </button>
+                            ))}
+
+                            <button
+                                type="button"
+                                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                                disabled={safePage === totalPages}
+                                aria-label="Next page"
+                                className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold transition-colors ${safePage === totalPages
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                            >
+                                &gt;
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
+    const renderPaginatedReceivables = (items) => {
+        const { paginatedItems } = getPaginationMeta(items);
+
+        return (
+            <>
+                {viewMode === 'grid' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+                        {paginatedItems.map((receivable, index) => renderReceivableGridCard(receivable, index))}
+                        {renderGridSummaryFooter(items)}
+                    </div>
+                ) : (
+                    renderReceivableList(paginatedItems, items)
+                )}
+                {renderPagination(items)}
+            </>
+        );
     };
 
     // Advance 360° modal handlers
@@ -176,7 +317,398 @@ const CollectorReceivables = () => {
         });
     };
 
-    if (isLoading) {
+    const getReceivableKey = (receivable, index) =>
+        receivable.id || `${receivable.group_id || 'group'}-${receivable.auct_date || 'date'}-${index}`;
+
+    const renderMobileSummaryFooter = (items) => {
+        if (!items.length) return null;
+
+        const totals = getReceivablesSummary(items);
+
+        return (
+            <div className="bg-gray-100 rounded-xl border-2 border-red-600 p-4">
+                <p className="text-sm font-semibold text-gray-900 mb-3">
+                    Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center p-2 bg-blue-50 rounded-lg">
+                        <p className="text-[10px] text-blue-600 font-medium uppercase">Total Due</p>
+                        <p className="text-sm font-bold text-blue-800">{formatCurrency(totals.totalDue)}</p>
+                    </div>
+                    <div className="text-center p-2 bg-green-50 rounded-lg">
+                        <p className="text-[10px] text-green-600 font-medium uppercase">Paid</p>
+                        <p className="text-sm font-bold text-green-800">{formatCurrency(totals.paid)}</p>
+                    </div>
+                    <div className="text-center p-2 bg-red-50 rounded-lg">
+                        <p className="text-[10px] text-red-600 font-medium uppercase">Balance</p>
+                        <p className="text-sm font-bold text-red-800">{formatCurrency(totals.balance)}</p>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderDesktopSummaryRow = (items) => {
+        if (!items.length) return null;
+
+        const totals = getReceivablesSummary(items);
+
+        return (
+            <tr className="bg-gray-100 border-t-2 border-red-600">
+                <td colSpan={5} className="px-4 py-4 text-sm font-semibold text-gray-900">
+                    Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
+                </td>
+                <td className="px-4 py-4 text-sm font-bold text-blue-700">
+                    {formatCurrency(totals.totalDue)}
+                </td>
+                <td className="px-4 py-4 text-sm font-bold text-green-700">
+                    {formatCurrency(totals.paid)}
+                </td>
+                <td className="px-4 py-4 text-sm font-bold text-red-700">
+                    {formatCurrency(totals.balance)}
+                </td>
+                <td className="px-4 py-4" />
+            </tr>
+        );
+    };
+
+    const renderGridSummaryFooter = (items) => {
+        if (!items.length) return null;
+
+        const totals = getReceivablesSummary(items);
+
+        return (
+            <div className="col-span-full bg-gray-100 rounded-xl border-2 border-red-600 p-4 md:p-5">
+                <p className="text-sm font-semibold text-gray-900 mb-3">
+                    Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                        <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">Total Due</p>
+                        <p className="text-xl font-bold text-blue-800 mt-1">{formatCurrency(totals.totalDue)}</p>
+                    </div>
+                    <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                        <p className="text-xs font-medium text-green-600 uppercase tracking-wide">Paid</p>
+                        <p className="text-xl font-bold text-green-800 mt-1">{formatCurrency(totals.paid)}</p>
+                    </div>
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                        <p className="text-xs font-medium text-red-600 uppercase tracking-wide">Balance</p>
+                        <p className="text-xl font-bold text-red-800 mt-1">{formatCurrency(totals.balance)}</p>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const openPaymentModal = (receivable) => {
+        setSelectedReceivable(receivable);
+        setModalOpen(true);
+    };
+
+    const renderViewToggle = () => (
+        <div className="inline-flex w-full sm:w-auto rounded-lg border border-gray-300 overflow-hidden bg-white shadow-sm">
+            <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${viewMode === 'grid'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                title="Grid view"
+            >
+                <FiGrid className="w-4 h-4" />
+                <span>Grid</span>
+            </button>
+            <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-l border-gray-300 ${viewMode === 'list'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
+                title="List view"
+            >
+                <FiList className="w-4 h-4" />
+                <span>List</span>
+            </button>
+        </div>
+    );
+
+    const renderReceivableGridCard = (receivable, index) => (
+        <div key={getReceivableKey(receivable, index)} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 md:transform md:hover:-translate-y-1">
+            <div className="bg-gradient-to-r from-red-600 to-red-700 p-4 md:p-6 text-white">
+                <div className="flex items-center gap-3 md:gap-4">
+                    <div className="relative flex-shrink-0">
+                        {receivable.user_image_from_s3 || receivable.customer_image ? (
+                            <img
+                                src={receivable.user_image_from_s3 || receivable.customer_image}
+                                alt={receivable.name || receivable.customer_name}
+                                className="w-12 h-12 md:w-16 md:h-16 rounded-full object-cover border-2 border-white/30"
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                            />
+                        ) : null}
+                        <div
+                            className={`w-12 h-12 md:w-16 md:h-16 rounded-full border-2 border-white/30 bg-white/20 flex items-center justify-center ${receivable.user_image_from_s3 || receivable.customer_image ? 'hidden' : 'flex'}`}
+                        >
+                            <FiUser className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                        </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-lg md:text-xl font-bold truncate">{receivable.name || receivable.customer_name || 'N/A'}</h3>
+                        <p className="text-red-100 flex items-center gap-2 text-sm">
+                            <FiPhone className="w-4 h-4 flex-shrink-0" />
+                            <span className="truncate">{receivable.phone || receivable.customer_phone || 'N/A'}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="p-4 md:p-6">
+                <div className="mb-4 grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                        <div className="flex items-center gap-2 mb-1">
+                            <FiUsers className="w-4 h-4 text-blue-600" />
+                            <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">Group</span>
+                        </div>
+                        <p className="text-sm font-bold text-blue-900 truncate" title={receivable.group_name}>
+                            {receivable.group_name || 'N/A'}
+                        </p>
+                    </div>
+                    <div className="p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+                        <div className="flex items-center gap-2 mb-1">
+                            <FiCalendar className="w-4 h-4 text-purple-600" />
+                            <span className="text-xs text-purple-600 font-medium uppercase tracking-wide">Auction</span>
+                        </div>
+                        <p className="text-sm font-bold text-purple-900">
+                            {formatDate(receivable.auct_date)}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <FiFilter className="w-4 h-4" />
+                        <span className="font-medium">Area:</span>
+                        <span>{receivable.aob || 'N/A'}</span>
+                    </div>
+                </div>
+
+                <div
+                    className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:shadow-md hover:border-yellow-300 transition-all duration-200 hover:scale-[1.02]"
+                    onClick={() => handleOpenAdvanceModal(receivable)}
+                >
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="text-2xl">💰</span>
+                            <div>
+                                <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Advance Balance</p>
+                                <span className="text-xs text-yellow-600 flex items-center gap-1">
+                                    Click for details <span className="text-blue-500">ℹ️</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-2xl font-bold text-yellow-900">
+                                {formatCurrency(receivable?.total_advance_balance || 0)}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-6">
+                    <div className="text-center p-2 md:p-3 bg-blue-50 rounded-lg">
+                        <div className="text-[10px] md:text-xs text-blue-600 font-medium mb-1">Total Due</div>
+                        <div className="text-sm md:text-lg font-bold text-blue-700">{formatCurrency(receivable.rbtotal || receivable.total_amount)}</div>
+                    </div>
+                    <div className="text-center p-2 md:p-3 bg-green-50 rounded-lg">
+                        <div className="text-[10px] md:text-xs text-green-600 font-medium mb-1">Paid</div>
+                        <div className="text-sm md:text-lg font-bold text-green-700">{formatCurrency(receivable.rbpaid || receivable.collected_amount)}</div>
+                    </div>
+                    <div className="text-center p-2 md:p-3 bg-red-50 rounded-lg">
+                        <div className="text-[10px] md:text-xs text-red-600 font-medium mb-1">Balance</div>
+                        <div className="text-sm md:text-lg font-bold text-red-700">{formatCurrency(receivable.rbdue || receivable.pending_amount)}</div>
+                    </div>
+                </div>
+
+                <button
+                    onClick={() => openPaymentModal(receivable)}
+                    className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                >
+                    <FiDollarSign className="w-5 h-5" />
+                    Process Payment
+                </button>
+            </div>
+        </div>
+    );
+
+    const renderReceivableMobileListCard = (receivable, index) => (
+        <div
+            key={getReceivableKey(receivable, index)}
+            className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+        >
+            <div className="flex items-center gap-3 mb-3">
+                {receivable.user_image_from_s3 || receivable.customer_image ? (
+                    <img
+                        src={receivable.user_image_from_s3 || receivable.customer_image}
+                        alt={receivable.name || receivable.customer_name}
+                        className="w-11 h-11 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                ) : (
+                    <div className="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <FiUser className="w-5 h-5 text-gray-500" />
+                    </div>
+                )}
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{receivable.name || receivable.customer_name || 'N/A'}</p>
+                    <p className="text-sm text-gray-500 truncate">{receivable.phone || receivable.customer_phone || 'N/A'}</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2 mb-3 text-sm">
+                <div className="flex items-start gap-2 text-gray-700">
+                    <FiUsers className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                    <span className="break-words"><span className="font-medium">Group:</span> {receivable.group_name || 'N/A'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-700">
+                    <FiCalendar className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                    <span><span className="font-medium">Auction:</span> {formatDate(receivable.auct_date)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-700">
+                    <FiFilter className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <span><span className="font-medium">Area:</span> {receivable.aob || 'N/A'}</span>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="text-center p-2 bg-blue-50 rounded-lg">
+                    <p className="text-[10px] text-blue-600 font-medium">Due</p>
+                    <p className="text-sm font-bold text-blue-700">{formatCurrency(receivable.rbtotal || receivable.total_amount)}</p>
+                </div>
+                <div className="text-center p-2 bg-green-50 rounded-lg">
+                    <p className="text-[10px] text-green-600 font-medium">Paid</p>
+                    <p className="text-sm font-bold text-green-700">{formatCurrency(receivable.rbpaid || receivable.collected_amount)}</p>
+                </div>
+                <div className="text-center p-2 bg-red-50 rounded-lg">
+                    <p className="text-[10px] text-red-600 font-medium">Balance</p>
+                    <p className="text-sm font-bold text-red-700">{formatCurrency(receivable.rbdue || receivable.pending_amount)}</p>
+                </div>
+            </div>
+
+            <button
+                type="button"
+                onClick={() => handleOpenAdvanceModal(receivable)}
+                className="w-full mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-left"
+            >
+                <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Advance Balance</p>
+                <p className="text-lg font-bold text-yellow-900">{formatCurrency(receivable?.total_advance_balance || 0)}</p>
+            </button>
+
+            <button
+                type="button"
+                onClick={() => openPaymentModal(receivable)}
+                className="w-full py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
+            >
+                <FiDollarSign className="w-5 h-5" />
+                Process Payment
+            </button>
+        </div>
+    );
+
+    const renderReceivableList = (items, summaryItems = items) => (
+        <>
+            <div className="md:hidden space-y-4">
+                {items.map((receivable, index) => renderReceivableMobileListCard(receivable, index))}
+                {renderMobileSummaryFooter(summaryItems)}
+            </div>
+
+            <div className="hidden md:block bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full min-w-[900px]">
+                    <thead>
+                        <tr className="bg-red-600 text-white">
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Customer</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Group</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Auction</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Area</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Advance</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Total Due</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Paid</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Balance</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.map((receivable, index) => (
+                            <tr
+                                key={getReceivableKey(receivable, index)}
+                                className="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200"
+                            >
+                                <td className="px-4 py-3">
+                                    <div className="flex items-center gap-3">
+                                        {receivable.user_image_from_s3 || receivable.customer_image ? (
+                                            <img
+                                                src={receivable.user_image_from_s3 || receivable.customer_image}
+                                                alt={receivable.name || receivable.customer_name}
+                                                className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                                                onError={(e) => { e.target.style.display = 'none'; }}
+                                            />
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                                <FiUser className="w-5 h-5 text-gray-500" />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="font-semibold text-gray-900">{receivable.name || receivable.customer_name || 'N/A'}</p>
+                                            <p className="text-sm text-gray-500">{receivable.phone || receivable.customer_phone || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-800">{receivable.group_name || 'N/A'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-800">{formatDate(receivable.auct_date)}</td>
+                                <td className="px-4 py-3 text-sm text-gray-800">{receivable.aob || 'N/A'}</td>
+                                <td className="px-4 py-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleOpenAdvanceModal(receivable)}
+                                        className="text-sm font-semibold text-yellow-700 hover:text-yellow-900 underline"
+                                    >
+                                        {formatCurrency(receivable?.total_advance_balance || 0)}
+                                    </button>
+                                </td>
+                                <td className="px-4 py-3 text-sm font-semibold text-blue-700">
+                                    {formatCurrency(receivable.rbtotal || receivable.total_amount)}
+                                </td>
+                                <td className="px-4 py-3 text-sm font-semibold text-green-700">
+                                    {formatCurrency(receivable.rbpaid || receivable.collected_amount)}
+                                </td>
+                                <td className="px-4 py-3 text-sm font-semibold text-red-700">
+                                    {formatCurrency(receivable.rbdue || receivable.pending_amount)}
+                                </td>
+                                <td className="px-4 py-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => openPaymentModal(receivable)}
+                                        className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1"
+                                    >
+                                        <FiDollarSign className="w-4 h-4" />
+                                        Pay
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                        {renderDesktopSummaryRow(summaryItems)}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </>
+    );
+
+    if (isFetchingReceivables && receivables.length === 0) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
@@ -234,27 +766,27 @@ const CollectorReceivables = () => {
     // Show area details view
     if (showAreaDetails && selectedArea) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-4 md:py-8 px-3 md:px-4">
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
-                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-8">
-                        <div className="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6 rounded-t-xl">
-                            <div className="flex items-center justify-between">
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-6 md:mb-8">
+                        <div className="bg-gradient-to-r from-red-600 to-red-700 px-4 md:px-8 py-4 md:py-6 rounded-t-xl">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                                 <div>
                                     <button
                                         onClick={handleBackToAreas}
-                                        className="flex items-center text-white/80 hover:text-white mb-4 transition-colors"
+                                        className="flex items-center text-white/80 hover:text-white mb-3 md:mb-4 transition-colors text-sm md:text-base"
                                     >
                                         <FiArrowLeft className="h-5 w-5 mr-2" />
                                         Back to All Areas
                                     </button>
-                                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                                        <FiCreditCard className="w-8 h-8" />
-                                        {selectedArea} - Receivables
+                                    <h1 className="text-xl md:text-3xl font-bold text-white flex items-center gap-2 md:gap-3">
+                                        <FiCreditCard className="w-6 h-6 md:w-8 md:h-8 flex-shrink-0" />
+                                        <span className="break-words">{selectedArea} - Receivables</span>
                                     </h1>
-                                    <p className="text-red-100 mt-2">{areaReceivables.length} receivables found in this area</p>
+                                    <p className="text-red-100 mt-1 md:mt-2 text-sm md:text-base">{areaReceivables.length} receivables found in this area</p>
                                 </div>
-                                <div className="bg-white/20 rounded-lg px-4 py-2">
+                                <div className="bg-white/20 rounded-lg px-4 py-2 self-start">
                                     <span className="text-white font-semibold text-lg">{areaReceivables.length}</span>
                                     <p className="text-red-100 text-sm">Total Records</p>
                                 </div>
@@ -264,7 +796,7 @@ const CollectorReceivables = () => {
 
                     {/* Area Summary Cards */}
                     {areaSummary[selectedArea] && (
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
                             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                                 <div className="flex items-center">
                                     <div className="p-3 rounded-full bg-blue-100">
@@ -320,114 +852,21 @@ const CollectorReceivables = () => {
                         </div>
                     )}
 
-                    {/* Receivables Cards */}
+                    {/* Receivables */}
                     {areaReceivables.length > 0 ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                            {areaReceivables.map((receivable, index) => {
-                                const progress = receivable.total_amount > 0
-                                    ? (receivable.collected_amount / receivable.total_amount) * 100
-                                    : 0;
-
-                                return (
-                                    <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                                        {/* Card Header */}
-                                        <div className="bg-gradient-to-r from-red-600 to-red-700 p-6 text-white">
-                                            <div className="flex items-center gap-4">
-                                                <div className="relative">
-                                                    {receivable.user_image_from_s3 || receivable.customer_image ? (
-                                                        <img
-                                                            src={receivable.user_image_from_s3 || receivable.customer_image}
-                                                            alt={receivable.name || receivable.customer_name}
-                                                            className="w-16 h-16 rounded-full object-cover border-2 border-white/30"
-                                                            onError={(e) => {
-                                                                e.target.style.display = 'none';
-                                                                e.target.nextSibling.style.display = 'flex';
-                                                            }}
-                                                        />
-                                                    ) : null}
-                                                    <div
-                                                        className={`w-16 h-16 rounded-full border-2 border-white/30 bg-white/20 flex items-center justify-center ${receivable.user_image_from_s3 || receivable.customer_image ? 'hidden' : 'flex'}`}
-                                                    >
-                                                        <FiUser className="w-8 h-8 text-white" />
-                                                    </div>
-                                                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="text-xl font-bold">{receivable.name || receivable.customer_name || 'N/A'}</h3>
-                                                    <p className="text-red-100 flex items-center gap-2">
-                                                        <FiPhone className="w-4 h-4" />
-                                                        {receivable.phone || receivable.customer_phone || 'N/A'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Card Body */}
-                                        <div className="p-6">
-                                            {/* Area Info */}
-                                            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                                                <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                    <FiFilter className="w-4 h-4" />
-                                                    <span className="font-medium">Area:</span>
-                                                    <span>{receivable.aob || 'N/A'}</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Advance Balance */}
-                                            <div
-                                                className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:shadow-md hover:border-yellow-300 transition-all duration-200 hover:scale-[1.02]"
-                                                onClick={() => handleOpenAdvanceModal(receivable)}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-2xl">💰</span>
-                                                        <div>
-                                                            <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Advance Balance</p>
-                                                            <span className="text-xs text-yellow-600 flex items-center gap-1">
-                                                                Click for details <span className="text-blue-500">ℹ️</span>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-2xl font-bold text-yellow-900">
-                                                            {formatCurrency(receivable?.total_advance_balance ?? 0)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Financial Summary */}
-                                            <div className="grid grid-cols-3 gap-3 mb-6">
-                                                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                                                    <div className="text-xs text-blue-600 font-medium mb-1">Total Due</div>
-                                                    <div className="text-lg font-bold text-blue-700">{formatCurrency(receivable.rbtotal || receivable.total_amount)}</div>
-                                                </div>
-                                                <div className="text-center p-3 bg-green-50 rounded-lg">
-                                                    <div className="text-xs text-green-600 font-medium mb-1">Paid</div>
-                                                    <div className="text-lg font-bold text-green-700">{formatCurrency(receivable.rbpaid || receivable.collected_amount)}</div>
-                                                </div>
-                                                <div className="text-center p-3 bg-red-50 rounded-lg">
-                                                    <div className="text-xs text-red-600 font-medium mb-1">Balance</div>
-                                                    <div className="text-lg font-bold text-red-700">{formatCurrency(receivable.rbdue || receivable.pending_amount)}</div>
-                                                </div>
-                                            </div>
-
-                                            {/* Pay Button */}
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedReceivable(receivable);
-                                                    setModalOpen(true);
-                                                }}
-                                                className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                                            >
-                                                <FiDollarSign className="w-5 h-5" />
-                                                Process Payment
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        <>
+                            <div className="mb-4">
+                                {renderViewToggle()}
+                            </div>
+                            {filteredAreaReceivables.length > 0 ? (
+                                renderPaginatedReceivables(filteredAreaReceivables)
+                            ) : (
+                                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">No matching customers in {selectedArea}</h3>
+                                    <p className="text-gray-600">Try a different customer name or clear filters.</p>
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
                             <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
@@ -444,39 +883,43 @@ const CollectorReceivables = () => {
 
     // Show main receivables view
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-4 md:py-8 px-3 md:px-4">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-8">
-                    <div className="bg-gradient-to-r from-red-600 to-red-700 px-8 py-6 rounded-t-xl">
-                        <div className="flex items-center justify-between">
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-6 md:mb-8">
+                    <div className="bg-gradient-to-r from-red-600 to-red-700 px-4 md:px-8 py-4 md:py-6 rounded-t-xl">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                                    <FiCreditCard className="w-8 h-8" />
+                                <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2 md:gap-3">
+                                    <FiCreditCard className="w-6 h-6 md:w-8 md:h-8" />
                                     Collector Receivables
                                 </h1>
-                                <p className="text-red-100 mt-2">Track and manage your assigned area receivables</p>
+                                <p className="text-red-100 mt-1 md:mt-2 text-sm md:text-base">Track and manage your assigned area receivables</p>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3 self-start sm:self-auto">
                                 <button
                                     onClick={handleManualFetch}
-                                    disabled={isLoading}
+                                    disabled={isFetchingReceivables}
                                     className="flex items-center gap-2 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Refresh Receivables"
                                 >
-                                    <FiRefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+                                    <FiRefreshCw className={`w-5 h-5 ${isFetchingReceivables ? 'animate-spin' : ''}`} />
                                     <span className="hidden md:inline">Refresh</span>
                                 </button>
                                 <div className="bg-white/20 rounded-lg px-4 py-2">
-                                    <span className="text-white font-semibold text-lg">{receivables.length}</span>
-                                    <p className="text-red-100 text-sm">Total Records</p>
+                                    <span className="text-white font-semibold text-lg">
+                                        {(areaFilter || customerFilter) ? filteredReceivables.length : receivables.length}
+                                    </span>
+                                    <p className="text-red-100 text-sm">
+                                        {(areaFilter || customerFilter) ? 'Filtered Records' : 'Total Records'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Filters */}
-                    <div className="p-6">
+                    <div className="p-4 md:p-6">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -519,145 +962,21 @@ const CollectorReceivables = () => {
                         </div>
 
                         {/* Results Summary */}
-                        <div className="flex items-center justify-between text-sm text-gray-600">
+                        <div className="flex flex-col gap-3 text-sm text-gray-600">
                             <span>Showing {filteredReceivables.length} of {receivables.length} receivables</span>
-                            {(areaFilter || customerFilter) && (
-                                <span className="text-red-600 font-medium">Filters applied</span>
-                            )}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+                                {(areaFilter || customerFilter) && (
+                                    <span className="text-red-600 font-medium">Filters applied</span>
+                                )}
+                                {renderViewToggle()}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {/* Receivables List */}
                 {filteredReceivables.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {filteredReceivables.map((receivable, index) => {
-                            const progress = receivable.total_amount > 0
-                                ? (receivable.collected_amount / receivable.total_amount) * 100
-                                : 0;
-
-                            return (
-                                <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                                    {/* Card Header */}
-                                    <div className="bg-gradient-to-r from-red-600 to-red-700 p-6 text-white">
-                                        <div className="flex items-center gap-4">
-                                            <div className="relative">
-                                                {receivable.user_image_from_s3 || receivable.customer_image ? (
-                                                    <img
-                                                        src={receivable.user_image_from_s3 || receivable.customer_image}
-                                                        alt={receivable.name || receivable.customer_name}
-                                                        className="w-16 h-16 rounded-full object-cover border-2 border-white/30"
-                                                        onError={(e) => {
-                                                            e.target.style.display = 'none';
-                                                            e.target.nextSibling.style.display = 'flex';
-                                                        }}
-                                                    />
-                                                ) : null}
-                                                <div
-                                                    className={`w-16 h-16 rounded-full border-2 border-white/30 bg-white/20 flex items-center justify-center ${receivable.user_image_from_s3 || receivable.customer_image ? 'hidden' : 'flex'}`}
-                                                >
-                                                    <FiUser className="w-8 h-8 text-white" />
-                                                </div>
-                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                                            </div>
-                                            <div className="flex-1">
-                                                <h3 className="text-xl font-bold">{receivable.name || receivable.customer_name || 'N/A'}</h3>
-                                                <p className="text-red-100 flex items-center gap-2">
-                                                    <FiPhone className="w-4 h-4" />
-                                                    {receivable.phone || receivable.customer_phone || 'N/A'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Card Body */}
-                                    <div className="p-6">
-                                        {/* Group and Auction Info - Enhanced */}
-                                        <div className="mb-4 grid grid-cols-2 gap-3">
-                                            <div className="p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <FiUsers className="w-4 h-4 text-blue-600" />
-                                                    <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">Group</span>
-                                                </div>
-                                                <p className="text-sm font-bold text-blue-900 truncate" title={receivable.group_name}>
-                                                    {receivable.group_name || 'N/A'}
-                                                </p>
-                                            </div>
-                                            <div className="p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <FiCalendar className="w-4 h-4 text-purple-600" />
-                                                    <span className="text-xs text-purple-600 font-medium uppercase tracking-wide">Auction</span>
-                                                </div>
-                                                <p className="text-sm font-bold text-purple-900">
-                                                    {formatDate(receivable.auct_date)}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Area Info */}
-                                        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <FiFilter className="w-4 h-4" />
-                                                <span className="font-medium">Area:</span>
-                                                <span>{receivable.aob || 'N/A'}</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Advance Balance */}
-                                        <div
-                                            className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:shadow-md hover:border-yellow-300 transition-all duration-200 hover:scale-[1.02]"
-                                            onClick={() => handleOpenAdvanceModal(receivable)}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-2xl">💰</span>
-                                                    <div>
-                                                        <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Advance Balance</p>
-                                                        <span className="text-xs text-yellow-600 flex items-center gap-1">
-                                                            Click for details <span className="text-blue-500">ℹ️</span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-2xl font-bold text-yellow-900">
-                                                        {formatCurrency(receivable?.total_advance_balance || 0)}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Financial Summary */}
-                                        <div className="grid grid-cols-3 gap-3 mb-6">
-                                            <div className="text-center p-3 bg-blue-50 rounded-lg">
-                                                <div className="text-xs text-blue-600 font-medium mb-1">Total Due</div>
-                                                <div className="text-lg font-bold text-blue-700">{formatCurrency(receivable.rbtotal || receivable.total_amount)}</div>
-                                            </div>
-                                            <div className="text-center p-3 bg-green-50 rounded-lg">
-                                                <div className="text-xs text-green-600 font-medium mb-1">Paid</div>
-                                                <div className="text-lg font-bold text-green-700">{formatCurrency(receivable.rbpaid || receivable.collected_amount)}</div>
-                                            </div>
-                                            <div className="text-center p-3 bg-red-50 rounded-lg">
-                                                <div className="text-xs text-red-600 font-medium mb-1">Balance</div>
-                                                <div className="text-lg font-bold text-red-700">{formatCurrency(receivable.rbdue || receivable.pending_amount)}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Pay Button */}
-                                        <button
-                                            onClick={() => {
-                                                setSelectedReceivable(receivable);
-                                                setModalOpen(true);
-                                            }}
-                                            className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                                        >
-                                            <FiDollarSign className="w-5 h-5" />
-                                            Process Payment
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                    renderPaginatedReceivables(filteredReceivables)
                 ) : (
                     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
                         <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">

@@ -13,18 +13,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-    const { isAuthenticated, isLoading } = useCollector();
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading...</p>
-                </div>
-            </div>
-        );
-    }
+    const { isAuthenticated } = useCollector();
 
     if (!isAuthenticated) {
         return <Redirect to="/chit-fund/collector/login" />;

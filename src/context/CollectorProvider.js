@@ -11,7 +11,10 @@ const initialState = {
     token: null,
     isAuthenticated: false,
     isLoading: false,
+    isFetchingReceivables: false,
     receivables: [],
+    summary: null,
+    areaSummary: {},
     selectedArea: null,
     areaReceivables: [],
     error: null
@@ -20,6 +23,7 @@ const initialState = {
 // Action types
 const ACTIONS = {
     SET_LOADING: 'SET_LOADING',
+    SET_FETCHING_RECEIVABLES: 'SET_FETCHING_RECEIVABLES',
     LOGIN_SUCCESS: 'LOGIN_SUCCESS',
     LOGOUT: 'LOGOUT',
     SET_RECEIVABLES: 'SET_RECEIVABLES',
@@ -33,6 +37,9 @@ const collectorReducer = (state, action) => {
     switch (action.type) {
         case ACTIONS.SET_LOADING:
             return { ...state, isLoading: action.payload };
+
+        case ACTIONS.SET_FETCHING_RECEIVABLES:
+            return { ...state, isFetchingReceivables: action.payload };
 
         case ACTIONS.LOGIN_SUCCESS:
             return {
@@ -51,6 +58,8 @@ const collectorReducer = (state, action) => {
                 token: null,
                 isAuthenticated: false,
                 receivables: [],
+                summary: null,
+                areaSummary: {},
                 selectedArea: null,
                 areaReceivables: [],
                 error: null
@@ -59,8 +68,10 @@ const collectorReducer = (state, action) => {
         case ACTIONS.SET_RECEIVABLES:
             return {
                 ...state,
-                receivables: action.payload,
-                isLoading: false,
+                receivables: action.payload.receivables || [],
+                summary: action.payload.summary || null,
+                areaSummary: action.payload.areaSummary || {},
+                isFetchingReceivables: false,
                 error: null
             };
 
@@ -69,7 +80,6 @@ const collectorReducer = (state, action) => {
                 ...state,
                 selectedArea: action.payload.area,
                 areaReceivables: action.payload.receivables,
-                isLoading: false,
                 error: null
             };
 
@@ -77,7 +87,8 @@ const collectorReducer = (state, action) => {
             return {
                 ...state,
                 error: action.payload,
-                isLoading: false
+                isLoading: false,
+                isFetchingReceivables: false
             };
 
         case ACTIONS.CLEAR_ERROR:
@@ -177,63 +188,55 @@ export const CollectorProvider = ({ children }) => {
         toast.success('Logged out successfully');
     };
 
-    // Fetch receivables for collector (using same API as admin modal)
     const fetchReceivables = useCallback(async () => {
-        console.log('🔍 fetchReceivables called');
-        console.log('  - state.user:', state.user);
-        console.log('  - state.user?.id:', state.user?.id);
-        console.log('  - state.user?.userId:', state.user?.userId);
+        const collectorId =
+            state.user?.id ||
+            state.user?.userId ||
+            state.user?.results?.userId;
+        const authToken = state.token || state.user?.token;
 
-        // Use the same field as admin modal: collector.id
-        const collectorId = state.user?.id || state.user?.userId;
-        if (!collectorId) {
-            console.log('❌ No collector ID found, cannot fetch receivables');
+        if (!collectorId || !authToken) {
+            console.log('❌ Missing collector ID or token, cannot fetch receivables');
             return;
         }
 
-        console.log('🔄 Fetching receivables for collector:', collectorId);
-        dispatch({ type: ACTIONS.SET_LOADING, payload: true });
+        dispatch({ type: ACTIONS.SET_FETCHING_RECEIVABLES, payload: true });
 
         try {
-            console.log('🔄 API URL:', `${API_BASE_URL}/collector-area/${collectorId}/receivables`);
             const response = await fetch(`${API_BASE_URL}/collector-area/${collectorId}/receivables`, {
                 method: 'GET',
                 headers: {
-                    Authorization: `Bearer ${state.token}`,
+                    Authorization: `Bearer ${authToken}`,
                 },
             });
 
-            console.log('📡 Response status:', response.status);
-            console.log('📡 Response ok:', response.ok);
-
             if (response.ok) {
                 const data = await response.json();
-                console.log('✅ API Response:', data);
 
-                // Check for success (either data.success === true OR data.error === false)
                 if (data.success === true || data.error === false) {
                     const receivablesData = data.results?.receivables || [];
-                    console.log('✅ Setting receivables:', receivablesData);
                     dispatch({
                         type: ACTIONS.SET_RECEIVABLES,
-                        payload: receivablesData
+                        payload: {
+                            receivables: receivablesData,
+                            summary: data.results?.summary || null,
+                            areaSummary: data.results?.areaSummary || {},
+                        }
                     });
                 } else {
-                    console.log('❌ API returned success: false or error: true');
                     throw new Error(data.message || 'Failed to fetch receivables');
                 }
             } else {
-                console.log('❌ Response not ok, status:', response.status);
-                const errorData = await response.json();
-                console.log('❌ Error data:', errorData);
+                const errorData = await response.json().catch(() => ({}));
                 throw new Error(errorData.message || 'Failed to fetch receivables');
             }
         } catch (error) {
-            console.log('❌ Fetch receivables error:', error);
             dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
             toast.error('Failed to fetch receivables');
+        } finally {
+            dispatch({ type: ACTIONS.SET_FETCHING_RECEIVABLES, payload: false });
         }
-    }, [state.user?.id, state.user?.userId, state.token]);
+    }, [state.user, state.token]);
 
     // Fetch receivables for specific area
     const fetchAreaReceivables = useCallback((areaName) => {
@@ -249,53 +252,186 @@ export const CollectorProvider = ({ children }) => {
         });
     }, [state.receivables]);
 
+    const getCollectorId = useCallback(() => (
+        state.user?.userId || state.user?.id || state.user?.results?.userId || null
+    ), [state.user]);
+
+    const getPaymentsList = useCallback((receivable) => {
+        if (!receivable?.payments) return [];
+        if (Array.isArray(receivable.payments)) return receivable.payments;
+        if (typeof receivable.payments === 'string') {
+            try {
+                return JSON.parse(receivable.payments);
+            } catch {
+                return [];
+            }
+        }
+        return [];
+    }, []);
+
+    const getPaymentsTotal = useCallback((receivable) => {
+        return getPaymentsList(receivable).reduce(
+            (sum, payment) => sum + parseFloat(payment.payment_amount || 0),
+            0
+        );
+    }, [getPaymentsList]);
+
+    const getTotalCollectedAmount = useCallback((receivable) => {
+        const reportedPaid = parseFloat(receivable.rbpaid || receivable.collected_amount || 0);
+        const paymentsTotal = getPaymentsTotal(receivable);
+        return Math.max(reportedPaid, paymentsTotal);
+    }, [getPaymentsTotal]);
+
+    const getCollectorCollectedAmount = useCallback((receivable, collectorId) => {
+        const reportedCollectorPaid = receivable?.collector_paid != null
+            ? parseFloat(receivable.collector_paid || 0)
+            : null;
+
+        if (!collectorId && !state.user) {
+            return reportedCollectorPaid ?? 0;
+        }
+
+        const collectorName = (
+            state.user?.name ||
+            `${state.user?.firstname || ''} ${state.user?.lastname || ''}`
+        ).trim().toLowerCase();
+
+        const paymentsTotal = getPaymentsList(receivable).reduce((sum, payment) => {
+            const amount = parseFloat(payment.payment_amount || 0);
+            const paymentCreatorId = payment.created_by;
+            const paymentUserName = (payment.user_name || '').trim().toLowerCase();
+
+            const isCollectorPayment =
+                (collectorId && paymentCreatorId != null && String(paymentCreatorId) === String(collectorId)) ||
+                (collectorName && paymentUserName === collectorName);
+
+            return isCollectorPayment ? sum + amount : sum;
+        }, 0);
+
+        if (reportedCollectorPaid != null) {
+            return Math.max(reportedCollectorPaid, paymentsTotal);
+        }
+
+        return paymentsTotal;
+    }, [getPaymentsList, state.user]);
+
+    const enrichDashboardSummary = useCallback((summary) => {
+        const totalCollected = Number(summary.totalCollected ?? summary.totalCollectedAmount ?? 0);
+        const collected = Number(summary.collected ?? 0);
+        const collectedByOthers = Number(
+            summary.collectedByOthers ?? Math.max(0, totalCollected - collected)
+        );
+
+        return {
+            totalAmount: Number(summary.totalAmount ?? 0),
+            totalCollected,
+            collected,
+            collectedByOthers,
+            pending: Number(summary.pending ?? 0),
+            collectionRate: summary.totalAmount > 0
+                ? ((collected / summary.totalAmount) * 100).toFixed(1)
+                : 0,
+        };
+    }, []);
+
+    const enrichAreaSummary = useCallback((areaGroups) => {
+        return Object.entries(areaGroups).reduce((acc, [areaName, area]) => {
+            const totalCollected = Number(area.totalCollected ?? 0);
+            const collected = Number(area.collected ?? 0);
+
+            acc[areaName] = {
+                ...area,
+                collectedByOthers: Number(
+                    area.collectedByOthers ?? Math.max(0, totalCollected - collected)
+                ),
+            };
+
+            return acc;
+        }, {});
+    }, []);
+
     // Get area summary
     const getAreaSummary = useCallback(() => {
+        if (state.areaSummary && Object.keys(state.areaSummary).length > 0) {
+            return enrichAreaSummary(state.areaSummary);
+        }
+
         if (!state.receivables.length) return {};
+
+        const collectorId = getCollectorId();
 
         const areaGroups = state.receivables.reduce((acc, receivable) => {
             const area = receivable.aob;
             if (!acc[area]) {
                 acc[area] = {
                     totalAmount: 0,
+                    totalCollected: 0,
                     collected: 0,
+                    collectedByOthers: 0,
                     pending: 0,
                     count: 0
                 };
             }
 
-            // Use rbtotal, rbpaid, rbdue (with fallback to old field names)
             acc[area].totalAmount += parseFloat(receivable.rbtotal || receivable.total_amount || 0);
-            acc[area].collected += parseFloat(receivable.rbpaid || receivable.collected_amount || 0);
+            acc[area].totalCollected += getTotalCollectedAmount(receivable);
+            acc[area].collected += getCollectorCollectedAmount(receivable, collectorId);
             acc[area].pending += parseFloat(receivable.rbdue || receivable.pending_amount || 0);
             acc[area].count += 1;
 
             return acc;
         }, {});
 
+        Object.values(areaGroups).forEach((area) => {
+            area.collectedByOthers = Math.max(0, area.totalCollected - area.collected);
+        });
+
         return areaGroups;
-    }, [state.receivables]);
+    }, [state.receivables, state.areaSummary, getCollectorId, getCollectorCollectedAmount, getTotalCollectedAmount, enrichAreaSummary]);
 
     // Get overall summary
     const getOverallSummary = useCallback(() => {
-        if (!state.receivables.length) {
-            return { totalAmount: 0, collected: 0, pending: 0, collectionRate: 0 };
+        if (state.summary) {
+            return enrichDashboardSummary(state.summary);
         }
 
+        if (!state.receivables.length) {
+            return {
+                totalAmount: 0,
+                totalCollected: 0,
+                collected: 0,
+                collectedByOthers: 0,
+                pending: 0,
+                collectionRate: 0,
+            };
+        }
+
+        const collectorId = getCollectorId();
+
         const summary = state.receivables.reduce((acc, receivable) => {
-            // Use rbtotal, rbpaid, rbdue (with fallback to old field names)
             acc.totalAmount += parseFloat(receivable.rbtotal || receivable.total_amount || 0);
-            acc.collected += parseFloat(receivable.rbpaid || receivable.collected_amount || 0);
+            acc.totalCollected += getTotalCollectedAmount(receivable);
+            acc.collected += getCollectorCollectedAmount(receivable, collectorId);
             acc.pending += parseFloat(receivable.rbdue || receivable.pending_amount || 0);
             return acc;
-        }, { totalAmount: 0, collected: 0, pending: 0 });
+        }, { totalAmount: 0, totalCollected: 0, collected: 0, pending: 0 });
 
+        summary.collectedByOthers = Math.max(0, summary.totalCollected - summary.collected);
         summary.collectionRate = summary.totalAmount > 0
             ? ((summary.collected / summary.totalAmount) * 100).toFixed(1)
             : 0;
 
         return summary;
-    }, [state.receivables]);
+    }, [state.receivables, state.summary, getCollectorId, getCollectorCollectedAmount, getTotalCollectedAmount, enrichDashboardSummary]);
+
+    const getReceivablesSummary = useCallback((receivablesList = state.receivables) => {
+        return receivablesList.reduce((acc, receivable) => {
+            acc.totalDue += parseFloat(receivable.rbtotal || receivable.total_amount || 0);
+            acc.paid += parseFloat(receivable.rbpaid || receivable.collected_amount || 0);
+            acc.balance += parseFloat(receivable.rbdue || receivable.pending_amount || 0);
+            return acc;
+        }, { totalDue: 0, paid: 0, balance: 0 });
+    }, []);
 
     const value = {
         ...state,
@@ -304,7 +440,8 @@ export const CollectorProvider = ({ children }) => {
         fetchReceivables,
         fetchAreaReceivables,
         getAreaSummary,
-        getOverallSummary
+        getOverallSummary,
+        getReceivablesSummary
     };
 
     return (

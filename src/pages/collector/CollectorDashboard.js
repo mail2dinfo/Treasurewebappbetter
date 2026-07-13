@@ -1,38 +1,35 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FiDollarSign, FiTrendingUp, FiUsers, FiBarChart2, FiEye, FiRefreshCw } from 'react-icons/fi';
+import { FiDollarSign, FiTrendingUp, FiUsers, FiEye, FiRefreshCw, FiAlertCircle, FiUserCheck } from 'react-icons/fi';
 import { useCollector } from '../../context/CollectorProvider';
+
+const formatAmount = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
 const CollectorDashboard = () => {
     const {
         user,
         receivables,
-        isLoading,
+        isFetchingReceivables,
         error,
         fetchReceivables,
         getAreaSummary,
-        getOverallSummary
+        getOverallSummary,
+        isAuthenticated,
     } = useCollector();
 
-    const hasFetched = useRef(false);
-
     useEffect(() => {
-        // Fetch data on mount only if we don't have data
-        if (!hasFetched.current && receivables.length === 0 && !isLoading) {
-            hasFetched.current = true;
-            fetchReceivables();
-        }
-    }, []); // Empty dependency - only run once on mount
+        if (!isAuthenticated || !user) return;
+        fetchReceivables();
+    }, [isAuthenticated, user, fetchReceivables]);
 
     const handleRefresh = () => {
-        console.log('🔄 Manual refresh triggered');
         fetchReceivables();
     };
 
     const areaSummary = getAreaSummary();
     const overallSummary = getOverallSummary();
 
-    if (isLoading) {
+    if (isFetchingReceivables && receivables.length === 0) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
@@ -77,17 +74,17 @@ const CollectorDashboard = () => {
                     </div>
                     <button
                         onClick={handleRefresh}
-                        disabled={isLoading}
+                        disabled={isFetchingReceivables}
                         className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Refresh Dashboard"
                     >
-                        <FiRefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+                        <FiRefreshCw className={`w-5 h-5 ${isFetchingReceivables ? 'animate-spin' : ''}`} />
                         <span className="hidden md:inline">Refresh</span>
                     </button>
                 </div>
 
                 {/* Overall Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
                     <div className="bg-white rounded-lg shadow p-6">
                         <div className="flex items-center">
                             <div className="p-3 rounded-full bg-red-100">
@@ -95,8 +92,9 @@ const CollectorDashboard = () => {
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-600">Total Amount</p>
-                                <p className="text-2xl font-bold text-gray-900">
-                                    ₹{overallSummary.totalAmount.toLocaleString()}
+                                <p className="text-xs text-gray-500">Assigned in your areas</p>
+                                <p className="text-2xl font-bold text-gray-900 mt-1">
+                                    {formatAmount(overallSummary.totalAmount)}
                                 </p>
                             </div>
                         </div>
@@ -108,23 +106,10 @@ const CollectorDashboard = () => {
                                 <FiTrendingUp className="h-6 w-6 text-green-600" />
                             </div>
                             <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">Collected</p>
-                                <p className="text-2xl font-bold text-green-600">
-                                    ₹{overallSummary.collected.toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white rounded-lg shadow p-6">
-                        <div className="flex items-center">
-                            <div className="p-3 rounded-full bg-orange-100">
-                                <FiDollarSign className="h-6 w-6 text-orange-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">Pending</p>
-                                <p className="text-2xl font-bold text-orange-600">
-                                    ₹{overallSummary.pending.toLocaleString()}
+                                <p className="text-sm font-medium text-gray-600">Collected by You</p>
+                                <p className="text-xs text-gray-500">Payments you recorded</p>
+                                <p className="text-2xl font-bold text-green-600 mt-1">
+                                    {formatAmount(overallSummary.collected)}
                                 </p>
                             </div>
                         </div>
@@ -133,12 +118,28 @@ const CollectorDashboard = () => {
                     <div className="bg-white rounded-lg shadow p-6">
                         <div className="flex items-center">
                             <div className="p-3 rounded-full bg-blue-100">
-                                <FiBarChart2 className="h-6 w-6 text-blue-600" />
+                                <FiUserCheck className="h-6 w-6 text-blue-600" />
                             </div>
                             <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-600">Collection Rate</p>
-                                <p className="text-2xl font-bold text-blue-600">
-                                    {overallSummary.collectionRate}%
+                                <p className="text-sm font-medium text-gray-600">Collected by Others</p>
+                                <p className="text-xs text-gray-500">Admin and other users</p>
+                                <p className="text-2xl font-bold text-blue-600 mt-1">
+                                    {formatAmount(overallSummary.collectedByOthers)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <div className="flex items-center">
+                            <div className="p-3 rounded-full bg-orange-100">
+                                <FiAlertCircle className="h-6 w-6 text-orange-600" />
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-600">Total Pending</p>
+                                <p className="text-xs text-gray-500">Still due in your areas</p>
+                                <p className="text-2xl font-bold text-orange-600 mt-1">
+                                    {formatAmount(overallSummary.pending)}
                                 </p>
                             </div>
                         </div>
@@ -199,10 +200,13 @@ const CollectorDashboard = () => {
                                             Total Amount
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Collected
+                                            Collected by You
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Pending
+                                            Collected by Others
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Total Pending
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Customers
@@ -217,8 +221,9 @@ const CollectorDashboard = () => {
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {Object.entries(areaSummary).map(([areaName, summary]) => {
+                                        const totalCollected = (summary.collected || 0) + (summary.collectedByOthers || 0);
                                         const progress = summary.totalAmount > 0
-                                            ? (summary.collected / summary.totalAmount) * 100
+                                            ? (totalCollected / summary.totalAmount) * 100
                                             : 0;
 
                                         return (
@@ -227,13 +232,16 @@ const CollectorDashboard = () => {
                                                     <div className="text-sm font-medium text-gray-900">{areaName}</div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    ₹{summary.totalAmount.toLocaleString()}
+                                                    {formatAmount(summary.totalAmount)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">
-                                                    ₹{summary.collected.toLocaleString()}
+                                                    {formatAmount(summary.collected)}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                                                    {formatAmount(summary.collectedByOthers)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600">
-                                                    ₹{summary.pending.toLocaleString()}
+                                                    {formatAmount(summary.pending)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     {summary.count}
