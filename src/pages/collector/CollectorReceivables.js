@@ -49,14 +49,14 @@ const CollectorReceivables = () => {
     useEffect(() => {
         if (!isAuthenticated || !user) return;
 
-        if (receivables.length === 0 && !isFetchingReceivables && !error) {
-            fetchReceivables();
-        }
+        fetchReceivables();
+    }, [isAuthenticated, user, fetchReceivables]);
 
-        if (ledgerAccounts.length === 0 && !isLoadingAccounts) {
-            fetchLedgerAccounts();
-        }
-    }, [isAuthenticated, user, receivables.length, isFetchingReceivables, error, fetchReceivables, ledgerAccounts.length, isLoadingAccounts, fetchLedgerAccounts]);
+    useEffect(() => {
+        if (!isAuthenticated || !user) return;
+
+        fetchLedgerAccounts();
+    }, [isAuthenticated, user, fetchLedgerAccounts]);
 
     // Debug logging for ledger accounts
     useEffect(() => {

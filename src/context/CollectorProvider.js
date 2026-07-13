@@ -197,10 +197,14 @@ export const CollectorProvider = ({ children }) => {
 
         if (!collectorId || !authToken) {
             console.log('❌ Missing collector ID or token, cannot fetch receivables');
+            dispatch({ type: ACTIONS.SET_ERROR, payload: 'Missing collector ID or authentication token' });
             return;
         }
 
         dispatch({ type: ACTIONS.SET_FETCHING_RECEIVABLES, payload: true });
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
         try {
             const response = await fetch(`${API_BASE_URL}/collector-area/${collectorId}/receivables`, {
@@ -208,6 +212,7 @@ export const CollectorProvider = ({ children }) => {
                 headers: {
                     Authorization: `Bearer ${authToken}`,
                 },
+                signal: controller.signal,
             });
 
             if (response.ok) {
@@ -231,9 +236,13 @@ export const CollectorProvider = ({ children }) => {
                 throw new Error(errorData.message || 'Failed to fetch receivables');
             }
         } catch (error) {
-            dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+            const message = error.name === 'AbortError'
+                ? 'Request timed out. Please try again.'
+                : error.message;
+            dispatch({ type: ACTIONS.SET_ERROR, payload: message });
             toast.error('Failed to fetch receivables');
         } finally {
+            clearTimeout(timeoutId);
             dispatch({ type: ACTIONS.SET_FETCHING_RECEIVABLES, payload: false });
         }
     }, [state.user, state.token]);

@@ -320,11 +320,16 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                 <p className="text-gray-600">Your payment has been processed successfully</p>
                             </div>
 
-                            <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Billno:</span>
-                                    <span className="font-semibold">{receiptData.billNumber ?? '-'}</span>
+                            <div className="receipt-container space-y-4">
+                                <div className="flex items-center justify-between bg-[#003366] text-white rounded-lg px-4 py-3">
+                                    <span className="text-sm font-semibold">Receivable Details</span>
+                                    <div className="text-right text-xs font-semibold">
+                                        <p>Billno: {receiptData.billNumber ?? '-'}</p>
+                                        <p>Bill Date: {formatDate(new Date().toISOString())}</p>
+                                    </div>
                                 </div>
+
+                                <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Subscriber Name:</span>
                                     <span className="font-semibold">{receiptData.subscriberName}</span>
@@ -356,6 +361,7 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Transaction Ref:</span>
                                     <span className="font-semibold">{receiptData.paymentTransactionRef}</span>
+                                </div>
                                 </div>
                             </div>
 

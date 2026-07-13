@@ -112,7 +112,6 @@ const ReceivableReceitPdf = ({ receivableData = {}, companyData = {} }) => {
 
                 {/* Data Fields */}
                 <View style={styles.fieldGrid}>
-                    <Field label="Billno" value={billNumber} />
                     <Field label="Name" value={receivableData.subscriberName} />
                     <Field label="Payment Type" value={receivableData.paymentType} />
                     <Field label="Payment Method" value={receivableData.paymentMethod} />

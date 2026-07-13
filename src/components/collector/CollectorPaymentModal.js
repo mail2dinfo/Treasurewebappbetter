@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import { API_BASE_URL } from "../../utils/apiConfig";
-import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck, FiAlertCircle, FiPrinter } from 'react-icons/fi';
+import ReceivableReceitPdf from "../PDF/ReceivableReceitPdf";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck, FiAlertCircle, FiPrinter, FiDownload } from 'react-icons/fi';
 import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import 'react-toastify/dist/ReactToastify.css';
@@ -20,6 +22,7 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
     const [isConfirming, setIsConfirming] = useState(false);
     const [receiptData, setReceiptData] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     const { user } = useCollector();
     const { ledgerAccounts = [] } = useCollectorLedger();
@@ -141,7 +144,14 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
             if (response.ok) {
                 const data = await response.json();
                 console.log('✅ Payment response:', data);
-                setReceiptData({ ...payload, subscriberName: name });
+                const billNumber = data.results?.receiptId;
+                setReceiptData({
+                    ...payload,
+                    subscriberName: name,
+                    billNumber,
+                    receiptId: billNumber,
+                    transactedDate: receivableDate,
+                });
 
                 // Refresh receivables immediately to show updated status
                 if (fetchReceivables) {
@@ -174,7 +184,15 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
     };
 
     const handlePrint = () => {
-        window.print();
+        const printContents = document.querySelector('.collector-receipt-container')?.innerHTML;
+        const printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write('<html><head><title>Receipt</title>');
+        printWindow.document.write('<style>body { font-family: Arial; padding: 20px; } .receipt-row { display: flex; justify-content: space-between; padding: 4px 0; }</style>');
+        printWindow.document.write('</head><body>');
+        printWindow.document.write(printContents);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.print();
     };
 
     return (
@@ -319,7 +337,11 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
                                 <p className="text-gray-600">Your payment has been processed successfully</p>
                             </div>
 
-                            <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                            <div className="collector-receipt-container bg-white border border-gray-200 rounded-lg p-4 space-y-3">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Billno:</span>
+                                    <span className="font-semibold">{receiptData.billNumber ?? '-'}</span>
+                                </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Subscriber Name:</span>
                                     <span className="font-semibold">{receiptData.subscriberName}</span>
@@ -362,18 +384,31 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
                                     <FiPrinter className="w-5 h-5" />
                                     Print
                                 </button>
-                                <button
+                                <PDFDownloadLink
+                                    key={`collector-receipt-pdf-${receiptData.billNumber ?? receiptData.receiptId ?? 'new'}`}
+                                    document={
+                                        <ReceivableReceitPdf
+                                            receivableData={{
+                                                ...receiptData,
+                                                billNumber: receiptData.billNumber ?? receiptData.receiptId,
+                                            }}
+                                            companyData={userCompany}
+                                        />
+                                    }
+                                    fileName={`Receipt-${receiptData.billNumber || receiptData.subscriberName}-${Date.now()}.pdf`}
+                                    className="flex-1"
                                     onClick={() => {
-                                        // Refresh data one more time before closing
-                                        if (fetchReceivables) {
-                                            fetchReceivables();
-                                        }
-                                        onClose();
+                                        setIsDownloading(true);
+                                        setTimeout(() => setIsDownloading(false), 3000);
                                     }}
-                                    className="flex-1 py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors duration-200"
                                 >
-                                    Close
-                                </button>
+                                    {({ loading: pdfLoading }) => (
+                                        <button className="w-full py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors duration-200 flex items-center justify-center gap-2">
+                                            <FiDownload className="w-5 h-5" />
+                                            {pdfLoading || isDownloading ? "Downloading..." : "Download PDF"}
+                                        </button>
+                                    )}
+                                </PDFDownloadLink>
                             </div>
                         </div>
                     ) : (

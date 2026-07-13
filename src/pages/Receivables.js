@@ -2,12 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { useReceivablesContext } from '../context/receivables_context';
 import loadingImage from '../images/preloader.gif';
-import { FiArrowUp, FiArrowDown, FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiTrendingUp } from 'react-icons/fi';
+import { FiArrowUp, FiArrowDown, FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiTrendingUp, FiGrid, FiList } from 'react-icons/fi';
 import { GoArrowBoth } from 'react-icons/go';
 import Tooltip from 'react-tooltip-lite';
 import ReceivablePayementModal from '../components/ReceivablePayementModal';
 import { useAobContext } from '../context/aob_context';
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const Receivable = () => {
   const { fetchReceivables, receivables, isLoading } = useReceivablesContext();
@@ -15,6 +16,9 @@ const Receivable = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedReceivable, setSelectedReceivable] = useState(null);
   const { aobs, fetchAobs } = useAobContext();
+  const [viewMode, setViewMode] = useState('list');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Advance 360° modal state
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
@@ -61,6 +65,60 @@ const Receivable = () => {
     });
   };
 
+  const isValidUserImage = (url) => {
+    if (!url || typeof url !== 'string') return false;
+    if (url.includes('via.placeholder.com')) return false;
+    if (url === 'default-image.jpg') return false;
+    return true;
+  };
+
+  const getUserImageSrc = (person) => {
+    const candidates = [
+      person?.user_image_base64format,
+      person?.user_image_from_s3,
+      person?.user_image,
+      person?.customer_image,
+    ];
+    return candidates.find(isValidUserImage) || null;
+  };
+
+  const renderUserAvatar = (person, options = {}) => {
+    const {
+      sizeClass = 'w-10 h-10',
+      iconClass = 'w-5 h-5',
+      variant = 'default',
+    } = options;
+    const imageSrc = getUserImageSrc(person);
+    const borderClass = variant === 'header'
+      ? 'border-2 border-white/30'
+      : 'border border-gray-200';
+    const fallbackBg = variant === 'header' ? 'bg-white/20' : 'bg-gray-100';
+    const iconColor = variant === 'header' ? 'text-white' : 'text-gray-500';
+
+    return (
+      <div className={`relative flex-shrink-0 ${sizeClass}`}>
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt={person?.name || 'User'}
+            className={`${sizeClass} rounded-full object-cover ${borderClass}`}
+            onError={(e) => {
+              e.target.style.display = 'none';
+              if (e.target.nextSibling) {
+                e.target.nextSibling.style.display = 'flex';
+              }
+            }}
+          />
+        ) : null}
+        <div
+          className={`${sizeClass} rounded-full ${borderClass} ${fallbackBg} flex items-center justify-center ${imageSrc ? 'hidden' : 'flex'}`}
+        >
+          <FiUser className={`${iconClass} ${iconColor}`} />
+        </div>
+      </div>
+    );
+  };
+
   // Filter receivables based on group name and subscriber name (case insensitive)
   // const filteredReceivables = receivables.filter(({ group_name, name }) => {
   //   return (
@@ -70,23 +128,484 @@ const Receivable = () => {
   //   );
   // });
 
-  const filteredReceivables = receivables.filter(({ group_name, name, area }) => {
+  const filteredReceivables = receivables.filter(({ group_name, name, area, aob }) => {
     const groupMatch = !groupFilter || group_name.toLowerCase().includes(groupFilter.toLowerCase());
     const subscriberMatch = !subscriberFilter || name.toLowerCase().includes(subscriberFilter.toLowerCase());
-    const areaMatch = !areaFilter || (area || "").toLowerCase().includes(areaFilter.toLowerCase());
+    const areaValue = area || aob || '';
+    const areaMatch = !areaFilter || areaValue.toLowerCase().includes(areaFilter.toLowerCase());
 
     return groupMatch && subscriberMatch && areaMatch;
   });
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [groupFilter, subscriberFilter, areaFilter, pageSize]);
 
-  // Clear all filters
   const clearFilters = () => {
     setGroupFilter("");
     setSubscriberFilter("");
     setAreaFilter("");
+    setCurrentPage(1);
   };
 
-  // Advance 360° modal handlers
+  const openPaymentModal = (person) => {
+    setSelectedReceivable(person);
+    setModalOpen(true);
+  };
+
+  const getReceivableKey = (person, index) =>
+    person.unique_id || person.id || `${person.group_id || 'group'}-${person.auct_date || 'date'}-${index}`;
+
+  const getReceivablesSummary = (items) => (
+    items.reduce((acc, person) => {
+      acc.totalDue += parseFloat(person.rbtotal || 0);
+      acc.paid += parseFloat(person.rbpaid || 0);
+      acc.balance += parseFloat(person.rbdue || 0);
+      return acc;
+    }, { totalDue: 0, paid: 0, balance: 0 })
+  );
+
+  const renderMobileSummaryFooter = (items) => {
+    if (!items.length) return null;
+
+    const totals = getReceivablesSummary(items);
+
+    return (
+      <div className="bg-gray-100 rounded-xl border-2 border-custom-red p-4">
+        <p className="text-sm font-semibold text-gray-900 mb-3">
+          Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="text-center p-2 bg-blue-50 rounded-lg">
+            <p className="text-[10px] text-blue-600 font-medium uppercase">Total Due</p>
+            <p className="text-sm font-bold text-blue-800">{formatCurrency(totals.totalDue)}</p>
+          </div>
+          <div className="text-center p-2 bg-green-50 rounded-lg">
+            <p className="text-[10px] text-green-600 font-medium uppercase">Paid</p>
+            <p className="text-sm font-bold text-green-800">{formatCurrency(totals.paid)}</p>
+          </div>
+          <div className="text-center p-2 bg-red-50 rounded-lg">
+            <p className="text-[10px] text-red-600 font-medium uppercase">Balance</p>
+            <p className="text-sm font-bold text-red-800">{formatCurrency(totals.balance)}</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderDesktopSummaryRow = (items) => {
+    if (!items.length) return null;
+
+    const totals = getReceivablesSummary(items);
+
+    return (
+      <tr className="bg-gray-100 border-t-2 border-custom-red">
+        <td colSpan={6} className="px-4 py-4 text-sm font-semibold text-gray-900">
+          Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
+        </td>
+        <td className="px-4 py-4 text-sm font-bold text-blue-700">
+          {formatCurrency(totals.totalDue)}
+        </td>
+        <td className="px-4 py-4 text-sm font-bold text-green-700">
+          {formatCurrency(totals.paid)}
+        </td>
+        <td className="px-4 py-4 text-sm font-bold text-red-700">
+          {formatCurrency(totals.balance)}
+        </td>
+        <td className="px-4 py-4" />
+      </tr>
+    );
+  };
+
+  const renderGridSummaryFooter = (items) => {
+    if (!items.length) return null;
+
+    const totals = getReceivablesSummary(items);
+
+    return (
+      <div className="col-span-full bg-gray-100 rounded-xl border-2 border-custom-red p-4 md:p-5">
+        <p className="text-sm font-semibold text-gray-900 mb-3">
+          Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+            <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">Total Due</p>
+            <p className="text-xl font-bold text-blue-800 mt-1">{formatCurrency(totals.totalDue)}</p>
+          </div>
+          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+            <p className="text-xs font-medium text-green-600 uppercase tracking-wide">Paid</p>
+            <p className="text-xl font-bold text-green-800 mt-1">{formatCurrency(totals.paid)}</p>
+          </div>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-xs font-medium text-red-600 uppercase tracking-wide">Balance</p>
+            <p className="text-xl font-bold text-red-800 mt-1">{formatCurrency(totals.balance)}</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const getPaginationMeta = (items) => {
+    const totalItems = items.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+    const safePage = Math.min(currentPage, totalPages);
+    const startIndex = (safePage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalItems);
+
+    return {
+      totalItems,
+      totalPages,
+      safePage,
+      startIndex,
+      endIndex,
+      paginatedItems: items.slice(startIndex, endIndex),
+    };
+  };
+
+  const getVisiblePageNumbers = (totalPages) => (
+    Array.from({ length: totalPages }, (_, index) => index + 1)
+  );
+
+  const renderViewToggle = () => (
+    <div className="inline-flex w-full sm:w-auto rounded-lg border border-gray-300 overflow-hidden bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setViewMode('grid')}
+        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${viewMode === 'grid'
+          ? 'bg-custom-red text-white'
+          : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        title="Grid view"
+      >
+        <FiGrid className="w-4 h-4" />
+        <span>Grid</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setViewMode('list')}
+        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-l border-gray-300 ${viewMode === 'list'
+          ? 'bg-custom-red text-white'
+          : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        title="List view"
+      >
+        <FiList className="w-4 h-4" />
+        <span>List</span>
+      </button>
+    </div>
+  );
+
+  const renderPagination = (items) => {
+    const { totalItems, totalPages, safePage, startIndex, endIndex } = getPaginationMeta(items);
+
+    if (totalItems === 0) return null;
+
+    const pageNumbers = getVisiblePageNumbers(totalPages);
+
+    return (
+      <div className="mt-4 bg-white rounded-xl shadow-lg border border-gray-200 p-4 md:p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-gray-600">
+            <span>
+              Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to{' '}
+              <span className="font-semibold text-gray-900">{endIndex}</span> of{' '}
+              <span className="font-semibold text-gray-900">{totalItems}</span>
+            </span>
+            <div className="flex items-center gap-2">
+              <label htmlFor="user-page-size" className="text-sm text-gray-600">Per page</label>
+              <select
+                id="user-page-size"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-custom-red focus:border-transparent bg-white"
+              >
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <option key={size} value={size}>{size}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center sm:justify-end gap-1 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={safePage === 1}
+                aria-label="Previous page"
+                className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold transition-colors ${safePage === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+              >
+                &lt;
+              </button>
+
+              {pageNumbers.map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold transition-colors ${safePage === pageNum
+                    ? 'bg-custom-red text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={safePage === totalPages}
+                aria-label="Next page"
+                className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold transition-colors ${safePage === totalPages
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+              >
+                &gt;
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderReceivableGridCard = (person) => {
+    const {
+      name,
+      phone,
+      rbtotal,
+      rbpaid,
+      group_name,
+      auct_date,
+      rbdue,
+      unique_id,
+    } = person;
+
+    return (
+      <div key={unique_id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+        <div className="bg-gradient-to-r from-custom-red to-red-600 p-6 text-white">
+          <div className="flex items-center gap-4">
+            {renderUserAvatar(person, { sizeClass: 'w-16 h-16', iconClass: 'w-8 h-8', variant: 'header' })}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-xl font-bold truncate">{name}</h3>
+              <p className="text-red-100 flex items-center gap-2">
+                <FiPhone className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{phone}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            <div className="p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2 mb-1">
+                <FiUser className="w-4 h-4 text-blue-600" />
+                <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">Group</span>
+              </div>
+              <p className="text-sm font-bold text-blue-900 truncate" title={group_name}>
+                {group_name}
+              </p>
+            </div>
+            <div className="p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+              <div className="flex items-center gap-2 mb-1">
+                <FiCalendar className="w-4 h-4 text-purple-600" />
+                <span className="text-xs text-purple-600 font-medium uppercase tracking-wide">Auction</span>
+              </div>
+              <p className="text-sm font-bold text-purple-900">
+                {formatDate(auct_date)}
+              </p>
+            </div>
+          </div>
+
+          <div
+            className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:shadow-md hover:border-yellow-300 transition-all duration-200 hover:scale-[1.02]"
+            onClick={() => handleOpenAdvanceModal(person)}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">💰</span>
+                <div>
+                  <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Advance Balance</p>
+                  <span className="text-xs text-yellow-600">Click for details</span>
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-yellow-900">
+                {formatCurrency(person?.total_advance_balance || 0)}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <div className="text-xs text-blue-600 font-medium mb-1">Total Due</div>
+              <div className="text-lg font-bold text-blue-700">{formatCurrency(rbtotal)}</div>
+            </div>
+            <div className="text-center p-3 bg-green-50 rounded-lg">
+              <div className="text-xs text-green-600 font-medium mb-1">Paid</div>
+              <div className="text-lg font-bold text-green-700">{formatCurrency(rbpaid)}</div>
+            </div>
+            <div className="text-center p-3 bg-red-50 rounded-lg">
+              <div className="text-xs text-red-600 font-medium mb-1">Balance</div>
+              <div className="text-lg font-bold text-red-700">{formatCurrency(rbdue)}</div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => openPaymentModal(person)}
+            className="w-full py-3 px-4 bg-gradient-to-r from-custom-red to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+          >
+            <FiDollarSign className="w-5 h-5" />
+            Process Payment
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderReceivableMobileListCard = (person, index) => (
+    <div
+      key={getReceivableKey(person, index)}
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+    >
+      <div className="flex items-center gap-3 mb-3">
+        {renderUserAvatar(person, { sizeClass: 'w-12 h-12', iconClass: 'w-6 h-6' })}
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 truncate">{person.name}</p>
+          <p className="text-sm text-gray-500 truncate">{person.phone}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-2 mb-3 text-sm text-gray-700">
+        <div><span className="font-medium">Group:</span> {person.group_name}</div>
+        <div><span className="font-medium">Auction:</span> {formatDate(person.auct_date)}</div>
+        <div><span className="font-medium">Area:</span> {person.aob || person.area || 'N/A'}</div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <div className="text-center p-2 bg-blue-50 rounded-lg">
+          <p className="text-[10px] text-blue-600 font-medium">Due</p>
+          <p className="text-sm font-bold text-blue-700">{formatCurrency(person.rbtotal)}</p>
+        </div>
+        <div className="text-center p-2 bg-green-50 rounded-lg">
+          <p className="text-[10px] text-green-600 font-medium">Paid</p>
+          <p className="text-sm font-bold text-green-700">{formatCurrency(person.rbpaid)}</p>
+        </div>
+        <div className="text-center p-2 bg-red-50 rounded-lg">
+          <p className="text-[10px] text-red-600 font-medium">Balance</p>
+          <p className="text-sm font-bold text-red-700">{formatCurrency(person.rbdue)}</p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => openPaymentModal(person)}
+        className="w-full py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+      >
+        <FiDollarSign className="w-5 h-5" />
+        Process Payment
+      </button>
+    </div>
+  );
+
+  const renderReceivableList = (items, summaryItems = items) => (
+    <>
+      <div className="md:hidden space-y-4">
+        {items.map((person, index) => renderReceivableMobileListCard(person, index))}
+        {renderMobileSummaryFooter(summaryItems)}
+      </div>
+
+      <div className="hidden md:block bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[980px]">
+            <thead>
+              <tr className="bg-custom-red text-white">
+                <th className="px-4 py-3 text-left text-sm font-semibold">Photo</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Subscriber</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Group</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Auction</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Area</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Advance</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Total Due</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Paid</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Balance</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((person, index) => (
+                <tr
+                  key={getReceivableKey(person, index)}
+                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200"
+                >
+                  <td className="px-4 py-3">
+                    {renderUserAvatar(person, { sizeClass: 'w-12 h-12', iconClass: 'w-6 h-6' })}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">{person.name}</p>
+                      <p className="text-sm text-gray-500">{person.phone}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-800">{person.group_name}</td>
+                  <td className="px-4 py-3 text-sm text-gray-800">{formatDate(person.auct_date)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-800">{person.aob || person.area || 'N/A'}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAdvanceModal(person)}
+                      className="text-sm font-semibold text-yellow-700 hover:text-yellow-900 underline"
+                    >
+                      {formatCurrency(person?.total_advance_balance || 0)}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-sm font-semibold text-blue-700">{formatCurrency(person.rbtotal)}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-green-700">{formatCurrency(person.rbpaid)}</td>
+                  <td className="px-4 py-3 text-sm font-semibold text-red-700">{formatCurrency(person.rbdue)}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => openPaymentModal(person)}
+                      className="px-3 py-2 bg-custom-red text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1"
+                    >
+                      <FiDollarSign className="w-4 h-4" />
+                      Pay
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {renderDesktopSummaryRow(summaryItems)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+
+  const renderPaginatedReceivables = (items) => {
+    const { paginatedItems } = getPaginationMeta(items);
+
+    return (
+      <>
+        {viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {paginatedItems.map((person) => renderReceivableGridCard(person))}
+            {renderGridSummaryFooter(items)}
+          </div>
+        ) : (
+          renderReceivableList(paginatedItems, items)
+        )}
+        {renderPagination(items)}
+      </>
+    );
+  };
+
+
   const handleOpenAdvanceModal = (receivable) => {
     setSelectedAdvanceReceivable(receivable);
     setShowAdvanceModal(true);
@@ -231,152 +750,21 @@ const Receivable = () => {
               </div>
 
               {/* Results Summary */}
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <span>Showing {filteredReceivables.length} of {receivables.length} receivables</span>
-                {(groupFilter || subscriberFilter || areaFilter) && (
-                  <span className="text-custom-red font-medium">Filters applied</span>
-                )}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm text-gray-600">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <span>Showing {filteredReceivables.length} of {receivables.length} receivables</span>
+                  {(groupFilter || subscriberFilter || areaFilter) && (
+                    <span className="text-custom-red font-medium">Filters applied</span>
+                  )}
+                </div>
+                {renderViewToggle()}
               </div>
             </div>
           </div>
 
           {/* Receivables List */}
           {filteredReceivables.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredReceivables.map((person) => {
-                const {
-                  name,
-                  phone,
-                  user_image_from_s3,
-                  rbtotal,
-                  id,
-                  rbpaid,
-                  payments,
-                  group_id,
-                  group_name,
-                  auct_date,
-                  rbdue,
-                  pbdue,
-                  unique_id,
-                  total_wallet_balance,
-                  group_specific_balance
-                } = person;
-
-                return (
-                  <div key={unique_id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                    {/* Card Header */}
-                    <div className="bg-gradient-to-r from-custom-red to-red-600 p-6 text-white">
-                      <div className="flex items-center gap-4">
-                        <div className="relative">
-                          {user_image_from_s3 ? (
-                            <img
-                              src={user_image_from_s3}
-                              alt={name}
-                              className="w-16 h-16 rounded-full object-cover border-2 border-white/30"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className={`w-16 h-16 rounded-full border-2 border-white/30 bg-white/20 flex items-center justify-center ${user_image_from_s3 ? 'hidden' : 'flex'}`}
-                          >
-                            <FiUser className="w-8 h-8 text-white" />
-                          </div>
-                          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white"></div>
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold">{name}</h3>
-                          <p className="text-red-100 flex items-center gap-2">
-                            <FiPhone className="w-4 h-4" />
-                            {phone}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Card Body */}
-                    <div className="p-6">
-                      {/* Group Info - Enhanced */}
-                      <div className="mb-4 grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
-                          <div className="flex items-center gap-2 mb-1">
-                            <FiUser className="w-4 h-4 text-blue-600" />
-                            <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">Group</span>
-                          </div>
-                          <p className="text-sm font-bold text-blue-900 truncate" title={group_name}>
-                            {group_name}
-                          </p>
-                        </div>
-                        <div className="p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200">
-                          <div className="flex items-center gap-2 mb-1">
-                            <FiCalendar className="w-4 h-4 text-purple-600" />
-                            <span className="text-xs text-purple-600 font-medium uppercase tracking-wide">Auction</span>
-                          </div>
-                          <p className="text-sm font-bold text-purple-900">
-                            {formatDate(auct_date)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Advance Balance */}
-                      <div
-                        className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:shadow-md hover:border-yellow-300 transition-all duration-200 hover:scale-[1.02]"
-                        onClick={() => handleOpenAdvanceModal(person)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">💰</span>
-                            <div>
-                              <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Advance Balance</p>
-                              <span className="text-xs text-yellow-600 flex items-center gap-1">
-                                Click for details <span className="text-blue-500">ℹ️</span>
-                              </span>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-yellow-900">
-                              ₹{(person?.total_advance_balance !== undefined && person?.total_advance_balance !== null)
-                                ? parseFloat(person.total_advance_balance).toLocaleString()
-                                : '0'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Financial Summary */}
-                      <div className="grid grid-cols-3 gap-3 mb-6">
-                        <div className="text-center p-3 bg-blue-50 rounded-lg">
-                          <div className="text-xs text-blue-600 font-medium mb-1">Total Due</div>
-                          <div className="text-lg font-bold text-blue-700">{formatCurrency(rbtotal)}</div>
-                        </div>
-                        <div className="text-center p-3 bg-green-50 rounded-lg">
-                          <div className="text-xs text-green-600 font-medium mb-1">Paid</div>
-                          <div className="text-lg font-bold text-green-700">{formatCurrency(rbpaid)}</div>
-                        </div>
-                        <div className="text-center p-3 bg-red-50 rounded-lg">
-                          <div className="text-xs text-red-600 font-medium mb-1">Balance</div>
-                          <div className="text-lg font-bold text-red-700">{formatCurrency(rbdue)}</div>
-                        </div>
-                      </div>
-
-                      {/* Pay Button */}
-                      <button
-                        onClick={() => {
-                          setSelectedReceivable(person);
-                          setModalOpen(true);
-                        }}
-                        className="w-full py-3 px-4 bg-gradient-to-r from-custom-red to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                      >
-                        <FiDollarSign className="w-5 h-5" />
-                        Process Payment
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            renderPaginatedReceivables(filteredReceivables)
           ) : (
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
               <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
