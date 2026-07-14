@@ -1,13 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import { API_BASE_URL } from "../../utils/apiConfig";
-import ReceivableConfirmPanel from "../ReceivableConfirmPanel";
+import {
+    refreshReceivableForConfirm,
+} from "../../utils/receivablePaymentApi";
+import ReceivableConfirmPanel, { ReceivableLiveBalancePanel } from "../ReceivableConfirmPanel";
 import ReceivableReceitPdf from "../PDF/ReceivableReceitPdf";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck, FiAlertCircle, FiPrinter, FiDownload } from 'react-icons/fi';
 import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import 'react-toastify/dist/ReactToastify.css';
+
+const getCollectorMembershipId = (user) => {
+    const accounts = user?.userAccounts || user?.results?.userAccounts || [];
+    const collectorAccount = accounts.find(
+        (account) => account.accountName?.toLowerCase().includes('collector')
+    );
+    return collectorAccount?.parent_membership_id
+        || accounts.find((account) => account.parent_membership_id)?.parent_membership_id
+        || accounts[0]?.parent_membership_id
+        || null;
+};
+
+const getLedgerAccountName = (account) => account?.account_name || account?.accountName || '';
 
 /**
  * Collector Payment Modal - Reuses ALL functionality from user app's ReceivablePayementModal
@@ -26,23 +42,75 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
     const [isDownloading, setIsDownloading] = useState(false);
     const [activeReceivable, setActiveReceivable] = useState(receivable);
     const [isRefreshingConfirm, setIsRefreshingConfirm] = useState(false);
+    const [isRefreshingOnOpen, setIsRefreshingOnOpen] = useState(false);
 
     const { user } = useCollector();
     const { ledgerAccounts = [] } = useCollectorLedger();
 
     const userCompany = user?.userCompany || user?.results?.userCompany;
-    const membershipId = user?.userAccounts?.[0]?.parent_membership_id ||
-        user?.results?.userAccounts?.[0]?.parent_membership_id;
+    const membershipId = getCollectorMembershipId(user);
 
     const [receivableDate, setReceivableDate] = useState(
         new Date().toISOString().split("T")[0]
     );
 
     useEffect(() => {
+        if (!isOpen) return;
+
+        setGroupAdvanceInput("");
+        setPaymentType("full");
+        setUseGroupAdvance(false);
+        setPartialAmount("");
+        setPaymentMethod("");
+        setIsConfirming(false);
+        setReceiptData(null);
+        setLoading(false);
+        setIsDownloading(false);
+        setIsRefreshingConfirm(false);
+        setIsRefreshingOnOpen(false);
+        setReceivableDate(new Date().toISOString().split("T")[0]);
+
         if (receivable) {
             setActiveReceivable(receivable);
         }
-    }, [receivable]);
+    }, [isOpen, receivable?.id, receivable]);
+
+    useEffect(() => {
+        if (!isOpen || !receivable?.id) return undefined;
+
+        const authToken = user?.token || user?.results?.token;
+        const collectorId = user?.userId || user?.id || user?.results?.userId;
+        if (!authToken || !collectorId) return undefined;
+
+        let cancelled = false;
+
+        const loadLatestReceivable = async () => {
+            setIsRefreshingOnOpen(true);
+            try {
+                const { receivable: freshReceivable } = await refreshReceivableForConfirm({
+                    receivable,
+                    token: authToken,
+                    mode: 'collector',
+                    collectorId,
+                });
+                if (!cancelled) {
+                    setActiveReceivable(freshReceivable);
+                }
+            } catch (error) {
+                console.warn('Could not load latest receivable on open:', error);
+            } finally {
+                if (!cancelled) {
+                    setIsRefreshingOnOpen(false);
+                }
+            }
+        };
+
+        loadLatestReceivable();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, receivable?.id, receivable, user]);
 
     const currentReceivable = activeReceivable ?? receivable;
     const totalDue = currentReceivable?.rbdue ?? 0;
@@ -106,11 +174,35 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
 
     const handleConfirmPayment = async () => {
         setLoading(true);
-        const selectedAccount = ledgerAccounts.find(acc => acc.account_name === paymentMethod);
+        const selectedAccount = ledgerAccounts.find(
+            (acc) => getLedgerAccountName(acc) === paymentMethod
+        );
         const paymentMethodId = selectedAccount?.id || null;
         const paymentAmount = paymentType === 'full'
-            ? rbdue > 0 ? rbdue : rbtotal
+            ? (currentReceivable.rbdue > 0 ? currentReceivable.rbdue : currentReceivable.rbtotal)
             : parseFloat(partialAmount || 0);
+        const grpSubscriberId = parseInt(currentReceivable.group_subscriber_id, 10);
+
+        if (!membershipId) {
+            toast.error('Organization membership not found. Please log in again as collector.');
+            setLoading(false);
+            return;
+        }
+        if (!paymentMethodId) {
+            toast.error('Please select a valid payment method.');
+            setLoading(false);
+            return;
+        }
+        if (!Number.isFinite(grpSubscriberId)) {
+            toast.error('Missing group subscriber information for this receivable.');
+            setLoading(false);
+            return;
+        }
+        if (!paymentAmount || paymentAmount <= 0) {
+            toast.error('Please enter a valid payment amount.');
+            setLoading(false);
+            return;
+        }
 
         const payload = {
             payableReceivalbeId: currentReceivable.id,
@@ -122,7 +214,7 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
             payableCode: "001",
             paymentAmount: parseFloat(paymentAmount),
             subscriberId: currentReceivable.subscriber_id,
-            grpSubscriberId: currentReceivable.group_subscriber_id,
+            grpSubscriberId,
             sourceSystem: "WEB",
             type: 2,
             groupId: currentReceivable.group_id,
@@ -136,7 +228,7 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
             groupAdvanceUsed: advanceApplied,
             deductionPaymentMethodId: selectedAccount?.id || null,
             collectorId: user?.userId || user?.id,
-            collectorName: `${user?.firstname} ${user?.lastname}`,
+            collectorName: `${user?.firstname || ''} ${user?.lastname || ''}`.trim(),
         };
 
         console.log('🔄 Collector payment payload:', payload);
@@ -184,24 +276,26 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
     const fetchFreshReceivable = async () => {
         const authToken = user?.token || user?.results?.token;
         const collectorId = user?.userId || user?.id || user?.results?.userId;
-        if (!authToken || !collectorId || !receivable?.id) return receivable;
-
-        const response = await fetch(`${API_BASE_URL}/collector-area/${collectorId}/receivables`, {
-            headers: { Authorization: `Bearer ${authToken}` },
+        const { receivable: freshReceivable } = await refreshReceivableForConfirm({
+            receivable: currentReceivable,
+            token: authToken,
+            mode: 'collector',
+            collectorId,
         });
-
-        if (!response.ok) return receivable;
-
-        const data = await response.json();
-        const fresh = (data.results?.receivables || []).find(
-            (item) => String(item.id) === String(receivable.id)
-        );
-        return fresh || receivable;
+        return freshReceivable;
     };
 
     const handleSubmit = async () => {
         if (!paymentMethod) {
             toast.error("❌ Please select a payment method.");
+            return;
+        }
+        if (!membershipId) {
+            toast.error("Organization membership not found. Please log in again as collector.");
+            return;
+        }
+        if (ledgerAccounts.length === 0) {
+            toast.error("Payment methods are not loaded yet. Please wait and try again.");
             return;
         }
         if (paymentType === "full" && useGroupAdvance && advanceBalance < totalDue) {
@@ -459,21 +553,12 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
                                 </div>
                             </div>
 
-                            {/* Financial Summary */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                                    <div className="text-xs text-blue-600 font-medium mb-1">Total</div>
-                                    <div className="text-lg font-bold text-blue-700">{formatCurrency(rbtotal)}</div>
-                                </div>
-                                <div className="text-center p-3 bg-green-50 rounded-lg">
-                                    <div className="text-xs text-green-600 font-medium mb-1">Paid</div>
-                                    <div className="text-lg font-bold text-green-700">{formatCurrency(rbpaid)}</div>
-                                </div>
-                                <div className="text-center p-3 bg-red-50 rounded-lg">
-                                    <div className="text-xs text-red-600 font-medium mb-1">Due</div>
-                                    <div className="text-lg font-bold text-red-700">{formatCurrency(rbdue)}</div>
-                                </div>
-                            </div>
+                            {/* Live balance from database (refreshed on Pay click) */}
+                            <ReceivableLiveBalancePanel
+                                receivable={currentReceivable}
+                                formatCurrency={formatCurrency}
+                                isRefreshing={isRefreshingOnOpen}
+                            />
 
                             {/* Advance Balance */}
                             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -483,7 +568,7 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
                                         <span className="text-yellow-800 font-semibold">Advance Balance</span>
                                     </div>
                                     <span className="text-2xl font-bold text-yellow-900">
-                                        {formatCurrency(receivable?.total_advance_balance ?? 0)}
+                                        {formatCurrency(currentReceivable?.total_advance_balance ?? 0)}
                                     </span>
                                 </div>
                             </div>
@@ -509,7 +594,9 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
                                     >
                                         <option value="">-- Select Payment Method --</option>
                                         {ledgerAccounts.map((acc) => (
-                                            <option key={acc.id} value={acc.account_name}>{acc.account_name}</option>
+                                            <option key={acc.id} value={getLedgerAccountName(acc)}>
+                                                {getLedgerAccountName(acc)}
+                                            </option>
                                         ))}
                                     </select>
                                 </div>
@@ -656,11 +743,17 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
                                 </button>
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={!paymentMethod || (paymentType === "partial" && !partialAmount) || isRefreshingConfirm}
+                                    disabled={
+                                        !paymentMethod
+                                        || (paymentType === "partial" && !partialAmount)
+                                        || isRefreshingConfirm
+                                        || isRefreshingOnOpen
+                                        || parseFloat(currentReceivable?.rbdue || 0) <= 0
+                                    }
                                     className="flex-1 py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <FiDollarSign className="w-5 h-5" />
-                                    Process Payment
+                                    {isRefreshingOnOpen || isRefreshingConfirm ? 'Refreshing…' : 'Process Payment'}
                                 </button>
                             </div>
                         </div>

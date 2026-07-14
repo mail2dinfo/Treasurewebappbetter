@@ -80,15 +80,14 @@ export const CollectorLedgerProvider = ({ children }) => {
     // IMPORTANT: Collectors are EMPLOYEES, not owners. They must ALWAYS use
     // parent_membership_id to access the organization's data, NOT their own membership ID.
     const getMembershipId = useCallback(() => {
-        console.log('🔍 Getting PARENT membershipId from user:', user);
-
-        // Collector's PARENT membership ID (NOT the collector's own membership ID)
-        // This ensures collectors work with their organization's data
-        const parentMembershipId = user?.userAccounts?.[0]?.parent_membership_id ||
-            user?.results?.userAccounts?.[0]?.parent_membership_id;
-
-        console.log('✅ Parent Membership ID (Organization):', parentMembershipId);
-        return parentMembershipId;
+        const accounts = user?.userAccounts || user?.results?.userAccounts || [];
+        const collectorAccount = accounts.find(
+            (account) => account.accountName?.toLowerCase().includes('collector')
+        );
+        return collectorAccount?.parent_membership_id
+            || accounts.find((account) => account.parent_membership_id)?.parent_membership_id
+            || accounts[0]?.parent_membership_id
+            || null;
     }, [user]);
 
     // Fetch ledger entries (advance payment history)

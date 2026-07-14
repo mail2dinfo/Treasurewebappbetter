@@ -4,8 +4,11 @@ import { useLedgerEntryContext } from "../context/ledgerEntry_context";
 import { useUserContext } from "../context/user_context";
 import { toast, ToastContainer } from "react-toastify";
 import { API_BASE_URL } from "../utils/apiConfig";
+import {
+    refreshReceivableForConfirm,
+} from "../utils/receivablePaymentApi";
 import ReceivableReceitPdf from "./PDF/ReceivableReceitPdf";
-import ReceivableConfirmPanel from "./ReceivableConfirmPanel";
+import ReceivableConfirmPanel, { ReceivableLiveBalancePanel } from "./ReceivableConfirmPanel";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { FiDownload, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck, FiAlertCircle, FiPrinter } from 'react-icons/fi';
 import { FaRupeeSign, FaCheckCircle, FaMoneyBillWave, FaBalanceScale, FaExclamationCircle } from 'react-icons/fa';
@@ -23,6 +26,7 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
     const [isDownloading, setIsDownloading] = useState(false);
     const [activeReceivable, setActiveReceivable] = useState(receivable);
     const [isRefreshingConfirm, setIsRefreshingConfirm] = useState(false);
+    const [isRefreshingOnOpen, setIsRefreshingOnOpen] = useState(false);
     const { ledgerAccounts, fetchLedgerAccounts } = useLedgerAccountContext();
     const { fetchLedgerEntries } = useLedgerEntryContext();
     const { user } = useUserContext();
@@ -32,10 +36,60 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
         new Date().toISOString().split("T")[0]);
 
     useEffect(() => {
+        if (!isOpen) return;
+
+        setGroupAdvanceInput("");
+        setPaymentType("full");
+        setUseGroupAdvance(false);
+        setPartialAmount("");
+        setPaymentMethod("");
+        setIsConfirming(false);
+        setReceiptData(null);
+        setLoading(false);
+        setIsDownloading(false);
+        setIsRefreshingConfirm(false);
+        setIsRefreshingOnOpen(false);
+        setReceivableDate(new Date().toISOString().split("T")[0]);
+
         if (receivable) {
             setActiveReceivable(receivable);
         }
-    }, [receivable]);
+    }, [isOpen, receivable?.id, receivable]);
+
+    useEffect(() => {
+        if (!isOpen || !receivable?.id) return undefined;
+
+        const token = user?.results?.token;
+        if (!token) return undefined;
+
+        let cancelled = false;
+
+        const loadLatestReceivable = async () => {
+            setIsRefreshingOnOpen(true);
+            try {
+                const { receivable: freshReceivable } = await refreshReceivableForConfirm({
+                    receivable,
+                    token,
+                    mode: 'user',
+                });
+                if (!cancelled) {
+                    setActiveReceivable(freshReceivable);
+                }
+            } catch (error) {
+                console.warn('Could not load latest receivable on open:', error);
+            } finally {
+                if (!cancelled) {
+                    setIsRefreshingOnOpen(false);
+                }
+            }
+        };
+
+        loadLatestReceivable();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, receivable?.id, receivable, user?.results?.token]);
 
     const currentReceivable = activeReceivable ?? receivable;
     const totalDue = currentReceivable?.rbdue ?? 0;
@@ -101,7 +155,7 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
         const selectedAccount = ledgerAccounts.find(acc => acc.account_name === paymentMethod);
         const paymentMethodId = selectedAccount?.id || null;
         const paymentAmount = paymentType === 'full'
-            ? rbdue > 0 ? rbdue : rbtotal
+            ? (currentReceivable.rbdue > 0 ? currentReceivable.rbdue : currentReceivable.rbtotal)
             : parseFloat(partialAmount || 0);
 
         const payload = {
@@ -166,19 +220,12 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
 
     const fetchFreshReceivable = async () => {
         const token = user?.results?.token;
-        if (!token || !receivable?.id) return receivable;
-
-        const response = await fetch(`${API_BASE_URL}/receivables`, {
-            headers: { Authorization: `Bearer ${token}` },
+        const { receivable: freshReceivable } = await refreshReceivableForConfirm({
+            receivable: currentReceivable,
+            token,
+            mode: 'user',
         });
-
-        if (!response.ok) return receivable;
-
-        const data = await response.json();
-        const fresh = (data.results?.receivablesResult || []).find(
-            (item) => String(item.id) === String(receivable.id)
-        );
-        return fresh || receivable;
+        return freshReceivable;
     };
 
     const handleSubmit = async () => {
@@ -447,21 +494,12 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                 </div>
                             </div>
 
-                            {/* Financial Summary */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                                    <div className="text-xs text-blue-600 font-medium mb-1">Total</div>
-                                    <div className="text-lg font-bold text-blue-700">{formatCurrency(rbtotal)}</div>
-                                </div>
-                                <div className="text-center p-3 bg-green-50 rounded-lg">
-                                    <div className="text-xs text-green-600 font-medium mb-1">Paid</div>
-                                    <div className="text-lg font-bold text-green-700">{formatCurrency(rbpaid)}</div>
-                                </div>
-                                <div className="text-center p-3 bg-red-50 rounded-lg">
-                                    <div className="text-xs text-red-600 font-medium mb-1">Due</div>
-                                    <div className="text-lg font-bold text-red-700">{formatCurrency(rbdue)}</div>
-                                </div>
-                            </div>
+                            {/* Live balance from database (refreshed on Pay click) */}
+                            <ReceivableLiveBalancePanel
+                                receivable={currentReceivable}
+                                formatCurrency={formatCurrency}
+                                isRefreshing={isRefreshingOnOpen}
+                            />
 
                             {/* Advance Balance */}
                             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -471,7 +509,7 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                         <span className="text-yellow-800 font-semibold">Advance Balance</span>
                                     </div>
                                     <span className="text-2xl font-bold text-yellow-900">
-                                        {formatCurrency(receivable?.total_advance_balance ?? 0)}
+                                        {formatCurrency(currentReceivable?.total_advance_balance ?? 0)}
                                     </span>
                                 </div>
                             </div>
@@ -644,11 +682,17 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                 </button>
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={!paymentMethod || (paymentType === "partial" && !partialAmount) || isRefreshingConfirm}
+                                    disabled={
+                                        !paymentMethod
+                                        || (paymentType === "partial" && !partialAmount)
+                                        || isRefreshingConfirm
+                                        || isRefreshingOnOpen
+                                        || parseFloat(currentReceivable?.rbdue || 0) <= 0
+                                    }
                                     className="flex-1 py-3 px-4 bg-gradient-to-r from-custom-red to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <FiDollarSign className="w-5 h-5" />
-                                    Process Payment
+                                    {isRefreshingOnOpen || isRefreshingConfirm ? 'Refreshing…' : 'Process Payment'}
                                 </button>
                             </div>
                         </div>
