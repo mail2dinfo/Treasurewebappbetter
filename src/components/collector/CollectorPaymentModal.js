@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import ReceivableConfirmPanel from "../ReceivableConfirmPanel";
 import ReceivableReceitPdf from "../PDF/ReceivableReceitPdf";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck, FiAlertCircle, FiPrinter, FiDownload } from 'react-icons/fi';
@@ -23,6 +24,8 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
     const [receiptData, setReceiptData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [activeReceivable, setActiveReceivable] = useState(receivable);
+    const [isRefreshingConfirm, setIsRefreshingConfirm] = useState(false);
 
     const { user } = useCollector();
     const { ledgerAccounts = [] } = useCollectorLedger();
@@ -35,8 +38,15 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
         new Date().toISOString().split("T")[0]
     );
 
-    const totalDue = receivable?.rbdue ?? 0;
-    const advanceBalance = receivable?.total_advance_balance ?? 0;  // ✅ Changed to total_advance_balance
+    useEffect(() => {
+        if (receivable) {
+            setActiveReceivable(receivable);
+        }
+    }, [receivable]);
+
+    const currentReceivable = activeReceivable ?? receivable;
+    const totalDue = currentReceivable?.rbdue ?? 0;
+    const advanceBalance = currentReceivable?.total_advance_balance ?? 0;
 
     const [advanceApplied, setAdvanceApplied] = useState(0);
     const [balanceAdvance, setBalanceAdvance] = useState(0);
@@ -70,7 +80,7 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
         advanceBalance  // ✅ Changed to advanceBalance
     ]);
 
-    if (!isOpen || !receivable) return null;
+    if (!isOpen || !currentReceivable) return null;
 
     const {
         name,
@@ -82,7 +92,7 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
         rbpaid,
         rbdue,
         total_wallet_balance
-    } = receivable;
+    } = currentReceivable;
 
     const formatCurrency = (amt) => `₹${Number(amt).toLocaleString("en-IN")}`;
     const formatDate = (dateStr) => {
@@ -103,7 +113,7 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
             : parseFloat(partialAmount || 0);
 
         const payload = {
-            payableReceivalbeId: receivable.id,
+            payableReceivalbeId: currentReceivable.id,
             paymentMethod,
             paymentMethodId,
             paymentStatus: "SUCCESS",
@@ -111,12 +121,12 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
             paymentTransactionRef: "FUTURE",
             payableCode: "001",
             paymentAmount: parseFloat(paymentAmount),
-            subscriberId: receivable.subscriber_id,
-            grpSubscriberId: receivable.group_subscriber_id,
+            subscriberId: currentReceivable.subscriber_id,
+            grpSubscriberId: currentReceivable.group_subscriber_id,
             sourceSystem: "WEB",
             type: 2,
-            groupId: receivable.group_id,
-            grpAccountId: receivable.group_account_id,
+            groupId: currentReceivable.group_id,
+            grpAccountId: currentReceivable.group_account_id,
             transactedDate: receivableDate,
             groupName: group_name,
             subscriberName: name,
@@ -171,16 +181,48 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
         }
     };
 
-    const handleSubmit = () => {
+    const fetchFreshReceivable = async () => {
+        const authToken = user?.token || user?.results?.token;
+        const collectorId = user?.userId || user?.id || user?.results?.userId;
+        if (!authToken || !collectorId || !receivable?.id) return receivable;
+
+        const response = await fetch(`${API_BASE_URL}/collector-area/${collectorId}/receivables`, {
+            headers: { Authorization: `Bearer ${authToken}` },
+        });
+
+        if (!response.ok) return receivable;
+
+        const data = await response.json();
+        const fresh = (data.results?.receivables || []).find(
+            (item) => String(item.id) === String(receivable.id)
+        );
+        return fresh || receivable;
+    };
+
+    const handleSubmit = async () => {
         if (!paymentMethod) {
             toast.error("❌ Please select a payment method.");
             return;
         }
-        if (paymentType === "full" && useGroupAdvance && advanceBalance < totalDue) {  // ✅ Changed to advanceBalance
+        if (paymentType === "full" && useGroupAdvance && advanceBalance < totalDue) {
             toast.error("❌ Not enough group advance. Please choose partial payment.");
             return;
         }
-        setIsConfirming(true);
+
+        setIsRefreshingConfirm(true);
+        try {
+            const freshReceivable = await fetchFreshReceivable();
+            setActiveReceivable(freshReceivable);
+            if (parseFloat(freshReceivable.rbdue || 0) <= 0) {
+                toast.error("This receivable is already fully paid. Please refresh the list.");
+                return;
+            }
+            setIsConfirming(true);
+        } catch {
+            toast.error("Could not refresh payment history. Please try again.");
+        } finally {
+            setIsRefreshingConfirm(false);
+        }
     };
 
     const handlePrint = () => {
@@ -251,54 +293,24 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
                                 <p className="text-gray-600">Please review the payment details before proceeding</p>
                             </div>
 
-                            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Subscriber:</span>
-                                    <span className="font-semibold">{name}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Group:</span>
-                                    <span className="font-semibold">{group_name}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Auction Date:</span>
-                                    <span className="font-semibold">{formatDate(auct_date)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Receivable Date:</span>
-                                    <span className="font-semibold">{formatDate(receivableDate)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Payment Method:</span>
-                                    <span className="font-semibold">{paymentMethod}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Payment Type:</span>
-                                    <span className="font-semibold">{paymentType === "full" ? "Full Payment" : "Partial Payment"}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Total Due:</span>
-                                    <span className="font-semibold text-red-600">{formatCurrency(totalDue)}</span>
-                                </div>
-                                {useGroupAdvance && (
-                                    <>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Advance Applied:</span>
-                                            <span className="font-semibold text-green-600">{formatCurrency(advanceApplied)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Balance Advance:</span>
-                                            <span className="font-semibold text-blue-600">{formatCurrency(balanceAdvance)}</span>
-                                        </div>
-                                    </>
-                                )}
-                                {paymentType === "partial" && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Partial Amount:</span>
-                                        <span className="font-semibold text-orange-600">{formatCurrency(parsedPartialAmount)}</span>
-                                    </div>
-                                )}
-                            </div>
+                            <ReceivableConfirmPanel
+                                receivable={currentReceivable}
+                                name={name}
+                                group_name={group_name}
+                                auct_date={auct_date}
+                                receivableDate={receivableDate}
+                                paymentMethod={paymentMethod}
+                                paymentType={paymentType}
+                                formatDate={formatDate}
+                                formatCurrency={formatCurrency}
+                                parsedPartialAmount={parsedPartialAmount}
+                                advanceApplied={advanceApplied}
+                                useGroupAdvance={useGroupAdvance}
+                                balanceAdvance={balanceAdvance}
+                                pendingNow={totalDue}
+                                remainingDue={remainingDue}
+                                isRefreshing={isRefreshingConfirm}
+                            />
 
                             <div className="flex gap-3">
                                 <button
@@ -644,7 +656,7 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
                                 </button>
                                 <button
                                     onClick={handleSubmit}
-                                    disabled={!paymentMethod || (paymentType === "partial" && !partialAmount)}
+                                    disabled={!paymentMethod || (paymentType === "partial" && !partialAmount) || isRefreshingConfirm}
                                     className="flex-1 py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <FiDollarSign className="w-5 h-5" />
