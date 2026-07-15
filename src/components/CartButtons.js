@@ -165,7 +165,7 @@ const CartButtons = ({ scrolled }) => {
             {user ? (
                 <>
                     <div className="flex items-center space-x-3">
-                        <div className={`text-sm font-medium ${scrolled ? 'text-white' : 'text-gray-700'}`}>
+                        <div className={`text-sm font-medium capitalize ${scrolled ? 'text-white' : 'text-gray-700'}`}>
                             Hi {user.results.firstname || user.results.name || "Guest"}
                         </div>
                         <div className="relative" onMouseEnter={showTooltip} onMouseLeave={hideTooltip}>
@@ -182,7 +182,7 @@ const CartButtons = ({ scrolled }) => {
                                     <div className={`absolute w-56 h-2 ${isMobile ? 'bottom-10' : 'top-10'} ${popupPosition}`} style={{ zIndex: 9998 }} onMouseEnter={showTooltip} onMouseLeave={hideTooltip}></div>
                                     <div className={`absolute w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 ${isMobile ? 'bottom-10' : 'top-10'} ${popupPosition}`} style={{ zIndex: 9999 }} onMouseEnter={showTooltip} onMouseLeave={hideTooltip}>
                                         <div className="px-4 py-2 border-b border-gray-100">
-                                            <p className="text-sm font-semibold text-gray-800">
+                                            <p className="text-sm font-semibold text-gray-800 capitalize">
                                                 {user.results.firstname || user.results.name || "User"}
                                             </p>
                                             <p className="text-xs text-gray-500">{user.results.email}</p>

@@ -1,61 +1,7 @@
 import React from 'react';
+import { mergePlansWithCatalog } from '../utils/billingPlans';
 
 const PlansSelection = ({ currentPlan, availablePlans, onSelectPlan }) => {
-    // Default plans if API doesn't return any
-    const defaultPlans = [
-        {
-            id: 'VeryBasic',
-            name: 'VeryBasic',
-            price: 100,
-            period: 'month',
-            features: [
-                'Up to 25 subscribers',
-                'Basic support',
-                'Mobile app access',
-                'Basic reporting'
-            ]
-        },
-        {
-            id: 'Basic',
-            name: 'Basic',
-            price: 200,
-            period: 'month',
-            features: [
-                'Up to 50 subscribers',
-                'Basic support',
-                'Mobile app access',
-                'Basic reporting'
-            ]
-        },
-        {
-            id: 'Medium',
-            name: 'Medium',
-            price: 500,
-            period: 'month',
-            features: [
-                'Up to 250 subscribers',
-                'Analytics dashboard',
-                'Priority support',
-                'Custom reporting',
-                'SMS notifications'
-            ]
-        },
-        {
-            id: 'Advance',
-            name: 'Advance',
-            price: 1000,
-            period: 'month',
-            features: [
-                'Unlimited subscribers',
-                'Premium 24/7 support',
-                'Full analytics suite',
-                'Marketing automation',
-                'API access',
-                'Custom integrations'
-            ]
-        }
-    ];
-
     const formatAmount = (amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -85,7 +31,7 @@ const PlansSelection = ({ currentPlan, availablePlans, onSelectPlan }) => {
         return false;
     };
 
-    const plans = availablePlans && availablePlans.length > 0 ? availablePlans : defaultPlans;
+    const plans = mergePlansWithCatalog(availablePlans);
 
     const getPlanCardClass = (plan) => {
         const baseClass = "relative rounded-lg shadow-sm border-2 p-6 transition-all duration-200";
@@ -139,7 +85,7 @@ const PlansSelection = ({ currentPlan, availablePlans, onSelectPlan }) => {
                                     <span className="text-4xl font-bold text-gray-900">
                                         {formatAmount(plan.price)}
                                     </span>
-                                    <span className="text-gray-600 ml-1">/{plan.period}</span>
+                                    <p className="text-sm text-gray-500 mt-1">Plan price</p>
                                 </div>
 
                                 <ul className="text-left space-y-2 mb-6">

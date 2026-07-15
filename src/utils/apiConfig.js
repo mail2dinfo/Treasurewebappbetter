@@ -12,6 +12,10 @@ export const WEBSOCKET_URL = isProduction
   ? 'wss://treasure-mani.onrender.com'
   : 'wss://treasure-services-mani.onrender.com';
 
+export const IS_PRODUCTION_DEPLOY = isProduction;
+
+export const MANUAL_CRON_ENABLED = process.env.REACT_APP_ENABLE_MANUAL_CRON === 'true';
+
 
 
 

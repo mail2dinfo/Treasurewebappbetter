@@ -17,6 +17,7 @@ import CartButtons from './CartButtons';
 import { useUserContext } from '../context/user_context';
 import { useBilling } from '../context/billing_context';
 import { hasPermission } from '../rbacPermissionUtils';
+import { getNavBillingBadge } from '../utils/billingPaymentUtils';
 
 
 
@@ -24,7 +25,7 @@ import { hasPermission } from '../rbacPermissionUtils';
 const Nav = () => {
   const [scrolled, setScrolled] = useState(false);
   const { isLoggedIn, isSidebarOpen, openSidebar, closeSidebar, userRole } = useUserContext();
-  const { subscription } = useBilling();
+  const { subscription, payments } = useBilling();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,85 +40,7 @@ const Nav = () => {
     };
   }, []);
 
-  // Format amount for display
-  const formatAmount = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0
-    }).format(amount || 0);
-  };
-
-  // Get billing status and grace period - Frontend calculation
-  const getBillingStatus = () => {
-    if (!subscription) return { status: 'unknown', message: 'No subscription', color: 'gray', daysLeft: 0 };
-
-    const today = new Date();
-    const startDate = new Date(subscription.start_date);
-    const endDate = new Date(subscription.end_date);
-
-    // Grace period should be calculated from subscription start date, not end date
-    const graceEndDate = new Date(startDate);
-    graceEndDate.setDate(startDate.getDate() + (subscription.grace_period_days || 60));
-    const amount = subscription.amount || 0;
-
-    console.log('=== GRACE PERIOD DEBUG ===');
-    console.log('Start Date:', startDate);
-    console.log('End Date:', endDate);
-    console.log('Grace Period Days:', subscription.grace_period_days || 60);
-    console.log('Grace End Date:', graceEndDate);
-    console.log('Today:', today);
-    console.log('=========================');
-
-    // Check if subscription is active (using remaining_days)
-    if (subscription.remaining_days > 0) {
-      return {
-        status: 'active',
-        message: `${formatAmount(amount)} Active`,
-        color: 'green',
-        daysLeft: subscription.remaining_days
-      };
-    }
-
-    // Calculate months since subscription started
-    const monthsSinceStart = Math.floor((today - startDate) / (1000 * 60 * 60 * 24 * 30));
-
-    // Grace period only applies to the first month (month 0)
-    const isFirstMonth = monthsSinceStart === 0;
-
-    // Check if still in grace period (only for first month)
-    if (isFirstMonth && today <= graceEndDate) {
-      const daysLeft = Math.ceil((graceEndDate - today) / (1000 * 60 * 60 * 24));
-      return {
-        status: 'grace',
-        message: `Grace period ${daysLeft} days left`,
-        color: 'blue',
-        daysLeft: daysLeft
-      };
-    }
-
-    // After grace period or for subsequent months, calculate overdue
-    let monthsOverdue;
-    if (isFirstMonth) {
-      // First month: calculate from grace period end
-      const daysOverdue = Math.floor((today - graceEndDate) / (1000 * 60 * 60 * 24));
-      monthsOverdue = Math.ceil(daysOverdue / 30);
-    } else {
-      // Subsequent months: calculate from subscription end date
-      const daysOverdue = Math.floor((today - endDate) / (1000 * 60 * 60 * 24));
-      monthsOverdue = Math.ceil(daysOverdue / 30);
-    }
-
-    const overdueAmount = amount * monthsOverdue;
-
-    return {
-      status: 'overdue',
-      message: `${formatAmount(overdueAmount)} Due`,
-      color: 'red',
-      daysLeft: -Math.floor((today - (isFirstMonth ? graceEndDate : endDate)) / (1000 * 60 * 60 * 24)),
-      monthsOverdue: monthsOverdue
-    };
-  };
+  const billingBadge = getNavBillingBadge(subscription, payments);
 
   // Icon mapping for navigation links
   const getIconForLink = (text) => {
@@ -188,20 +111,20 @@ const Nav = () => {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
-                    {getBillingStatus().status !== 'unknown' && (
-                      <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${getBillingStatus().color === 'red' ? 'bg-red-500' :
-                        getBillingStatus().color === 'blue' ? 'bg-blue-500' :
-                          getBillingStatus().color === 'green' ? 'bg-green-500' : 'bg-gray-500'
+                    {billingBadge.status !== 'unknown' && (
+                      <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${billingBadge.color === 'red' ? 'bg-red-500' :
+                        billingBadge.color === 'blue' ? 'bg-blue-500' :
+                          billingBadge.color === 'green' ? 'bg-green-500' : 'bg-gray-500'
                         }`}></span>
                     )}
                   </div>
                   <span>Billing</span>
-                  {getBillingStatus().status !== 'unknown' && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${getBillingStatus().color === 'red' ? 'bg-red-100 text-red-800' :
-                      getBillingStatus().color === 'blue' ? 'bg-blue-100 text-blue-800' :
-                        getBillingStatus().color === 'green' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                  {billingBadge.status !== 'unknown' && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${billingBadge.color === 'red' ? 'bg-red-100 text-red-800' :
+                      billingBadge.color === 'blue' ? 'bg-blue-100 text-blue-800' :
+                        billingBadge.color === 'green' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                       }`}>
-                      {getBillingStatus().message}
+                      {billingBadge.message}
                     </span>
                   )}
                 </Link>

@@ -13,62 +13,13 @@ import CartButtons from './CartButtons'
 import { useUserContext } from '../context/user_context'
 import { useBilling } from '../context/billing_context'
 import { hasPermission } from '../rbacPermissionUtils'
+import { getNavBillingBadge } from '../utils/billingPaymentUtils'
 
 const Sidebar = () => {
   const { isLoggedIn, isSidebarOpen, closeSidebar, userRole } = useUserContext();
-  const { subscription } = useBilling();
+  const { subscription, payments } = useBilling();
 
-  // Format amount for display
-  const formatAmount = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0
-    }).format(amount || 0);
-  };
-
-  // Get billing status and grace period - Frontend calculation
-  const getBillingStatus = () => {
-    if (!subscription) {
-      return { status: 'unknown', message: '', color: 'gray' };
-    }
-
-    const today = new Date();
-    const startDate = new Date(subscription.start_date);
-    const endDate = new Date(subscription.end_date);
-    const gracePeriod = 15; // 15 days grace period
-    const graceEndDate = new Date(endDate.getTime() + (gracePeriod * 24 * 60 * 60 * 1000));
-
-    const isFirstMonth = today < new Date(startDate.getTime() + (30 * 24 * 60 * 60 * 1000));
-    const monthsOverdue = Math.max(0, Math.floor((today - endDate) / (1000 * 60 * 60 * 24 * 30)));
-
-    if (subscription.status === 'active' && today <= endDate) {
-      const daysLeft = Math.floor((endDate - today) / (1000 * 60 * 60 * 24));
-      return {
-        status: 'active',
-        message: `${daysLeft} days left`,
-        color: 'green'
-      };
-    }
-
-    if (subscription.status === 'active' && today <= graceEndDate) {
-      const daysLeft = Math.floor((graceEndDate - today) / (1000 * 60 * 60 * 24));
-      return {
-        status: 'grace',
-        message: `${daysLeft} days grace`,
-        color: 'blue'
-      };
-    }
-
-    const overdueAmount = subscription.monthly_amount * (monthsOverdue + 1);
-    return {
-      status: 'overdue',
-      message: `${formatAmount(overdueAmount)} Due`,
-      color: 'red',
-      daysLeft: -Math.floor((today - (isFirstMonth ? graceEndDate : endDate)) / (1000 * 60 * 60 * 24)),
-      monthsOverdue: monthsOverdue
-    };
-  };
+  const billingBadge = getNavBillingBadge(subscription, payments);
 
   // Icon mapping for navigation links
   const getIconForLink = (text) => {
@@ -152,20 +103,20 @@ const Sidebar = () => {
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                         </svg>
-                        {getBillingStatus().status !== 'unknown' && (
-                          <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${getBillingStatus().color === 'red' ? 'bg-red-500' :
-                            getBillingStatus().color === 'blue' ? 'bg-blue-500' :
-                              getBillingStatus().color === 'green' ? 'bg-green-500' : 'bg-gray-500'
+                        {billingBadge.status !== 'unknown' && (
+                          <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${billingBadge.color === 'red' ? 'bg-red-500' :
+                            billingBadge.color === 'blue' ? 'bg-blue-500' :
+                              billingBadge.color === 'green' ? 'bg-green-500' : 'bg-gray-500'
                             }`}></span>
                         )}
                       </div>
                       <span>Billing</span>
-                      {getBillingStatus().status !== 'unknown' && (
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${getBillingStatus().color === 'red' ? 'bg-red-100 text-red-800' :
-                          getBillingStatus().color === 'blue' ? 'bg-blue-100 text-blue-800' :
-                            getBillingStatus().color === 'green' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      {billingBadge.status !== 'unknown' && (
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${billingBadge.color === 'red' ? 'bg-red-100 text-red-800' :
+                          billingBadge.color === 'blue' ? 'bg-blue-100 text-blue-800' :
+                            billingBadge.color === 'green' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                           }`}>
-                          {getBillingStatus().message}
+                          {billingBadge.message}
                         </span>
                       )}
                     </Link>

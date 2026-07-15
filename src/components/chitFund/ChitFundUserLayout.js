@@ -36,6 +36,7 @@ import Receivables from '../../pages/Receivables';
 import Payables from '../../pages/Payables';
 import ProductsPage from '../../pages/ProductsPage';
 import MyBillingPage from '../../pages/MyBillingPage';
+import BillingOverdueOverlay from '../BillingOverdueOverlay';
 import Subscribers from '../Subscribers';
 import GroupStepForm from '../../pages/MultiStepGroupCreation_New/MultiStepForm';
 import AddCompanySubcriber from '../../pages/AddCompanySubcriber';
@@ -68,6 +69,7 @@ const ChitFundUserLayout = () => {
                                                     <PayablesProvider>
                                                         <ProductProvider>
                                                             <BillingProvider>
+                                                                <BillingOverdueOverlay billingPath="/chit-fund/user/billing" />
                                                                 <div className="min-h-screen bg-gray-50">
                                                                     <Navbar />
                                                                     <Sidebar />
