@@ -1,12 +1,14 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { FaPhone, FaRocket, FaShieldAlt, FaChartLine } from "react-icons/fa";
+import { FaPhone, FaRocket, FaWhatsapp } from "react-icons/fa";
 import SignupModal from "./SignupModal";
 import LoginModal from "./LoginModal";
+import RequestDemoModal from "./RequestDemoModal";
+import { buildWhatsAppChatUrl } from "../utils/whatsappUtils";
 
 const Hero = () => {
     const [showSignupModal, setShowSignupModal] = useState(false);
     const [showLoginModal, setShowLoginModal] = useState(false);
+    const [showDemoModal, setShowDemoModal] = useState(false);
 
     return (
         <section className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-red-50 flex items-center">
@@ -112,7 +114,23 @@ const Hero = () => {
                         </div>
 
                         {/* CTA Buttons */}
-                        <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex flex-col sm:flex-row flex-wrap gap-4">
+                            <button
+                                onClick={() => setShowDemoModal(true)}
+                                className="inline-flex items-center justify-center px-8 py-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                            >
+                                <FaWhatsapp className="w-5 h-5 mr-2" />
+                                Request Demo
+                            </button>
+                            <a
+                                href={buildWhatsAppChatUrl()}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center px-8 py-4 bg-white text-green-700 font-semibold rounded-lg border-2 border-green-600 hover:bg-green-50 transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg"
+                            >
+                                <FaWhatsapp className="w-5 h-5 mr-2" />
+                                WhatsApp Me
+                            </a>
                             <button
                                 onClick={() => setShowSignupModal(true)}
                                 className="inline-flex items-center justify-center px-8 py-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
@@ -141,6 +159,11 @@ const Hero = () => {
             <LoginModal
                 isOpen={showLoginModal}
                 onClose={() => setShowLoginModal(false)}
+            />
+
+            <RequestDemoModal
+                isOpen={showDemoModal}
+                onClose={() => setShowDemoModal(false)}
             />
         </section>
     );
