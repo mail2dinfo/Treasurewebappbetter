@@ -4,7 +4,6 @@ import {
     FiBarChart2,
     FiRefreshCw,
     FiTrendingUp,
-    FiUsers,
 } from 'react-icons/fi';
 import { useHistory } from 'react-router-dom';
 import { useUserContext } from '../context/user_context';
@@ -16,7 +15,6 @@ import { SuperAdminKpiCard, SuperAdminPanel } from '../components/superAdmin/Sup
 import Loading from '../components/Loading';
 
 const moduleMeta = {
-    'user-analytics': { icon: FiUsers, accent: 'red' },
     'chit-fund': { icon: FiBarChart2, accent: 'blue' },
     'daily-finance': { icon: FiTrendingUp, accent: 'emerald' },
 };
@@ -57,9 +55,9 @@ const SuperAdminHome = () => {
         fetchSummary();
     }, [user, history, fetchSummary]);
 
-    const userModule = modules.find((m) => m.id === 'user-analytics');
-    const chitModule = modules.find((m) => m.id === 'chit-fund');
-    const dailyModule = modules.find((m) => m.id === 'daily-finance');
+    const visibleModules = modules.filter((module) => module.id !== 'user-analytics');
+    const chitModule = visibleModules.find((m) => m.id === 'chit-fund');
+    const dailyModule = visibleModules.find((m) => m.id === 'daily-finance');
 
     const refreshButton = (
         <button
@@ -83,7 +81,7 @@ const SuperAdminHome = () => {
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-red-200">Super Admin</p>
                 <h2 className="mt-2 text-2xl font-bold sm:text-3xl">Welcome to your command center</h2>
                 <p className="mt-2 max-w-2xl text-sm text-slate-300 sm:text-base">
-                    User login data is shared across apps. Open each module below for detailed analytics.
+                    Open each module below for Chit Fund and Daily Finance analytics.
                 </p>
             </div>
 
@@ -99,14 +97,7 @@ const SuperAdminHome = () => {
                 </div>
             ) : (
                 <>
-                    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <SuperAdminKpiCard
-                            icon={FiUsers}
-                            label="Platform users"
-                            value={userModule?.metric_value ?? 0}
-                            hint="All MyTreasure accounts"
-                            accent="red"
-                        />
+                    <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <SuperAdminKpiCard
                             icon={FiBarChart2}
                             label="Chit fund groups"
@@ -124,9 +115,9 @@ const SuperAdminHome = () => {
                     </div>
 
                     <SuperAdminPanel title="Analytics modules" description="Select a report to drill down">
-                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                            {modules.map((module) => {
-                                const meta = moduleMeta[module.id] || moduleMeta['user-analytics'];
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            {visibleModules.map((module) => {
+                                const meta = moduleMeta[module.id] || moduleMeta['chit-fund'];
                                 const Icon = meta.icon;
 
                                 return (
