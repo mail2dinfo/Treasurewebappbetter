@@ -29,6 +29,7 @@ import ProductsPage from './ProductsPage'
 import MyBillingPage from './MyBillingPage'
 import SubscriberPasswordUpdate from './SubscriberPasswordUpdate'
 import AppSelectionPage from './AppSelectionPage'
+export { default as SuperAdminHome } from './SuperAdminHome'
 
 
 export {
@@ -59,6 +60,6 @@ export {
     ProductsPage,
     MyBillingPage,
     SubscriberPasswordUpdate,
-    AppSelectionPage
+    AppSelectionPage,
 
 }

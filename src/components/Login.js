@@ -5,6 +5,7 @@ import { useLedgerAccountContext } from "../context/ledgerAccount_context";
 import { Link } from 'react-router-dom';
 import Alert from '../components/Alert';
 import { API_BASE_URL } from '../utils/apiConfig';
+import { isSuperAdminUser } from '../utils/superAdminUtils';
 import Modal from "../components/Modal";
 import { FiEye, FiEyeOff, FiUser, FiLock, FiArrowRight } from 'react-icons/fi';
 
@@ -48,19 +49,25 @@ function Login() {
         setUserObjectFromAPI(data);
         // Set the user object in the AuthContext
         login(data);
-        setUserRole(data?.results?.userAccounts); // Set the captured user object in the state
+        setUserRole(data?.results?.userAccounts);
 
-        // This logic is not working nee dto revisit
-        if (data?.results?.userAccounts.length === 1) {
+        if (isSuperAdminUser(data)) {
+          updateUserRole('SuperAdmin');
+          history.push('/super-admin');
+          return;
+        }
+
+        if (data?.results?.userAccounts?.length === 1) {
           // Redirect to the role choosing page
           const selectedRole = data?.results?.userAccounts[0]?.accountName || 'User';
 
           updateUserRole(selectedRole);
           redirectPage(selectedRole);
 
-        } else {
+        } else if (data?.results?.userAccounts?.length > 1) {
           setShowModal(true);
-
+        } else {
+          showAlert(true, 'danger', 'No active account found for this user.');
         }
 
 

@@ -1,12 +1,13 @@
 // apiConfig.js
-const isProduction = process.env.REACT_APP_DEPLOY_ENV === "production";
+const deployEnv = (process.env.REACT_APP_DEPLOY_ENV || '').toLowerCase();
+const isProduction = deployEnv === 'production';
 
-console.log("=================================", process.env.REACT_APP_DEPLOY_ENV);
+const configuredApiBaseUrl = process.env.REACT_APP_API_BASE_URL;
 
-export const API_BASE_URL = isProduction
-  ? 'https://treasure-mani.onrender.com/api/v1'
-  : 'https://treasure-services-mani.onrender.com/api/v1';
-
+export const API_BASE_URL = configuredApiBaseUrl
+  || (isProduction
+    ? 'https://treasure-mani.onrender.com/api/v1'
+    : 'https://treasure-services-mani.onrender.com/api/v1');
 
 export const WEBSOCKET_URL = isProduction
   ? 'wss://treasure-mani.onrender.com'
@@ -16,23 +17,5 @@ export const IS_PRODUCTION_DEPLOY = isProduction;
 
 export const MANUAL_CRON_ENABLED = process.env.REACT_APP_ENABLE_MANUAL_CRON === 'true';
 
-
-
-
-//Test
-
-// export const API_BASE_URL = 'https://treasure-mani.onrender.com/api/v1';
-// export const WEBSOCKET_URL = 'wss://treasure-mani.onrender.com';
-
-
-//Prod
-// export const API_BASE_URL = 'https://mytreasure.in/api/v1';
-// export const WEBSOCKET_URL = 'wss://mytreasure.in';
-
-// if (process.env.DEPLOY_ENV === "production") {
-
-//     export const API_BASE_URL = 'https://mytreasure.in/api/v1';
-// export const WEBSOCKET_URL = 'wss://mytreasure.in';
-
-// }
-
+console.log('=================================', process.env.REACT_APP_DEPLOY_ENV);
+console.log('API_BASE_URL =>', API_BASE_URL);

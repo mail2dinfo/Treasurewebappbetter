@@ -6,6 +6,7 @@ import LoadingBar from './LoadingBar';
 import Alert from './Alert';
 import Modal from './Modal';
 import { API_BASE_URL } from '../utils/apiConfig';
+import { isSuperAdminUser } from '../utils/superAdminUtils';
 import { FiEye, FiEyeOff, FiPhone, FiLock, FiArrowRight, FiCheck, FiX } from 'react-icons/fi';
 
 function LoginModal({ isOpen, onClose }) {
@@ -66,7 +67,14 @@ function LoginModal({ isOpen, onClose }) {
                 login(data);
                 setUserRole(data?.results?.userAccounts);
 
-                if (data?.results?.userAccounts.length === 1) {
+                if (isSuperAdminUser(data)) {
+                    updateUserRole('SuperAdmin');
+                    onClose();
+                    history.push('/super-admin');
+                    return;
+                }
+
+                if (data?.results?.userAccounts?.length === 1) {
                     // Redirect to the role choosing page
                     const selectedRole = data?.results?.userAccounts[0]?.accountName || 'User';
                     updateUserRole(selectedRole);

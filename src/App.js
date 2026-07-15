@@ -2,6 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Switch, Route, Redirect } from 'react-router-dom';
 import { ScrollToTop, SignUp, VerifyOTP, Login, ForgetPassword } from './components';
 import { LandingPage, AppSelectionPage } from './pages';
+import SuperAdminHome from './pages/SuperAdminHome';
+import SuperAdminUserAnalytics from './pages/SuperAdminUserAnalytics';
+import SuperAdminChitFundAnalytics from './pages/SuperAdminChitFundAnalytics';
+import SuperAdminDailyFinanceAnalytics from './pages/SuperAdminDailyFinanceAnalytics';
 import { UserProvider } from './context/user_context';
 import { LedgerAccountProvider } from './context/ledgerAccount_context';
 
@@ -33,6 +37,13 @@ function App() {
                 <Router>
                     <ScrollToTop />
                     <Switch>
+                        {/* Super Admin Portal */}
+                        <PrivateRoute exact path="/super-admin/user-analytics" component={SuperAdminUserAnalytics} />
+                        <PrivateRoute exact path="/super-admin/chit-fund-analytics" component={SuperAdminChitFundAnalytics} />
+                        <PrivateRoute exact path="/super-admin/daily-finance-analytics" component={SuperAdminDailyFinanceAnalytics} />
+                        <PrivateRoute exact path="/super-admin" component={SuperAdminHome} />
+                        <Route path="/super-admin/apps/:appId" render={() => <Redirect to="/super-admin" />} />
+
                         {/* App Selection Page - Entry point */}
                         <PrivateRoute path="/app-selection" component={AppSelectionPage} />
 
