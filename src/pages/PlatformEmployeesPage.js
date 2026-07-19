@@ -889,10 +889,14 @@ const PlatformEmployeesPage = ({
         const existingEnrollments = (employee.enrollments || employee.roles || [])
                 .filter((enrollment) => enrollment.isActive !== false && enrollment.is_active !== false)
                 .filter((enrollment) => EMPLOYEE_ROLES.includes(getRoleCode(enrollment)))
-                .map(normalizeEnrollment);
+                .map(normalizeEnrollment)
+                // Scoped pages (e.g. Admin Settings → Chit Fund) edit only that app's roles.
+                .filter((enrollment) => !appScope || enrollment.appCode === appScope);
         setEditorStep(1);
         setEditorError('');
-        const appCodes = [...new Set(existingEnrollments.map((item) => item.appCode).filter(Boolean))];
+        const appCodes = appScope
+            ? [appScope]
+            : [...new Set(existingEnrollments.map((item) => item.appCode).filter(Boolean))];
         setSelectedAppCodes(appCodes);
         setEnrollments(existingEnrollments);
         setExpandedEditorApps(
@@ -1012,13 +1016,21 @@ const PlatformEmployeesPage = ({
         });
     };
 
+    // When app is locked (Chit Admin Settings / VF employees), skip the app-picker step.
+    const skipAppStep = Boolean(appScope);
+
     const goToStep = (targetStep) => {
-        const step = Number(targetStep);
+        let step = Number(targetStep);
+        if (skipAppStep && step === 2) step = 3;
         if (![1, 2, 3].includes(step) || step === editorStep) return;
         setEditorError('');
 
         // Always allow moving backward.
         if (step < editorStep) {
+            if (skipAppStep && editorStep === 3 && step === 2) {
+                setEditorStep(1);
+                return;
+            }
             setEditorStep(step);
             return;
         }
@@ -1090,11 +1102,15 @@ const PlatformEmployeesPage = ({
     };
 
     const goToNextStep = () => {
-        if (editorStep === 1) goToStep(2);
+        if (editorStep === 1) goToStep(skipAppStep ? 3 : 2);
         else if (editorStep === 2) goToStep(3);
     };
 
     const goToPreviousStep = () => {
+        if (editorStep === 3 && skipAppStep) {
+            goToStep(1);
+            return;
+        }
         goToStep(Math.max(1, editorStep - 1));
     };
 
@@ -1105,7 +1121,9 @@ const PlatformEmployeesPage = ({
             return;
         }
         if (Date.now() - stepThreeEnteredAtRef.current < 500) return;
-        const assignableEnrollments = enrollments.filter((item) => EMPLOYEE_ROLES.includes(item.roleCode));
+        const assignableEnrollments = enrollments
+            .filter((item) => EMPLOYEE_ROLES.includes(item.roleCode))
+            .filter((item) => !appScope || item.appCode === appScope);
         if (managerMode && assignableEnrollments.some((item) => item.roleCode === 'MANAGER')) {
             setEditorError('Managers cannot create another Manager. Assign Collector or Accountant only.');
             return;
@@ -1114,11 +1132,14 @@ const PlatformEmployeesPage = ({
             setEditorError('You can only create Collector or Accountant roles.');
             return;
         }
-        const appsWithoutRoles = selectedAppCodes.filter(
+        const effectiveAppCodes = appScope ? [appScope] : selectedAppCodes;
+        const appsWithoutRoles = effectiveAppCodes.filter(
             (appCode) => !assignableEnrollments.some((item) => item.appCode === appCode)
         );
         if (appsWithoutRoles.length) {
-            setEditorError('Assign at least one role for every selected application.');
+            setEditorError(appScope
+                ? `Assign at least one role for ${scopedAppLabel}.`
+                : 'Assign at least one role for every selected application.');
             return;
         }
         setIsSaving(true);
@@ -1128,6 +1149,38 @@ const PlatformEmployeesPage = ({
             const employeeId = editingEmployee?.id || editingEmployee?.employeeId || editingEmployee?.employee_id;
             const payloadProfile = { ...profile };
             if (!payloadProfile.loginPassword) delete payloadProfile.loginPassword;
+            const mapEnrollmentPayload = (item) => {
+                let permissions = expandGrantedPermissions(
+                    item.appCode,
+                    item.permissions || []
+                );
+                if (usesCollectorAccountantPackage(item.roleCode, item.appCode)) {
+                    const app = catalog.find((entry) => getAppCode(entry) === item.appCode);
+                    if (app) {
+                        const allowed = new Set(
+                            getFeaturesForRoleAssignment(
+                                getStep3Features(app),
+                                item.roleCode,
+                                item.appCode
+                            ).map(getFeatureKey).filter(Boolean)
+                        );
+                        permissions = permissions.filter((key) => allowed.has(key));
+                    }
+                }
+                return { ...item, permissions };
+            };
+            // Scoped edit must not deactivate other apps (API replace:true).
+            const preservedOtherAppEnrollments = (employeeId && appScope)
+                ? (editingEmployee?.enrollments || editingEmployee?.roles || [])
+                    .filter((enrollment) => enrollment.isActive !== false && enrollment.is_active !== false)
+                    .filter((enrollment) => EMPLOYEE_ROLES.includes(getRoleCode(enrollment)))
+                    .map(normalizeEnrollment)
+                    .filter((item) => item.appCode && item.appCode !== appScope)
+                : [];
+            const enrollmentsPayload = [
+                ...preservedOtherAppEnrollments,
+                ...assignableEnrollments,
+            ].map(mapEnrollmentPayload);
             const response = await fetch(
                 employeeId
                     ? `${API_BASE_URL}/platform/employees/${employeeId}`
@@ -1138,27 +1191,7 @@ const PlatformEmployeesPage = ({
                     body: JSON.stringify({
                         parentMembershipId: ownerMembershipId,
                         profile: payloadProfile,
-                        enrollments: assignableEnrollments.map((item) => {
-                            let permissions = expandGrantedPermissions(
-                                item.appCode,
-                                item.permissions || []
-                            );
-                            // VF Collector/Accountant: keep only the role package (same as manager/employees).
-                            if (usesCollectorAccountantPackage(item.roleCode, item.appCode)) {
-                                const app = catalog.find((entry) => getAppCode(entry) === item.appCode);
-                                if (app) {
-                                    const allowed = new Set(
-                                        getFeaturesForRoleAssignment(
-                                            getStep3Features(app),
-                                            item.roleCode,
-                                            item.appCode
-                                        ).map(getFeatureKey).filter(Boolean)
-                                    );
-                                    permissions = permissions.filter((key) => allowed.has(key));
-                                }
-                            }
-                            return { ...item, permissions };
-                        }),
+                        enrollments: enrollmentsPayload,
                     }),
                 }
             );
@@ -1275,7 +1308,7 @@ const PlatformEmployeesPage = ({
     const btnAccent = 'inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-[#d62828] text-sm font-medium hover:bg-red-100';
 
     return (
-        <div className={`min-h-screen bg-[#f8f9fa] antialiased ${textBody}`}>
+        <div className={`${embedded ? 'min-h-0' : 'min-h-screen'} bg-[#f8f9fa] antialiased ${textBody}`}>
             {!embedded && <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
                 <div className="max-w-7xl mx-auto px-3 sm:px-6 min-h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
@@ -1668,10 +1701,12 @@ const PlatformEmployeesPage = ({
                             <div>
                                 <h2 className={`text-xl ${textTitle}`}>{editingEmployee ? 'Edit employee access' : 'Add employee'}</h2>
                                 <p className={`text-sm ${textMuted}`}>
-                                    {managerMode
-                                        ? `Step 1 profile → Step 2 ${scopedAppLabel} (locked) → Step 3 Collector/Accountant by your permissions.`
-                                        : (isVfScoped || isChitScoped)
-                                            ? `Step 1 profile → Step 2 ${scopedAppLabel} (locked) → Step 3 Manager and Collector/Accountant.`
+                                    {skipAppStep
+                                        ? (managerMode
+                                            ? `Step 1 profile → Step 2 Collector/Accountant for ${scopedAppLabel} only.`
+                                            : `Step 1 profile → Step 2 Manager / Collector / Accountant for ${scopedAppLabel} only.`)
+                                        : managerMode
+                                            ? `Step 1 profile → Step 2 ${scopedAppLabel} (locked) → Step 3 Collector/Accountant by your permissions.`
                                             : 'Complete the employee, application, and role details.'}
                                 </p>
                             </div>
@@ -1679,14 +1714,22 @@ const PlatformEmployeesPage = ({
                         </div>
 
                         <div className="px-5 sm:px-7 py-4 border-b border-gray-100">
-                            <div className="grid grid-cols-3 gap-2">
-                                {[
-                                    [1, 'Employee details'],
-                                    [2, (managerMode || isVfScoped || isChitScoped) ? `App (${scopedAppLabel})` : 'App details'],
-                                    [3, managerMode
-                                        ? 'Collector / Accountant'
-                                        : ((isVfScoped || isChitScoped) ? 'Manager · Collector / Accountant' : 'Roles assign')],
-                                ].map(([step, label]) => (
+                            <div className={`grid gap-2 ${skipAppStep ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                                {(skipAppStep
+                                    ? [
+                                        [1, 'Employee details'],
+                                        [3, managerMode
+                                            ? `${scopedAppLabel} · Collector / Accountant`
+                                            : `${scopedAppLabel} · Roles`],
+                                    ]
+                                    : [
+                                        [1, 'Employee details'],
+                                        [2, (managerMode || isVfScoped || isChitScoped) ? `App (${scopedAppLabel})` : 'App details'],
+                                        [3, managerMode
+                                            ? 'Collector / Accountant'
+                                            : ((isVfScoped || isChitScoped) ? 'Manager · Collector / Accountant' : 'Roles assign')],
+                                    ]
+                                ).map(([step, label], index) => (
                                     <button
                                         key={step}
                                         type="button"
@@ -1699,7 +1742,7 @@ const PlatformEmployeesPage = ({
                                     >
                                         <div className={`h-1.5 rounded-full ${editorStep >= step ? 'bg-red-600' : 'bg-gray-200'}`} />
                                         <p className={`mt-2 text-xs sm:text-sm font-semibold truncate ${editorStep === step ? 'text-red-700' : 'text-gray-500'}`}>
-                                            Step {step}: {label}
+                                            Step {index + 1}: {label}
                                         </p>
                                     </button>
                                 ))}

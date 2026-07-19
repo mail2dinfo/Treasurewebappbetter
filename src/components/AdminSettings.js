@@ -1,154 +1,137 @@
-import React, { useState, useEffect } from 'react';
-import { useHistory } from 'react-router-dom';
-import styled from 'styled-components';
-import { useUserContext } from "../context/user_context";
-import ReactFlagsSelect from "react-flags-select";
-import "./flags.css";
-import { Link } from 'react-router-dom';
-import LoadingBar from './LoadingBar';
-import List from '../components/List';
-import Alert from '../components/Alert';
-import { API_BASE_URL } from '../utils/apiConfig';
+import React, { useState } from 'react';
+import { FiSettings } from 'react-icons/fi';
 import Menu from '../components/Menu';
-import PersonalSettings from '../components/PersonalSettings';
-import AddEmployee from '../components/AddEmployee';
 import AddAob from '../components/AddAob';
 import Subscribers from '../components/Subscribers';
-import Company from '../components/Company'
+import Company from '../components/Company';
 import UsersPage from './UsersPage';
 import ManageGroups from '../components/ManageGroups';
+import PersonalSettings from '../components/PersonalSettings';
+import PlatformEmployeesPage from '../pages/PlatformEmployeesPage';
+
+const SECTION_META = {
+    personalsettings: {
+        title: 'Personal Settings',
+        subtitle: 'Update your profile and preferences',
+    },
+    users: {
+        title: 'Users',
+        subtitle: 'Manage user accounts',
+    },
+    areaofbusiness: {
+        title: 'Area of Business',
+        subtitle: 'Create and manage collection areas for your chit fund',
+    },
+    // legacy key from older Menu click mapping
+    'areaof business': {
+        title: 'Area of Business',
+        subtitle: 'Create and manage collection areas for your chit fund',
+    },
+    employees: {
+        title: 'Employees',
+        subtitle: 'Add managers, collectors and accountants for Chit Fund',
+    },
+    subscribers: {
+        title: 'Subscribers',
+        subtitle: 'Manage chit fund subscribers',
+    },
+    company: {
+        title: 'Company',
+        subtitle: 'Company details',
+    },
+    managegroups: {
+        title: 'Manage Groups',
+        subtitle: 'Administer chit groups',
+    },
+};
 
 function AdminSettings() {
+    const [selectedMenu, setSelectedMenu] = useState('areaofbusiness');
+    const isEmployeesMenu = selectedMenu === 'employees';
+    const meta = SECTION_META[selectedMenu] || {
+        title: 'Admin Settings',
+        subtitle: 'Manage your Chit Fund administration',
+    };
 
-  const { isLoggedIn, user, login } = useUserContext();
-  const [isLoading, setIsLoading] = useState(false);
-
-  const [selectedMenu, setSelectedMenu] = useState('settings');
-
-  const handleMenuClick = (menu) => {
-    setSelectedMenu(menu);
-    console.log(menu);
-  };
-
-  const renderComponent = () => {
-    switch (selectedMenu) {
-      case 'personalsettings':
-        return <PersonalSettings />;
-      case 'users':
-        return <UsersPage />;
-      case 'employees':
-        return <AddEmployee />;
-      case 'areaof business':
-        return <AddAob />;
-      case 'subscribers':
-        return <Subscribers />;
-      case 'company':
-        return <Company />;
-      case 'managegroups':
-        return <ManageGroups />;
-
-      // Add cases for other menu items as needed
-      default:
-        return null;
-    }
-  };
-
-  return (
-    <Wrapper className='section-center'>
-
-      <div className="menu">
-        <Menu onSelect={handleMenuClick} selectedMenu={selectedMenu} />
-      </div>
-      <div className="contain">
-        <div>
-          <div>{renderComponent()}</div>
-        </div>
-      </div>
-    </Wrapper>
-  );
-}
-const Wrapper = styled.section`
-display: grid;
-grid-template-columns: 1fr; /* Single column by default */
-
-.menu {
-  margin-top: 2rem;
-  margin-bottom: 4rem;
-  padding: 1rem;
-  border-radius: var(--radius);
-  box-shadow: var(--light-shadow);
-  max-width: 30rem;
-}
-
-ul {
-  list-style: none;
-  padding: 1rem;
-}
-
-li {
-  margin-bottom: 10px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  color: var(--clr-black);
-  transition: color 0.3s; /* Add a transition for smoother color change */
-}
-/* Add the hover styles */
-li:hover {
-  background-color: var(--clr-red-dark); 
-  color: var(--clr-white); 
-  border-radius:10px;
-  padding :5px;
-  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out; 
-}
-li.active {
-    background-color: var(--clr-red-dark); 
-  color: var(--clr-white); 
-  border-radius:10px;
-  padding :5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-.menuheading {
-    background-color: var(--clr-red-dark);
-  padding: 5px ; /* Adjust padding as needed */
-  font-size: 1rem;  
-  color: white; /* Set the text color to white or another suitable color */  
-  margin-bottom: 10px;
-  border-radius: 10px; /* Adjust the radius to your liking */
-  text-align: center;
-}
-
-.contain {      
-margin-top: 2rem;
-margin-bottom: 4rem;
-padding-top:2rem; 
-background: var(--clr-white);
-border-radius: var(--radius);
-box-shadow: var(--light-shadow);
-transition: var(--transition);
-height: auto; 
-max-width: 30rem;
-
-  } 
-
-    .contain:hover {
-      box-shadow: var(--dark-shadow);
-    }
-     
-    @media screen and (min-width: 992px)
-      {
-        grid-template-columns: 15rem 60rem; /* Two columns with equal width */
-        grid-gap: 10px; /* Grid gap of 1px between grid items */      
-      }
-
-      @media screen and (min-width: 992px)
-      {
-        .contain {  
-          max-width: 60rem;
+    const renderComponent = () => {
+        switch (selectedMenu) {
+            case 'personalsettings':
+                return <PersonalSettings />;
+            case 'users':
+                return <UsersPage />;
+            case 'employees':
+                return (
+                    <PlatformEmployeesPage
+                        appScope="CHIT_FUND"
+                        embedded
+                        pageTitle="Chit Fund Employees"
+                        backPath="/chit-fund/user/adminsettings"
+                    />
+                );
+            case 'areaofbusiness':
+            case 'areaof business':
+                return <AddAob />;
+            case 'subscribers':
+                return <Subscribers />;
+            case 'company':
+                return <Company />;
+            case 'managegroups':
+                return <ManageGroups />;
+            default:
+                return (
+                    <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-16 text-center">
+                        <p className="text-sm font-medium text-[#444]">Select a section from the menu</p>
+                    </div>
+                );
         }
-      }
-     
-     
-`
+    };
+
+    return (
+        <div className="min-h-[calc(100vh-4rem)] bg-[#f8f9fa] antialiased">
+            <div className="max-w-screen-2xl mx-auto px-3 sm:px-5 lg:px-6 py-5 sm:py-7">
+                <header className="mb-5 sm:mb-6">
+                    <div className="flex items-start gap-3">
+                        <span className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl bg-[#d62828] text-white shadow-sm">
+                            <FiSettings className="h-5 w-5" />
+                        </span>
+                        <div className="min-w-0">
+                            <h1 className="text-xl sm:text-2xl font-semibold text-[#333] tracking-tight">
+                                Admin Settings
+                            </h1>
+                            <p className="mt-1 text-sm text-[#888]">
+                                Chit Fund administration — areas, employees and groups
+                            </p>
+                        </div>
+                    </div>
+                </header>
+
+                <div className={`grid grid-cols-1 gap-4 lg:gap-5 ${isEmployeesMenu ? 'lg:grid-cols-[16rem_minmax(0,1fr)]' : 'lg:grid-cols-[16rem_minmax(0,48rem)]'}`}>
+                    <aside className="lg:sticky lg:top-20 self-start">
+                        <div className="rounded-2xl border border-gray-200 bg-white p-3 sm:p-4 shadow-sm">
+                            <Menu onSelect={setSelectedMenu} selectedMenu={selectedMenu} />
+                        </div>
+                    </aside>
+
+                    <section className="min-w-0">
+                        {!isEmployeesMenu && (
+                            <div className="mb-4 rounded-2xl border border-gray-200 bg-white px-4 sm:px-5 py-4 shadow-sm">
+                                <h2 className="text-lg font-semibold text-[#333]">{meta.title}</h2>
+                                <p className="mt-1 text-sm text-[#888]">{meta.subtitle}</p>
+                            </div>
+                        )}
+
+                        <div
+                            className={`rounded-2xl border border-gray-200 bg-white shadow-sm ${
+                                isEmployeesMenu ? 'p-2 sm:p-3 overflow-visible' : 'p-4 sm:p-6'
+                            }`}
+                        >
+                            {renderComponent()}
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default AdminSettings;
