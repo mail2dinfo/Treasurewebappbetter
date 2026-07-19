@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     FaUserMinus,
     FaUserPlus,
@@ -13,16 +13,37 @@ import {
     FaSignInAlt,
     FaBox
 } from "react-icons/fa";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useUserContext } from "../context/user_context";
+import { usePlatformAccess } from "../context/platformAccess_context";
 import { useHistory } from "react-router-dom";
 import { API_BASE_URL } from '../utils/apiConfig';
 import { hasPermission } from '../rbacPermissionUtils';
 import { downloadImage } from "../utils/downloadImage";
 
+const formatRoleLabel = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw
+        .split(/[\s_]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
+};
+
+const ROLE_CODE_LABELS = {
+    OWNER: 'Owner',
+    USER: 'User',
+    MANAGER: 'Manager',
+    COLLECTOR: 'Collector',
+    ACCOUNTANT: 'Accountant',
+};
+
 const CartButtons = ({ scrolled }) => {
     const history = useHistory();
+    const location = useLocation();
     const { user, logout, userRole } = useUserContext();
+    const platform = usePlatformAccess();
     const { closeSidebar } = useUserContext();
     const [isTooltipVisible, setIsTooltipVisible] = useState(false);
     const [image, setImage] = useState('');
@@ -30,6 +51,44 @@ const CartButtons = ({ scrolled }) => {
     const [isMobile, setIsMobile] = useState(false);
     const [popupPosition, setPopupPosition] = useState('right-0');
     const hideTooltipTimer = useRef(null);
+
+    const displayName = formatRoleLabel(
+        user?.results?.firstname
+        || user?.results?.userDetail?.userName
+        || user?.results?.name
+        || 'Guest'
+    );
+
+    const roleLabel = useMemo(() => {
+        const activeRoleCode = String(platform?.activeContext?.roleCode || '').toUpperCase();
+        if (activeRoleCode && ROLE_CODE_LABELS[activeRoleCode]) {
+            return ROLE_CODE_LABELS[activeRoleCode];
+        }
+
+        const fromUserRole = formatRoleLabel(userRole);
+        if (fromUserRole) return fromUserRole;
+
+        const accounts = user?.results?.userAccounts || [];
+        const accountName = accounts.find((account) => account?.accountName)?.accountName;
+        if (accountName) return formatRoleLabel(accountName);
+
+        if (platform?.isOwner) return 'Owner';
+
+        // Path fallback for chit-fund staff shells
+        const path = String(location.pathname || '');
+        if (path.includes('/chit-fund/manager')) return 'Manager';
+        if (path.includes('/chit-fund/collector')) return 'Collector';
+        if (path.includes('/chit-fund/accountant')) return 'Accountant';
+        if (path.includes('/chit-fund/user')) return 'User';
+
+        return 'User';
+    }, [
+        platform?.activeContext?.roleCode,
+        platform?.isOwner,
+        userRole,
+        user?.results?.userAccounts,
+        location.pathname,
+    ]);
 
     const getImageSrc = (userImage) => {
         if (!userImage) return "default-avatar.png"; // Fallback image
@@ -180,8 +239,13 @@ const CartButtons = ({ scrolled }) => {
             {user ? (
                 <>
                     <div className="flex items-center space-x-3">
-                        <div className={`text-sm font-medium capitalize ${scrolled ? 'text-white' : 'text-gray-700'}`}>
-                            Hi {user.results.firstname || user.results.name || "Guest"}
+                        <div className={`hidden sm:block text-right ${scrolled ? 'text-white' : 'text-gray-700'}`}>
+                            <p className="text-sm font-semibold truncate max-w-[10rem]">
+                                Hi {displayName}
+                            </p>
+                            <p className={`text-xs ${scrolled ? 'text-red-100' : 'text-gray-500'}`}>
+                                Logged in as {roleLabel}
+                            </p>
                         </div>
                         <div className="relative" onMouseEnter={showTooltip} onMouseLeave={hideTooltip}>
                             <button
@@ -190,12 +254,12 @@ const CartButtons = ({ scrolled }) => {
                                 onFocus={showTooltip}
                                 aria-haspopup="menu"
                                 aria-expanded={isTooltipVisible}
-                                aria-label="Open user menu"
+                                aria-label={`Open user menu, logged in as ${roleLabel}`}
                                 className="block w-10 h-10 rounded-full overflow-hidden border-2 border-gray-300 hover:border-red-500 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 transition-all duration-300 cursor-pointer"
                             >
                                 <img
                                     src={image || previewUrl}
-                                    alt={user.results.firstname || "User Avatar"}
+                                    alt={displayName || "User Avatar"}
                                     className="w-full h-full object-cover"
                                 />
                             </button>
@@ -205,10 +269,15 @@ const CartButtons = ({ scrolled }) => {
                                     <div className={`absolute w-56 h-2 ${isMobile ? 'bottom-10' : 'top-10'} ${popupPosition}`} style={{ zIndex: 9998 }} onMouseEnter={showTooltip} onMouseLeave={hideTooltip}></div>
                                     <div className={`absolute w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 ${isMobile ? 'bottom-10' : 'top-10'} ${popupPosition}`} style={{ zIndex: 9999 }} onMouseEnter={showTooltip} onMouseLeave={hideTooltip}>
                                         <div className="px-4 py-2 border-b border-gray-100">
-                                            <p className="text-sm font-semibold text-gray-800 capitalize">
-                                                {user.results.firstname || user.results.name || "User"}
+                                            <p className="text-sm font-semibold text-gray-800">
+                                                Hi {displayName}
                                             </p>
-                                            <p className="text-xs text-gray-500">{user.results.email}</p>
+                                            <p className="text-xs text-gray-500 mt-0.5">
+                                                Logged in as {roleLabel}
+                                            </p>
+                                            {user.results.email ? (
+                                                <p className="text-xs text-gray-400 mt-1 truncate">{user.results.email}</p>
+                                            ) : null}
                                         </div>
                                         <ul className="py-1">
                                             {hasPermission(userRole, 'viewPersonalSettings') && (

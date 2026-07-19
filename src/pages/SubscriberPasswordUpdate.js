@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useHistory } from 'react-router-dom';
+import { useParams, useHistory, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
 import Alert from '../components/Alert';
@@ -8,7 +8,10 @@ import loadingImage from '../images/preloader.gif';
 const SubscriberPasswordUpdate = () => {
     const { id: subscriberId } = useParams();
     const history = useHistory();
+    const location = useLocation();
     const { user } = useUserContext();
+    const profilePath = location.pathname.replace(/\/update-password\/?$/, '')
+        || `/chit-fund/user/subscriber/${subscriberId}`;
 
     const [loading, setLoading] = useState(false);
     const [subscriberData, setSubscriberData] = useState({
@@ -99,10 +102,13 @@ const SubscriberPasswordUpdate = () => {
             if (response.ok) {
                 showAlert(true, 'success', data.message || 'Password updated successfully');
                 setTimeout(() => {
-                    history.push(`/subscribers/${subscriberId}`);
+                    history.push(profilePath);
                 }, 2000);
             } else {
-                showAlert(true, 'danger', data.message || 'Failed to update password');
+                const errorMsg = typeof data.errors === 'string'
+                    ? data.errors
+                    : (data.message || 'Failed to update password');
+                showAlert(true, 'danger', errorMsg);
             }
         } catch (error) {
             console.error('Error updating password:', error);
@@ -139,7 +145,7 @@ const SubscriberPasswordUpdate = () => {
                             <h1 className="text-2xl font-bold text-gray-900">Update Subscriber Password</h1>
                             <button
                                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                onClick={() => history.push(`/subscribers/${subscriberId}`)}
+                                onClick={() => history.push(profilePath)}
                             >
                                 ← Back to Profile
                             </button>
@@ -269,7 +275,7 @@ const SubscriberPasswordUpdate = () => {
                                     <button
                                         type="button"
                                         className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        onClick={() => history.push(`/subscribers/${subscriberId}`)}
+                                        onClick={() => history.push(profilePath)}
                                         disabled={loading}
                                     >
                                         Cancel

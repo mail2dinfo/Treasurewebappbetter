@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useHistory } from 'react-router-dom';
+import { useParams, useHistory, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 import { API_BASE_URL } from '../utils/apiConfig';
 import loadingImage from '../images/preloader.gif';
@@ -24,6 +24,7 @@ const SubscriberProfile = () => {
   const canChangeSubscriberPassword = !enforceSubscriberAccess
     || platform.hasPermission('chit_subscriber_change_password');
   const history = useHistory();
+  const location = useLocation();
   const [visibleSection, setVisibleSection] = useState("metrics");
   const [subscriberOutstanding, setSubscriberOutstanding] = useState(null);
   const [inprogress, setInprogress] = useState(null);
@@ -964,7 +965,12 @@ const SubscriberProfile = () => {
             Dependents
           </li>
           {canChangeSubscriberPassword && (
-            <li onClick={() => history.push(`/subscriber/${subscriberId}/update-password`)} className="change-password-link">Change Password</li>
+            <li
+              onClick={() => history.push(`${location.pathname.replace(/\/$/, '')}/update-password`)}
+              className="change-password-link"
+            >
+              Change Password
+            </li>
           )}
         </ul>
       </div>

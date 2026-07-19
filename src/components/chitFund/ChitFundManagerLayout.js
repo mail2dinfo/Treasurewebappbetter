@@ -39,6 +39,7 @@ import AddAob from '../AddAob';
 import PlatformEmployeesPage from '../../pages/PlatformEmployeesPage';
 import ChitFundManagerReports from '../../pages/chitFund/ChitFundManagerReports';
 import SubscriberProfile from '../../pages/SubscriberProfile';
+import SubscriberPasswordUpdate from '../../pages/SubscriberPasswordUpdate';
 import ProductsPage from '../../pages/ProductsPage';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import { CHIT_NAV_ANY } from '../../utils/chitPermissionCatalog';
@@ -104,6 +105,7 @@ const ChitFundManagerLayout = () => {
                                                             ? <Subscribers {...props} addSubscriberPath="/chit-fund/manager/add-subscriber" canAddSubscriber={canAccess('chit_subscriber_add')} />
                                                             : <Redirect to={firstAllowedPath} />
                                                     )} />
+                                                    <Route exact path="/chit-fund/manager/subscriber/:id/update-password" render={(props) => guardedRoute(SubscriberPasswordUpdate, 'chit_subscriber_change_password', props)} />
                                                     <Route exact path="/chit-fund/manager/subscriber/:id" render={(props) => guardedRoute(SubscriberProfile, 'chit_subscriber_view', props)} />
                                                     <Route exact path="/chit-fund/manager/groups/:groupId/auctions/winner/:reserve/winner" render={(props) => guardedRoute(Winner, 'chit_auction_manage', props)} />
                                                     <Route path="/chit-fund/manager/groups/:groupId/auctions" render={(props) => guardedRoute(AuctionsPage, 'chit_auction_manage', props)} />

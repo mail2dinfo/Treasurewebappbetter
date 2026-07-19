@@ -50,6 +50,7 @@ import AddSubcriber from '../../pages/AddSubcriber';
 import AuctionsPage from '../../pages/AuctionsPage';
 import Winner from '../Winner';
 import SubscriberProfile from '../../pages/SubscriberProfile';
+import SubscriberPasswordUpdate from '../../pages/SubscriberPasswordUpdate';
 import UserDue from '../../pages/UserDue';
 import CustomerDue from '../../pages/CustomerDue';
 
@@ -86,6 +87,7 @@ const ChitFundUserLayout = () => {
                                                                             <Route path="/chit-fund/user/home" component={HomePage} />
                                                                             <Route path="/chit-fund/user/companies" component={Company} />
                                                                             <Route path="/chit-fund/user/subscribers" component={Subscribers} />
+                                                                            <Route path="/chit-fund/user/subscriber/:id/update-password" component={SubscriberPasswordUpdate} />
                                                                             <Route path="/chit-fund/user/subscriber/:id" component={SubscriberProfile} />
                                                                             <Route path="/chit-fund/user/groups/:groupId/auctions/winner/:reserve/winner" component={Winner} />
                                                                             <Route path="/chit-fund/user/groups/:groupId/auctions" component={AuctionsPage} />
