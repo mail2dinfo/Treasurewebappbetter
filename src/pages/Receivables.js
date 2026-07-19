@@ -7,10 +7,14 @@ import { GoArrowBoth } from 'react-icons/go';
 import Tooltip from 'react-tooltip-lite';
 import ReceivablePayementModal from '../components/ReceivablePayementModal';
 import { useAobContext } from '../context/aob_context';
+import { usePlatformAccess } from '../context/platformAccess_context';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const Receivable = () => {
+  const platform = usePlatformAccess();
+  const enforceReceivableAccess = platform?.isAvailable && !platform.isOwner;
+  const canPayReceivable = !enforceReceivableAccess || platform.hasPermission('chit_receivables_pay');
   const { fetchReceivables, receivables, isLoading } = useReceivablesContext();
   const [hoveredPayments, setHoveredPayments] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -149,6 +153,7 @@ const Receivable = () => {
   };
 
   const openPaymentModal = (person) => {
+    if (!canPayReceivable) return;
     setSelectedReceivable(person);
     setModalOpen(true);
   };
@@ -456,13 +461,15 @@ const Receivable = () => {
             </div>
           </div>
 
-          <button
-            onClick={() => openPaymentModal(person)}
-            className="w-full py-3 px-4 bg-gradient-to-r from-custom-red to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-          >
-            <FiDollarSign className="w-5 h-5" />
-            Process Payment
-          </button>
+          {canPayReceivable && (
+            <button
+              onClick={() => openPaymentModal(person)}
+              className="w-full py-3 px-4 bg-gradient-to-r from-custom-red to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+            >
+              <FiDollarSign className="w-5 h-5" />
+              Process Payment
+            </button>
+          )}
         </div>
       </div>
     );
@@ -502,14 +509,16 @@ const Receivable = () => {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => openPaymentModal(person)}
-        className="w-full py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
-      >
-        <FiDollarSign className="w-5 h-5" />
-        Process Payment
-      </button>
+      {canPayReceivable && (
+        <button
+          type="button"
+          onClick={() => openPaymentModal(person)}
+          className="w-full py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+        >
+          <FiDollarSign className="w-5 h-5" />
+          Process Payment
+        </button>
+      )}
     </div>
   );
 
@@ -568,14 +577,18 @@ const Receivable = () => {
                   <td className="px-4 py-3 text-sm font-semibold text-green-700">{formatCurrency(person.rbpaid)}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-red-700">{formatCurrency(person.rbdue)}</td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => openPaymentModal(person)}
-                      className="px-3 py-2 bg-custom-red text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1"
-                    >
-                      <FiDollarSign className="w-4 h-4" />
-                      Pay
-                    </button>
+                    {canPayReceivable ? (
+                      <button
+                        type="button"
+                        onClick={() => openPaymentModal(person)}
+                        className="px-3 py-2 bg-custom-red text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1"
+                      >
+                        <FiDollarSign className="w-4 h-4" />
+                        Pay
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400">View only</span>
+                    )}
                   </td>
                 </tr>
               ))}

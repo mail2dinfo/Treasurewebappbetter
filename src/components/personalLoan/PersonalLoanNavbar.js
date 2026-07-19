@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useHistory, useLocation } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import { useUserContext } from '../../context/user_context';
 import { FiMenu, FiX, FiLogOut, FiHome, FiUser, FiSettings, FiBarChart, FiUsers, FiDollarSign, FiCreditCard, FiShield, FiBook } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { downloadImage } from "../../utils/downloadImage";
+import MyTreasureBrand from '../MyTreasureBrand';
 
 const PersonalLoanNavbar = () => {
     const history = useHistory();
@@ -186,17 +187,10 @@ const PersonalLoanNavbar = () => {
         <header className={`bg-white border-b-2 border-custom-red sticky top-0 z-50 transition-shadow duration-300 ${isScrolled ? 'shadow-md' : 'shadow-sm'}`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-14">
-                    {/* Logo and Brand */}
-                    <div className="flex items-center space-x-3">
-                        <Link to="/personal-loan/user/dashboard" className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-custom-red rounded-lg flex items-center justify-center">
-                                <span className="text-white text-lg font-bold">💰</span>
-                            </div>
-                            <div className="hidden sm:block">
-                                <h1 className="text-lg font-bold text-custom-red">Personal Loan App</h1>
-                            </div>
-                        </Link>
-                    </div>
+                    <MyTreasureBrand
+                        to="/personal-loan/user/dashboard"
+                        subtitle="Personal Loan"
+                    />
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center space-x-1">

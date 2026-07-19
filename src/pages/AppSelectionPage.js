@@ -1,20 +1,133 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useUserContext } from '../context/user_context';
-import { FiLogOut } from 'react-icons/fi';
+import { usePlatformAccess } from '../context/platformAccess_context';
+import { FiLogOut, FiShield, FiUsers, FiX } from 'react-icons/fi';
+import MyTreasureBrand from '../components/MyTreasureBrand';
+
+const APP_ROUTES = {
+    CHIT_FUND: {
+        USER: '/chit-fund/user',
+        MANAGER: '/chit-fund/manager/home',
+        COLLECTOR: '/chit-fund/collector/receivables',
+        ACCOUNTANT: '/chit-fund/accountant/dashboard',
+    },
+    VEHICLE_FINANCE: {
+        USER: '/vehicle-finance/user/dashboard',
+        MANAGER: '/vehicle-finance/manager/dashboard',
+        COLLECTOR: '/vehicle-finance/collector/dashboard',
+        ACCOUNTANT: '/vehicle-finance/manager/dashboard',
+    },
+};
+
+const PLATFORM_ACCOUNT_ROLE = {
+    user: 'USER',
+    manager: 'MANAGER',
+    collector: 'COLLECTOR',
+    accountant: 'ACCOUNTANT',
+};
+
+const resolveRoute = (app, role) => (
+    APP_ROUTES[app.appCode]?.[String(role.roleCode || '').toUpperCase()]
+    || app.path
+    || app.defaultRoute
+);
+
+const formatAccountLabel = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw
+        .split(/[\s_]+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
+};
+
+const accountNameToRoleCode = (accountName) => {
+    const key = String(accountName || '').trim().toLowerCase();
+    return PLATFORM_ACCOUNT_ROLE[key] || null;
+};
+
+const roleCodeToAccountName = (roleCode, membershipAccounts = []) => {
+    const code = String(roleCode || '').toUpperCase();
+    if (code === 'OWNER' || code === 'USER') {
+        const userAccount = membershipAccounts.find(
+            (account) => String(account.accountName || '').toLowerCase() === 'user'
+        );
+        return userAccount?.accountName || 'User';
+    }
+    const match = membershipAccounts.find(
+        (account) => accountNameToRoleCode(account.accountName) === code
+    );
+    return match?.accountName || formatAccountLabel(code);
+};
+
+const uniqueMembershipAccounts = (userAccounts = []) => {
+    const seen = new Set();
+    return userAccounts.filter((account) => {
+        const name = String(account?.accountName || '').trim().toLowerCase();
+        if (!name || seen.has(name)) return false;
+        seen.add(name);
+        return true;
+    });
+};
 
 const AppSelectionPage = () => {
     const history = useHistory();
-    const { user, logout } = useUserContext();
+    const { user, logout, userRole, updateUserRole } = useUserContext();
+    const platform = usePlatformAccess();
+    const [accountChoice, setAccountChoice] = useState(null);
 
-    const handleLogout = () => {
-        logout();
-        history.push('/login');
-    };
+    const membershipAccounts = useMemo(
+        () => uniqueMembershipAccounts(user?.results?.userAccounts || []),
+        [user?.results?.userAccounts]
+    );
 
-    const apps = [
+    const legacyIsOwner = membershipAccounts.some(
+        (account) => String(account?.accountName || '').toLowerCase() === 'user'
+    );
+    const isOwner = platform?.isOwner || (!platform?.isAvailable && legacyIsOwner);
+
+    const displayName = formatAccountLabel(
+        user?.results?.userDetail?.userName
+        || user?.results?.firstname
+        || user?.results?.name
+        || user?.results?.phone
+        || 'Guest'
+    );
+
+    // Subtitle is always membership → account name (never hardcoded role labels).
+    const accountSubtitle = useMemo(() => {
+        if (!membershipAccounts.length) return '';
+
+        const activeRole = String(platform?.activeContext?.roleCode || '').toUpperCase();
+        if (activeRole) {
+            return formatAccountLabel(roleCodeToAccountName(activeRole, membershipAccounts));
+        }
+
+        const roleFromContext = formatAccountLabel(userRole);
+        if (roleFromContext) {
+            const matched = membershipAccounts.find(
+                (account) => formatAccountLabel(account.accountName).toLowerCase()
+                    === roleFromContext.toLowerCase()
+            );
+            if (matched) return formatAccountLabel(matched.accountName);
+        }
+
+        if (membershipAccounts.length === 1) {
+            return formatAccountLabel(membershipAccounts[0].accountName);
+        }
+
+        return membershipAccounts
+            .map((account) => formatAccountLabel(account.accountName))
+            .filter(Boolean)
+            .join(' · ');
+    }, [membershipAccounts, platform?.activeContext?.roleCode, userRole]);
+
+    const allApps = useMemo(() => [
         {
             id: 1,
+            appCode: 'CHIT_FUND',
             name: 'MyTreasure - Chit Fund',
             description: 'Manage chit groups and auctions',
             icon: (
@@ -27,6 +140,7 @@ const AppSelectionPage = () => {
         },
         {
             id: 2,
+            appCode: 'DAILY_COLLECTION',
             name: 'MyTreasure - Daily Collection',
             description: 'Track daily loans and collections',
             icon: (
@@ -41,6 +155,7 @@ const AppSelectionPage = () => {
         },
         {
             id: 3,
+            appCode: 'PERSONAL_LOAN',
             name: 'Mytreasure - Personal loan',
             description: 'Personal finance and loan management',
             icon: (
@@ -54,8 +169,9 @@ const AppSelectionPage = () => {
         },
         {
             id: 4,
-            name: 'MyTreasure - Two Wheeler Finance',
-            description: 'Vehicle financing and loan management',
+            appCode: 'VEHICLE_FINANCE',
+            name: 'MyTreasure - Vehicle Finance App',
+            description: 'Two wheeler, four wheeler and vehicle loan management',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h12V6.375c0-1.036-.84-1.875-1.875-1.875h-8.25zM13.5 15h-12v2.625c0 1.035.84 1.875 1.875 1.875h.375a3 3 0 116 0h3a.75.75 0 00.75-.75V15z" />
@@ -63,42 +179,177 @@ const AppSelectionPage = () => {
                     <path d="M19.5 19.5a1.5 1.5 0 10-3 0 1.5 1.5 0 003 0z" />
                 </svg>
             ),
-            path: '/two-wheeler-finance',
-            isActive: false
+            path: '/vehicle-finance/user/dashboard',
+            isActive: true
         }
-    ];
+    ], []);
+
+    const buildChoicesFromMembership = (app) => {
+        const platformAccounts = membershipAccounts.filter((account) => {
+            const roleCode = accountNameToRoleCode(account.accountName);
+            if (!roleCode) return false;
+            if (app.appCode === 'PEOPLE_ACCESS') return roleCode === 'USER';
+            return Boolean(APP_ROUTES[app.appCode]?.[roleCode] || app.path || app.defaultRoute);
+        });
+
+        return platformAccounts.map((account) => {
+            const roleCode = accountNameToRoleCode(account.accountName);
+            return {
+                roleCode: roleCode === 'USER' && isOwner ? 'USER' : roleCode,
+                accountName: account.accountName,
+                membershipId: account.membershipId,
+                parentMembershipId: account.parent_membership_id,
+                enrollmentId: null,
+                permissions: roleCode === 'USER' && isOwner ? ['*'] : [],
+                permissionDetails: [],
+            };
+        });
+    };
+
+    const getAccountChoices = (app) => {
+        if (app.appCode === 'PEOPLE_ACCESS') {
+            const ownerChoice = {
+                roleCode: 'OWNER',
+                accountName: roleCodeToAccountName('USER', membershipAccounts),
+                enrollmentId: null,
+                permissions: [],
+                permissionDetails: [],
+            };
+            return [ownerChoice];
+        }
+
+        // Source of truth is app-specific enrollments from the platform session.
+        // Do NOT reuse Manager/Collector memberships from other apps (e.g. Chit Fund
+        // dual roles must not appear on Daily Collection).
+        if (Array.isArray(app.roles) && app.roles.length) {
+            const byRole = new Map();
+            app.roles.forEach((role) => {
+                const key = String(role.roleCode || '').toUpperCase();
+                if (!key) return;
+                byRole.set(key, {
+                    ...role,
+                    accountName: role.accountName
+                        || roleCodeToAccountName(role.roleCode, membershipAccounts),
+                });
+            });
+            return [...byRole.values()];
+        }
+
+        // Legacy fallback only when this app has no enrolled roles in the session.
+        return buildChoicesFromMembership(app);
+    };
+
+    const apps = useMemo(() => {
+        const peopleAccessApp = {
+            id: 'people-access',
+            appCode: 'PEOPLE_ACCESS',
+            name: 'Employee & Access',
+            description: 'Manage employees, app roles and feature permissions',
+            path: '/platform/employees',
+            isActive: true,
+            icon: <FiUsers className="w-full h-full" />,
+        };
+
+        if (platform?.isAvailable && platform.organizations?.length) {
+            const sessionApps = platform.organizations.flatMap((organization) => (
+                (organization.apps || []).map((sessionApp) => {
+                    const knownApp = allApps.find((item) => item.appCode === sessionApp.appCode);
+                    return {
+                        ...(knownApp || {
+                            id: sessionApp.appCode,
+                            icon: <FiShield className="w-full h-full" />,
+                            description: 'Open this application',
+                            isActive: true,
+                        }),
+                        ...sessionApp,
+                        name: sessionApp.displayName || knownApp?.name || sessionApp.appCode,
+                        parentMembershipId: organization.parentMembershipId
+                            ?? organization.parent_membership_id,
+                        roles: sessionApp.roles || [],
+                    };
+                })
+            ));
+
+            // Deduplicate by appCode + parentMembershipId, keep first
+            const seen = new Set();
+            const uniqueApps = sessionApps.filter((app) => {
+                const key = `${app.parentMembershipId}:${app.appCode}`;
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+
+            if (isOwner) {
+                return [...uniqueApps, peopleAccessApp];
+            }
+            return uniqueApps;
+        }
+
+        if (isOwner) {
+            return [...allApps, peopleAccessApp];
+        }
+
+        return [];
+    }, [isOwner, platform?.isAvailable, platform?.organizations, allApps]);
+
+    const openWithAccount = (app, choice) => {
+        const parentMembershipId = app.parentMembershipId
+            ?? choice.parentMembershipId
+            ?? platform.organizations?.[0]?.parentMembershipId
+            ?? platform.organizations?.[0]?.parent_membership_id
+            ?? membershipAccounts[0]?.parent_membership_id;
+
+        platform.selectAppRole(parentMembershipId, app, choice);
+        updateUserRole(formatAccountLabel(choice.accountName || choice.roleCode));
+        setAccountChoice(null);
+        history.push(resolveRoute(app, choice));
+    };
 
     const handleAppSelection = (app) => {
-        if (app.isActive && app.path !== '#') {
+        if (!app.isActive || app.path === '#') return;
+
+        const choices = getAccountChoices(app);
+        if (choices.length === 0) {
             history.push(app.path);
+            return;
         }
+        if (choices.length === 1) {
+            openWithAccount(app, choices[0]);
+            return;
+        }
+        setAccountChoice({ app, choices });
     };
+
+    const handleLogout = () => {
+        platform?.clearActiveContext();
+        logout();
+        history.push('/login');
+    };
+
+    if (!platform?.hasLoaded) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-10 h-10 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mx-auto" />
+                    <p className="mt-4 text-gray-600">Loading your applications…</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-white">
-            {/* Header with User Info and Logout */}
             <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
-                        {/* Logo and Title */}
-                        <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-custom-red rounded-lg flex items-center justify-center">
-                                <span className="text-white text-xl font-bold">🏦</span>
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-bold text-custom-red">Finance Hub</h1>
-                                <p className="text-xs text-gray-500">Select Your Application</p>
-                            </div>
-                        </div>
+                        <MyTreasureBrand subtitle="Finance Hub · Select Your Application" />
 
-                        {/* User Info and Logout */}
                         <div className="flex items-center space-x-4">
-                            {/* User Avatar and Name */}
                             <div className="hidden sm:flex items-center space-x-3">
                                 <div className="relative">
                                     <img
                                         src={user?.results?.userDetail?.user_image_s3_image || user?.results?.user_image_s3_image || 'https://i.imgur.com/ndu6pfe.png'}
-                                        alt={user?.results?.userDetail?.userName || user?.results?.firstname || user?.results?.name || 'User'}
+                                        alt={displayName}
                                         className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 shadow-md"
                                         onError={(e) => {
                                             e.target.src = 'https://i.imgur.com/ndu6pfe.png';
@@ -107,19 +358,20 @@ const AppSelectionPage = () => {
                                 </div>
                                 <div className="text-right">
                                     <p className="text-sm font-medium text-gray-900">
-                                        Welcome, {user?.results?.userDetail?.userName || user?.results?.firstname || user?.results?.name || 'User'}!
+                                        Welcome, {displayName}!
                                     </p>
-                                    <p className="text-xs text-gray-500">
-                                        {user?.results?.userDetail?.userRole || user?.results?.userDetail?.role || 'User'}
-                                    </p>
+                                    {accountSubtitle ? (
+                                        <p className="text-xs text-gray-500">
+                                            {accountSubtitle}
+                                        </p>
+                                    ) : null}
                                 </div>
                             </div>
-                            
-                            {/* Mobile User Avatar */}
+
                             <div className="sm:hidden">
                                 <img
                                     src={user?.results?.userDetail?.user_image_s3_image || user?.results?.user_image_s3_image || 'https://i.imgur.com/ndu6pfe.png'}
-                                    alt={user?.results?.userDetail?.userName || user?.results?.firstname || user?.results?.name || 'User'}
+                                    alt={displayName}
                                     className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 shadow-md"
                                     onError={(e) => {
                                         e.target.src = 'https://i.imgur.com/ndu6pfe.png';
@@ -127,7 +379,6 @@ const AppSelectionPage = () => {
                                 />
                             </div>
 
-                            {/* Logout Button */}
                             <button
                                 onClick={handleLogout}
                                 className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
@@ -140,23 +391,23 @@ const AppSelectionPage = () => {
                 </div>
             </header>
 
-            {/* Main Content */}
             <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-                {/* Welcome Message */}
                 <div className="text-center mb-8 sm:mb-12">
                     <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">
                         Welcome Back!
                     </h2>
                     <p className="text-sm sm:text-base text-gray-500">
                         Select an application to get started
+                        {membershipAccounts.length > 1
+                            ? ' — you will choose which account to open with'
+                            : ''}
                     </p>
                 </div>
 
-                {/* App Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12 max-w-5xl mx-auto">
                     {apps.map((app, index) => (
                         <div
-                            key={app.id}
+                            key={`${app.parentMembershipId || 'app'}-${app.appCode || app.id}`}
                             onClick={() => handleAppSelection(app)}
                             className={`
                 group relative bg-white border-2 rounded-xl p-5 sm:p-6
@@ -172,7 +423,6 @@ const AppSelectionPage = () => {
                                 animation: `fadeIn 0.4s ease-out ${index * 0.05}s backwards`
                             }}
                         >
-                            {/* Top Border Indicator */}
                             <div className={`
                 absolute top-0 left-0 w-full h-1 rounded-t-xl
                 transition-transform duration-300 origin-left scale-x-0
@@ -180,7 +430,6 @@ const AppSelectionPage = () => {
                 ${app.isActive ? 'bg-custom-red' : 'bg-gray-400'}
               `} />
 
-                            {/* Icon */}
                             <div className={`
                 w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center
                 transition-all duration-300 shadow-md
@@ -192,7 +441,6 @@ const AppSelectionPage = () => {
                                 </div>
                             </div>
 
-                            {/* Content */}
                             <div className="flex-1">
                                 <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">
                                     {app.name}
@@ -200,9 +448,13 @@ const AppSelectionPage = () => {
                                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                                     {app.description}
                                 </p>
+                                {Array.isArray(app.roles) && app.roles.length > 1 ? (
+                                    <p className="text-[11px] text-gray-500 mt-2">
+                                        {app.roles.length} accounts available
+                                    </p>
+                                ) : null}
                             </div>
 
-                            {/* Coming Soon Badge */}
                             {!app.isActive && (
                                 <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-gray-700 text-white text-[10px] sm:text-xs font-semibold px-2 py-1 rounded uppercase tracking-wide">
                                     Coming Soon
@@ -212,7 +464,6 @@ const AppSelectionPage = () => {
                     ))}
                 </div>
 
-                {/* Footer */}
                 <div className="text-center pt-8 sm:pt-12 mt-8 sm:mt-12 border-t border-gray-200">
                     <p className="text-xs sm:text-sm text-gray-500">
                         © 2024 Treasure Finance Hub. All rights reserved.
@@ -220,7 +471,6 @@ const AppSelectionPage = () => {
                 </div>
             </div>
 
-            {/* Keyframes for animation */}
             <style jsx>{`
         @keyframes fadeIn {
           from {
@@ -233,9 +483,48 @@ const AppSelectionPage = () => {
           }
         }
       `}</style>
+
+            {accountChoice && (
+                <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">Choose an account</h2>
+                                <p className="text-sm text-gray-500 mt-1">{accountChoice.app.name}</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setAccountChoice(null)}
+                                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                            >
+                                <FiX />
+                            </button>
+                        </div>
+                        <div className="mt-5 space-y-3">
+                            {accountChoice.choices.map((choice) => {
+                                const label = formatAccountLabel(
+                                    choice.accountName || roleCodeToAccountName(choice.roleCode, membershipAccounts)
+                                );
+                                return (
+                                    <button
+                                        key={`${choice.roleCode}-${choice.enrollmentId || choice.membershipId || label}`}
+                                        type="button"
+                                        onClick={() => openWithAccount(accountChoice.app, choice)}
+                                        className="w-full text-left border border-gray-200 rounded-xl px-4 py-3 hover:border-red-500 hover:bg-red-50 transition-colors"
+                                    >
+                                        <span className="font-semibold text-gray-900">{label}</span>
+                                        <span className="block text-xs text-gray-500 mt-1">
+                                            Open {accountChoice.app.name} as {label}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
 export default AppSelectionPage;
-

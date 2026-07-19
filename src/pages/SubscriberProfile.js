@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { API_BASE_URL } from '../utils/apiConfig';
 import loadingImage from '../images/preloader.gif';
 import { useUserContext } from '../context/user_context';
+import { usePlatformAccess } from '../context/platformAccess_context';
 //To generate PDF need 3 imports
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { FiDownload } from 'react-icons/fi';
@@ -18,6 +19,10 @@ import "../style/SubscriberProfile.css";
 
 const SubscriberProfile = () => {
   const { user, userRole } = useUserContext();
+  const platform = usePlatformAccess();
+  const enforceSubscriberAccess = platform?.isAvailable && !platform.isOwner;
+  const canChangeSubscriberPassword = !enforceSubscriberAccess
+    || platform.hasPermission('chit_subscriber_change_password');
   const history = useHistory();
   const [visibleSection, setVisibleSection] = useState("metrics");
   const [subscriberOutstanding, setSubscriberOutstanding] = useState(null);
@@ -958,7 +963,9 @@ const SubscriberProfile = () => {
           >
             Dependents
           </li>
-          <li onClick={() => history.push(`/subscriber/${subscriberId}/update-password`)} className="change-password-link">Change Password</li>
+          {canChangeSubscriberPassword && (
+            <li onClick={() => history.push(`/subscriber/${subscriberId}/update-password`)} className="change-password-link">Change Password</li>
+          )}
         </ul>
       </div>
 

@@ -4,24 +4,23 @@ import { useUserContext } from '../context/user_context';
 import { useLedgerAccountContext } from "../context/ledgerAccount_context";
 import LoadingBar from './LoadingBar';
 import Alert from './Alert';
-import Modal from './Modal';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { isSuperAdminUser } from '../utils/superAdminUtils';
+import { usePlatformAccess } from '../context/platformAccess_context';
 import { FiEye, FiEyeOff, FiPhone, FiLock, FiArrowRight, FiCheck, FiX } from 'react-icons/fi';
 
 function LoginModal({ isOpen, onClose }) {
     const { login, updateUserRole } = useUserContext();
+    const platform = usePlatformAccess();
     const { resetLedgerAccounts } = useLedgerAccountContext();
 
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
-    const [userRole, setUserRole] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [list, setList] = useState([]);
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
     const [showSuccess, setShowSuccess] = useState(false);
-    const [showModal, setShowModal] = useState(false);
     const [userObjectFromAPI, setUserObjectFromAPI] = useState(null);
 
     const history = useHistory();
@@ -33,7 +32,6 @@ function LoginModal({ isOpen, onClose }) {
             setPassword('');
             setShowSuccess(false);
             setAlert({ show: false, msg: '', type: '' });
-            setShowModal(false);
         }
     }, [isOpen]);
 
@@ -65,12 +63,28 @@ function LoginModal({ isOpen, onClose }) {
 
                 // Set the user object in the AuthContext
                 login(data);
-                setUserRole(data?.results?.userAccounts);
 
                 if (isSuperAdminUser(data)) {
                     updateUserRole('SuperAdmin');
                     onClose();
                     history.push('/super-admin');
+                    return;
+                }
+
+                const accountNames = (data?.results?.userAccounts || []).map(
+                    (account) => String(account.accountName || '').toUpperCase()
+                );
+                const hasPlatformRole = accountNames.some((name) => (
+                    name.includes('USER')
+                    || name.includes('MANAGER')
+                    || name.includes('COLLECTOR')
+                    || name.includes('ACCOUNTANT')
+                ));
+                if (hasPlatformRole) {
+                    await platform?.loadSession(data?.results?.token);
+                    updateUserRole(accountNames[0]);
+                    onClose();
+                    history.push('/app-selection');
                     return;
                 }
 
@@ -80,8 +94,12 @@ function LoginModal({ isOpen, onClose }) {
                     updateUserRole(selectedRole);
                     onClose(); // Close the login modal
                     redirectPage(selectedRole);
+                } else if (data?.results?.userAccounts?.length > 1) {
+                    updateUserRole(data.results.userAccounts[0]?.accountName || 'Employee');
+                    onClose();
+                    history.push('/app-selection');
                 } else {
-                    setShowModal(true);
+                    showAlert(true, 'danger', 'No active account found for this user.');
                 }
             } else {
                 const eresponseData = await response.json();
@@ -94,13 +112,6 @@ function LoginModal({ isOpen, onClose }) {
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const handleRoleSelect = (selectedRole) => {
-        updateUserRole(selectedRole);
-        setShowModal(false);
-        onClose(); // Close the login modal
-        redirectPage(selectedRole);
     };
 
     const redirectPage = (selectedRole) => {
@@ -244,42 +255,6 @@ function LoginModal({ isOpen, onClose }) {
                 </div>
             </div>
 
-            {/* Role Selection Modal */}
-            {showModal && (
-                <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
-                    <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-xl font-bold text-gray-800">Select Your Role</h2>
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors duration-200"
-                            >
-                                <FiX className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-3">
-                            {userRole && userRole.map((role) => (
-                                <label
-                                    key={role.accountName}
-                                    className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-500 cursor-pointer transition-all duration-200"
-                                >
-                                    <input
-                                        type="radio"
-                                        name="role"
-                                        value={role.accountName}
-                                        onChange={() => handleRoleSelect(role.accountName)}
-                                        className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
-                                    />
-                                    <span className="ml-3 text-sm font-medium text-gray-700">
-                                        {role.accountName}
-                                    </span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-                </Modal>
-            )}
         </div>
     );
 }

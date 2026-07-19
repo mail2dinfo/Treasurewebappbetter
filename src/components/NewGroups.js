@@ -246,7 +246,14 @@ import moment from "moment";
 import { API_BASE_URL } from "../utils/apiConfig";
 import { useUserContext } from "../context/user_context";
 
-const NewGroups = ({ groups, selectedTab, refreshGroups }) => {
+const NewGroups = ({
+  groups,
+  selectedTab,
+  refreshGroups,
+  basePath = '/chit-fund/user',
+  canAddSubscriber = true,
+  canDeleteGroup = true,
+}) => {
   const { user } = useUserContext();
   const history = useHistory();
 
@@ -255,7 +262,7 @@ const NewGroups = ({ groups, selectedTab, refreshGroups }) => {
     : [];
 
   const handleStartAuction = (groupId) => {
-    history.push(`/chit-fund/user/addgroupsubscriber/${groupId}`);
+    history.push(`${basePath}/addgroupsubscriber/${groupId}`);
   };
 
   const handleDeleteGroup = async (id) => {
@@ -347,18 +354,22 @@ const NewGroups = ({ groups, selectedTab, refreshGroups }) => {
 
                 {/* Action buttons */}
                 <div className="group-actions">
-                  <button
-                    className="group-button"
-                    onClick={() => handleStartAuction(group.id)}
-                  >
-                    Add Subscribers
-                  </button>
-                  <button
-                    className="delete-button"
-                    onClick={() => handleDeleteGroup(group.id)}
-                  >
-                    🗑
-                  </button>
+                  {canAddSubscriber && (
+                    <button
+                      className="group-button"
+                      onClick={() => handleStartAuction(group.id)}
+                    >
+                      Add Subscribers
+                    </button>
+                  )}
+                  {canDeleteGroup && (
+                    <button
+                      className="delete-button"
+                      onClick={() => handleDeleteGroup(group.id)}
+                    >
+                      🗑
+                    </button>
+                  )}
                 </div>
 
               </div>

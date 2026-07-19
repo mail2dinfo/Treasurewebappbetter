@@ -9,6 +9,7 @@ import {
   FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign,
   FiCreditCard, FiTrendingUp, FiDownload, FiPlus, FiMinus, FiGrid, FiList,
 } from 'react-icons/fi';
+import { usePlatformAccess } from '../context/platformAccess_context';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -26,6 +27,9 @@ const getPaymentsList = (person) => {
 };
 
 const Payables = () => {
+  const platform = usePlatformAccess();
+  const enforcePayableAccess = platform?.isAvailable && !platform.isOwner;
+  const canPayPayable = !enforcePayableAccess || platform.hasPermission('chit_payables_pay');
   const { fetchPayables, payables, isLoading } = usePayablesContext();
   const { user } = useUserContext();
   const userCompany = user?.results?.userCompany;
@@ -131,6 +135,7 @@ const Payables = () => {
   };
 
   const openPaymentModal = (person) => {
+    if (!canPayPayable) return;
     setSelectedPayable(person);
     setModalOpen(true);
   };
@@ -482,14 +487,16 @@ const Payables = () => {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => openPaymentModal(person)}
-            className="w-full py-3 px-4 bg-gradient-to-r from-custom-red to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-          >
-            <FiDollarSign className="w-5 h-5" />
-            Process Payment
-          </button>
+          {canPayPayable && (
+            <button
+              type="button"
+              onClick={() => openPaymentModal(person)}
+              className="w-full py-3 px-4 bg-gradient-to-r from-custom-red to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+            >
+              <FiDollarSign className="w-5 h-5" />
+              Process Payment
+            </button>
+          )}
         </div>
       </div>
     );
@@ -551,14 +558,16 @@ const Payables = () => {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={() => openPaymentModal(person)}
-          className="w-full py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
-        >
-          <FiDollarSign className="w-5 h-5" />
-          Process Payment
-        </button>
+        {canPayPayable && (
+          <button
+            type="button"
+            onClick={() => openPaymentModal(person)}
+            className="w-full py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <FiDollarSign className="w-5 h-5" />
+            Process Payment
+          </button>
+        )}
       </div>
     );
   };
@@ -624,14 +633,18 @@ const Payables = () => {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => openPaymentModal(person)}
-                          className="px-3 py-2 bg-custom-red text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1"
-                        >
-                          <FiDollarSign className="w-4 h-4" />
-                          Pay
-                        </button>
+                        {canPayPayable ? (
+                          <button
+                            type="button"
+                            onClick={() => openPaymentModal(person)}
+                            className="px-3 py-2 bg-custom-red text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1"
+                          >
+                            <FiDollarSign className="w-4 h-4" />
+                            Pay
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-400">View only</span>
+                        )}
                       </td>
                     </tr>
                     {isExpanded && paymentsList.length > 0 && (

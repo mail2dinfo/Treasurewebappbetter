@@ -332,10 +332,18 @@ import Scenario1Modal from "./Scenario1Modal";
 import Scenario2Modal from "./Scenario2Modal";
 import Scenario3Modal from "./Scenario3Modal";
 import Scenario4Modal from "./Scenario4Modal";
+import { useLocation } from "react-router-dom";
+import { usePlatformAccess } from "../context/platformAccess_context";
 
 const DEFAULT_IMAGE = "/default-image.jpg"; // fallback image path
 
 const GroupsSubscriber = () => {
+  const location = useLocation();
+  const platform = usePlatformAccess();
+  const isManagerPath = location.pathname.startsWith('/chit-fund/manager');
+  const canDeleteSubscriber = !isManagerPath
+    || platform.hasPermission('chit_subscriber_delete');
+  const canManageSubscribers = canDeleteSubscriber;
 
   const { data, deleteGroupSubscriberbyCompositekey, checkDeletionScenario, deleteGroupSubscriberWithScenario } = useGroupDetailsContext();
   const { companySubscribers, fetchCompanySubscribers } = useCompanySubscriberContext();
@@ -402,6 +410,7 @@ const GroupsSubscriber = () => {
   }, [groupSubscriber]);
 
   const handleOpenDeleteModal = async (subscriber) => {
+    if (!canDeleteSubscriber) return;
     console.log('🔍 Opening delete modal for subscriber:', subscriber);
     setSelectedSubscriber(subscriber);
 
@@ -597,12 +606,14 @@ const GroupsSubscriber = () => {
                     </div>
 
                     {/* Delete Button */}
-                    <button
-                      onClick={() => handleOpenDeleteModal(subscriber)}
-                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-lg hover:shadow-xl"
-                    >
-                      <FaTrash size={14} />
-                    </button>
+                    {canManageSubscribers && (
+                      <button
+                        onClick={() => handleOpenDeleteModal(subscriber)}
+                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-lg hover:shadow-xl"
+                      >
+                        <FaTrash size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
 

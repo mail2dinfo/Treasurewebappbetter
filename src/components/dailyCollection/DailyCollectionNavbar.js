@@ -4,6 +4,7 @@ import { useUserContext } from '../../context/user_context';
 import { FiMenu, FiX, FiLogOut, FiHome, FiUser, FiSettings, FiBarChart, FiUsers, FiDollarSign, FiCreditCard, FiShield, FiBook, FiBox } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { downloadImage } from "../../utils/downloadImage";
+import MyTreasureBrand from '../MyTreasureBrand';
 
 const DailyCollectionNavbar = () => {
     const history = useHistory();
@@ -201,15 +202,7 @@ const DailyCollectionNavbar = () => {
             }`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-14">
-                    {/* Logo Section */}
-                    <div className="flex items-center space-x-3">
-                        <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-custom-red">
-                            <span className="text-white text-xl">💰</span>
-                        </div>
-                        <div>
-                            <h1 className="text-base font-bold text-gray-900">Daily Collection</h1>
-                        </div>
-                    </div>
+                    <MyTreasureBrand subtitle="Daily Collection" />
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center space-x-1">

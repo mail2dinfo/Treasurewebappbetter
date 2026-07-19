@@ -4,10 +4,16 @@ import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import loadingImage from '../../images/preloader.gif';
 import CollectorPaymentModal from '../../components/collector/CollectorPaymentModal';
+import { usePlatformAccess } from '../../context/platformAccess_context';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const CollectorReceivables = () => {
+    const platform = usePlatformAccess();
+    const enforceAccess = platform?.isAvailable
+        && !platform.isOwner
+        && platform.activeContext?.appCode === 'CHIT_FUND';
+    const canAccess = (featureKey) => !enforceAccess || platform.hasPermission(featureKey);
     const {
         receivables,
         selectedArea,
@@ -533,13 +539,13 @@ const CollectorReceivables = () => {
                     </div>
                 </div>
 
-                <button
+                {canAccess('chit.collector.collections') && <button
                     onClick={() => openPaymentModal(receivable)}
                     className="w-full py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
                 >
                     <FiDollarSign className="w-5 h-5" />
                     Process Payment
-                </button>
+                </button>}
             </div>
         </div>
     );
@@ -598,23 +604,23 @@ const CollectorReceivables = () => {
                 </div>
             </div>
 
-            <button
+            {canAccess('chit.collector.advances') && <button
                 type="button"
                 onClick={() => handleOpenAdvanceModal(receivable)}
                 className="w-full mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-left"
             >
                 <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Advance Balance</p>
                 <p className="text-lg font-bold text-yellow-900">{formatCurrency(receivable?.total_advance_balance || 0)}</p>
-            </button>
+            </button>}
 
-            <button
+            {canAccess('chit.collector.collections') && <button
                 type="button"
                 onClick={() => openPaymentModal(receivable)}
                 className="w-full py-3 px-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
             >
                 <FiDollarSign className="w-5 h-5" />
                 Process Payment
-            </button>
+            </button>}
         </div>
     );
 
@@ -671,13 +677,13 @@ const CollectorReceivables = () => {
                                 <td className="px-4 py-3 text-sm text-gray-800">{formatDate(receivable.auct_date)}</td>
                                 <td className="px-4 py-3 text-sm text-gray-800">{receivable.aob || 'N/A'}</td>
                                 <td className="px-4 py-3">
-                                    <button
+                                    {canAccess('chit.collector.advances') && <button
                                         type="button"
                                         onClick={() => handleOpenAdvanceModal(receivable)}
                                         className="text-sm font-semibold text-yellow-700 hover:text-yellow-900 underline"
                                     >
                                         {formatCurrency(receivable?.total_advance_balance || 0)}
-                                    </button>
+                                    </button>}
                                 </td>
                                 <td className="px-4 py-3 text-sm font-semibold text-blue-700">
                                     {formatCurrency(receivable.rbtotal || receivable.total_amount)}
@@ -689,14 +695,14 @@ const CollectorReceivables = () => {
                                     {formatCurrency(receivable.rbdue || receivable.pending_amount)}
                                 </td>
                                 <td className="px-4 py-3">
-                                    <button
+                                    {canAccess('chit.collector.collections') && <button
                                         type="button"
                                         onClick={() => openPaymentModal(receivable)}
                                         className="px-3 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors flex items-center gap-1"
                                     >
                                         <FiDollarSign className="w-4 h-4" />
                                         Pay
-                                    </button>
+                                    </button>}
                                 </td>
                             </tr>
                         ))}
@@ -1009,6 +1015,7 @@ const CollectorReceivables = () => {
                 }}
                 receivable={selectedReceivable}
                 fetchReceivables={fetchReceivables}
+                canManageReceipts={canAccess('chit.collector.receipts')}
             />
 
             {/* Advance 360° Modal */}

@@ -382,7 +382,14 @@ import { useGroupsDetailsContext } from "../context/groups_context";
 import { useProductContext } from "../context/product_context";
 import '../style/home.css'; // Make sure this path is correct
 
-const HomePage = () => {
+const HomePage = ({
+  basePath = '/chit-fund/user',
+  canCreateGroup = true,
+  groupsOnly = false,
+  alwaysShowCreateGroup = false,
+  canAddSubscriber = true,
+  canDeleteGroup = true,
+}) => {
   const history = useHistory();
   const [selectedTab, setSelectedTab] = useState('ready');
   const { isLoggedIn, user } = useUserContext();
@@ -402,7 +409,7 @@ const HomePage = () => {
   }, [user]);
 
   const handleStartGroup = () => {
-    history.push('/chit-fund/user/startagroup');
+    history.push(`${basePath}/startagroup`);
   };
 
   if (isLoading) {
@@ -417,19 +424,31 @@ const HomePage = () => {
   return (
     <div className="home-page">
       <div className="list-container">
-        {localStorage.getItem('unauthenticatedGroup') && <GroupDataInNavbar />}
+        {!groupsOnly && localStorage.getItem('unauthenticatedGroup') && <GroupDataInNavbar />}
 
-        <UserDetails groups={groups} premium={premium} />
+        {!groupsOnly && <UserDetails groups={groups} premium={premium} />}
 
         <div className="group-container">
-          <div className="my-groups-container">
+          <div className={`my-groups-container ${alwaysShowCreateGroup ? 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3' : ''}`}>
             <h3 className="my-groups-title">My Groups ({groups.length})</h3>
+            {canCreateGroup && alwaysShowCreateGroup && (
+              <button
+                className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm"
+                onClick={handleStartGroup}
+              >
+                Start a group
+              </button>
+            )}
           </div>
 
           {groups.length === 0 ? (
-            <button className="start-group-button" onClick={handleStartGroup}>
-              Start a group
-            </button>
+            canCreateGroup && !alwaysShowCreateGroup ? (
+              <button className="start-group-button" onClick={handleStartGroup}>
+                Start a group
+              </button>
+            ) : (
+              <p className="text-center text-gray-500 py-8">No groups created yet.</p>
+            )
           ) : (
             <>
               <div className="tabs-wrapper">
@@ -438,35 +457,38 @@ const HomePage = () => {
                     className={selectedTab === 'ready' ? 'active' : ''}
                     onClick={() => setSelectedTab('ready')}
                   >
-                    Ready Groups ({groups.filter(group => group.Status === 'Ready').length})
+                    {groupsOnly ? 'Ready' : 'Ready Groups'} ({groups.filter(group => group.Status === 'Ready').length})
                   </li>
                   <li
                     className={selectedTab === 'new' ? 'active' : ''}
                     onClick={() => setSelectedTab('new')}
                   >
-                    New Groups ({groups.filter(group => group.Status === 'New').length})
+                    {groupsOnly ? 'New' : 'New Groups'} ({groups.filter(group => group.Status === 'New').length})
                   </li>
                   <li
                     className={selectedTab === 'closed' ? 'active' : ''}
                     onClick={() => setSelectedTab('closed')}
                   >
-                    Closed Groups ({groups.filter(group => group.Status === 'Closed').length})
+                    {groupsOnly ? 'Closed' : 'Closed Groups'} ({groups.filter(group => group.Status === 'Closed').length})
                   </li>
                 </ul>
 
               </div>
 
               {selectedTab === 'ready' && (
-                <ReadyGroups groups={groups} selectedTab={selectedTab} />
+                <ReadyGroups groups={groups} selectedTab={selectedTab} basePath={basePath} />
               )}
               {selectedTab === 'new' && (
                 <NewGroups
                   groups={groups}
                   selectedTab={selectedTab}
                   refreshGroups={fetchAllGroups}
+                  basePath={basePath}
+                  canAddSubscriber={canAddSubscriber}
+                  canDeleteGroup={canDeleteGroup}
                 />
               )}
-              {selectedTab === 'closed' && <ClosedGroups groups={groups} />}
+              {selectedTab === 'closed' && <ClosedGroups groups={groups} basePath={basePath} />}
             </>
           )}
         </div>

@@ -7,7 +7,9 @@ import SuperAdminUserAnalytics from './pages/SuperAdminUserAnalytics';
 import SuperAdminChitFundAnalytics from './pages/SuperAdminChitFundAnalytics';
 import SuperAdminDailyFinanceAnalytics from './pages/SuperAdminDailyFinanceAnalytics';
 import { UserProvider } from './context/user_context';
+import { PlatformAccessProvider } from './context/platformAccess_context';
 import { LedgerAccountProvider } from './context/ledgerAccount_context';
+import PlatformEmployeesPage from './pages/PlatformEmployeesPage';
 
 // New Business App Layouts
 import ChitFundUserLayout from './components/chitFund/ChitFundUserLayout';
@@ -20,6 +22,9 @@ import DailyCollectionCustomerLayout from './components/dailyCollection/DailyCol
 import DailyCollectionCollectorLayout from './components/dailyCollection/DailyCollectionCollectorLayout';
 import TwoWheelerFinanceLayout from './components/twoWheelerFinance/TwoWheelerFinanceLayout';
 import PersonalLoanAdminLayout from './components/personalLoan/PersonalLoanAdminLayout';
+import VehicleFinanceAdminLayout from './components/vehicleFinance/VehicleFinanceAdminLayout';
+import VehicleFinanceManagerLayout from './components/vehicleFinance/VehicleFinanceManagerLayout';
+import VehicleFinanceCollectorLayout from './components/vehicleFinance/VehicleFinanceCollectorLayout';
 
 // Legacy layouts for backward compatibility (can be removed later)
 import SubscriberLayout from './components/subscriber/layout/SubscriberLayout';
@@ -33,8 +38,9 @@ import PrivateRoute from './pages/PrivateRoute';
 function App() {
     return (
         <UserProvider>
-            <LedgerAccountProvider>
-                <Router>
+            <PlatformAccessProvider>
+                <LedgerAccountProvider>
+                    <Router>
                     <ScrollToTop />
                     <Switch>
                         {/* Super Admin Portal */}
@@ -46,6 +52,7 @@ function App() {
 
                         {/* App Selection Page - Entry point */}
                         <PrivateRoute path="/app-selection" component={AppSelectionPage} />
+                        <PrivateRoute exact path="/platform/employees" component={PlatformEmployeesPage} />
 
 
                         {/* Chit Fund App Routes */}
@@ -62,8 +69,17 @@ function App() {
                         {/* Redirect old routes to new structure */}
                         <Route path="/daily-collection/home" render={() => <Redirect to="/daily-collection/user/home" />} />
 
-                        {/* Two Wheeler Finance App Routes */}
-                        <Route path="/two-wheeler-finance" component={TwoWheelerFinanceLayout} />
+                        {/* Two Wheeler Finance - redirect to Vehicle Finance */}
+                        <Route path="/two-wheeler-finance" render={() => <Redirect to="/vehicle-finance/user/dashboard" />} />
+
+                        {/* Vehicle Finance App Routes */}
+                        <Route
+                            path="/vehicle-finance/user/collector"
+                            render={() => <Redirect to="/login" />}
+                        />
+                        <Route path="/vehicle-finance/collector" component={VehicleFinanceCollectorLayout} />
+                        <Route path="/vehicle-finance/user" component={VehicleFinanceAdminLayout} />
+                        <Route path="/vehicle-finance/manager" component={VehicleFinanceManagerLayout} />
 
                         {/* Personal Loan App Routes */}
                         <Route path="/personal-loan/user" component={PersonalLoanAdminLayout} />
@@ -110,8 +126,9 @@ function App() {
                             <LandingPage />
                         </Route>
                     </Switch>
-                </Router>
-            </LedgerAccountProvider>
+                    </Router>
+                </LedgerAccountProvider>
+            </PlatformAccessProvider>
         </UserProvider>
     );
 }

@@ -3,6 +3,7 @@ import { useHistory, useLocation } from 'react-router-dom';
 import { useSubscriberContext } from '../../../context/subscriber/SubscriberContext';
 import { useLanguage } from '../../../context/language_context';
 import { FiMenu, FiX, FiUser, FiLogOut } from 'react-icons/fi';
+import MyTreasureBrand from '../../MyTreasureBrand';
 
 const SubscriberHeader = () => {
     const history = useHistory();
@@ -57,36 +58,7 @@ const SubscriberHeader = () => {
         <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
-                    {/* Logo Section */}
-                    <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 rounded-lg flex items-center justify-center shadow-md overflow-hidden bg-white border border-gray-200">
-                                {user?.userCompany?.logo_s3_image ? (
-                                    <img
-                                        src={user.userCompany.logo_s3_image}
-                                        alt={user?.userCompany?.companyName || user?.userCompany?.name || 'Company Logo'}
-                                        className="w-full h-full object-cover rounded-lg"
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            e.target.nextSibling.style.display = 'flex';
-                                        }}
-                                    />
-                                ) : null}
-                                <div
-                                    className={`w-full h-full bg-gray-600 rounded-lg flex items-center justify-center ${user?.userCompany?.logo_s3_image ? 'hidden' : 'flex'}`}
-                                    style={{ display: user?.userCompany?.logo_s3_image ? 'none' : 'flex' }}
-                                >
-                                    <span className="text-white text-lg font-bold">🏦</span>
-                                </div>
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-bold text-gray-900">
-                                    {user?.userCompany?.companyName || user?.userCompany?.name || 'Mytreasure'}
-                                </h1>
-                                <p className="text-xs text-gray-500">Subscriber Portal</p>
-                            </div>
-                        </div>
-                    </div>
+                    <MyTreasureBrand subtitle="Chit Fund Subscriber" />
 
                     {/* Desktop Navigation */}
                     <nav className="hidden md:flex items-center space-x-1">

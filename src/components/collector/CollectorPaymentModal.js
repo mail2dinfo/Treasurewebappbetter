@@ -30,7 +30,13 @@ const getLedgerAccountName = (account) => account?.account_name || account?.acco
  * Uses parent_membership_id for all operations
  * Separate component for collector app - doesn't modify user/customer app code
  */
-const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }) => {
+const CollectorPaymentModal = ({
+    isOpen,
+    onClose,
+    receivable,
+    fetchReceivables,
+    canManageReceipts = true,
+}) => {
     const [groupAdvanceInput, setGroupAdvanceInput] = useState("");
     const [paymentType, setPaymentType] = useState("full");
     const [useGroupAdvance, setUseGroupAdvance] = useState(false);
@@ -406,7 +412,7 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
                                 isRefreshing={isRefreshingConfirm}
                             />
 
-                            <div className="flex gap-3">
+                            {canManageReceipts && <div className="flex gap-3">
                                 <button
                                     onClick={() => setIsConfirming(false)}
                                     className="flex-1 py-3 px-4 bg-gray-500 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors duration-200"
@@ -430,7 +436,7 @@ const CollectorPaymentModal = ({ isOpen, onClose, receivable, fetchReceivables }
                                         </>
                                     )}
                                 </button>
-                            </div>
+                            </div>}
                         </div>
                     ) : receiptData ? (
                         /* Receipt Screen */

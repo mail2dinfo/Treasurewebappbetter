@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import logo from '../assets/logo.png'
 import {
   FaBars,
   FaHome,
@@ -18,6 +17,7 @@ import { useUserContext } from '../context/user_context';
 import { useBilling } from '../context/billing_context';
 import { hasPermission } from '../rbacPermissionUtils';
 import { getNavBillingBadge } from '../utils/billingPaymentUtils';
+import MyTreasureBrand from './MyTreasureBrand';
 
 
 
@@ -63,15 +63,14 @@ const Nav = () => {
       }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
+          {/* Brand */}
           <div className="flex-shrink-0">
-            <Link to="/" className="flex items-center">
-              <img
-                src={logo}
-                alt="Treasure"
-                className="h-12 w-auto transition-transform duration-300 hover:scale-105"
-              />
-            </Link>
+            <MyTreasureBrand
+              to="/"
+              subtitle="Finance Hub"
+              inverse={scrolled}
+              className="transition-transform duration-300 hover:scale-105"
+            />
           </div>
 
           {/* Desktop Navigation */}

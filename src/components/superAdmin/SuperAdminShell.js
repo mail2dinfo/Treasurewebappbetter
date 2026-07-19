@@ -11,6 +11,7 @@ import {
 import { useHistory, useLocation } from 'react-router-dom';
 import { useUserContext } from '../../context/user_context';
 import { SUPER_ADMIN_NAV } from '../../utils/superAdminAnalytics';
+import MyTreasureBrand from '../MyTreasureBrand';
 
 const navIcons = {
     home: FiGrid,
@@ -46,15 +47,7 @@ const SuperAdminShell = ({
     const NavContent = ({ onNavigate }) => (
         <>
             <div className="border-b border-white/10 px-5 py-6">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500 text-sm font-bold text-white shadow-lg shadow-red-500/30">
-                        MT
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-white">MyTreasure</p>
-                        <p className="text-xs text-slate-400">Super Admin</p>
-                    </div>
-                </div>
+                <MyTreasureBrand subtitle="Super Admin" inverse />
             </div>
 
             <nav className="flex-1 space-y-1 px-3 py-4">

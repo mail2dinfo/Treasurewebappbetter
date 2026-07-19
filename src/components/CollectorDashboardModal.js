@@ -6,7 +6,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import { API_BASE_URL } from '../utils/apiConfig';
 import 'react-toastify/dist/ReactToastify.css';
 
-const CollectorDashboardModal = ({ isOpen, onClose, collector, signedUrls = {} }) => {
+const CollectorDashboardModal = ({ isOpen, onClose, collector, signedUrls = {}, initialTab = 'assign' }) => {
     console.log('CollectorDashboardModal props:', { isOpen, collector });
 
     const { aobs } = useAobContext();
@@ -28,6 +28,10 @@ const CollectorDashboardModal = ({ isOpen, onClose, collector, signedUrls = {} }
     const [receivables, setReceivables] = useState([]);
     const [isLoadingReceivables, setIsLoadingReceivables] = useState(false);
     const [receivablesError, setReceivablesError] = useState(null);
+
+    useEffect(() => {
+        if (isOpen) setActiveTab(initialTab);
+    }, [isOpen, collector?.id, initialTab]);
 
     useEffect(() => {
         if (isOpen && collector?.id) {

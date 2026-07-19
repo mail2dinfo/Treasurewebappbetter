@@ -3,7 +3,7 @@ import { API_BASE_URL, WEBSOCKET_URL } from "../utils/apiConfig";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import io from "socket.io-client";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useUserContext } from "../context/user_context";
 import { useHistory } from "react-router-dom";
 import { Winner } from "../components/Winner";
@@ -16,6 +16,10 @@ import { toast } from 'react-toastify';
 
 const AuctionsPage = () => {
     const history = useHistory();
+    const location = useLocation();
+    const chitBasePath = location.pathname.startsWith('/chit-fund/manager')
+        ? '/chit-fund/manager'
+        : '/chit-fund/user';
     const { user } = useUserContext();
     const { data } = useGroupDetailsContext();
 
@@ -168,7 +172,7 @@ const AuctionsPage = () => {
             socket.emit("leaveGroup", winningSub.winnerObject.groupRoomIdentifier);
             // Use the groupId from URL params instead of winningSub.winnerObject.groupId
             const currentGroupId = groupId || winningSub.winnerObject.groupId;
-            history.push(`/chit-fund/user/groups/${currentGroupId}/auctions/winner/${winningSub.winnerObject.winnerAmount}/winner`, {
+            history.push(`${chitBasePath}/groups/${currentGroupId}/auctions/winner/${winningSub.winnerObject.winnerAmount}/winner`, {
                 winningSub: winningSub
             });
         });
@@ -302,7 +306,7 @@ const AuctionsPage = () => {
 
     const handleBackButtonClick = () => {
         socket.emit("leaveGroup", groupId);
-        history.push(`/chit-fund/user/groups/${groupId}`);
+        history.push(`${chitBasePath}/groups/${groupId}`);
     };
 
     const closeSubscriberList = () => {

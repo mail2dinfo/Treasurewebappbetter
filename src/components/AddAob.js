@@ -1,310 +1,161 @@
 import { useState, useEffect } from 'react';
-
-
-import styled from 'styled-components';
-import { useUserContext } from "../context/user_context";
-import { useAobContext } from "../context/aob_context";
-import loadingImage from '../images/preloader.gif';
-
-import Alert from '../components/Alert';
 import { FaTrash } from 'react-icons/fa';
+import { FiMapPin, FiPlus } from 'react-icons/fi';
+import { useUserContext } from '../context/user_context';
+import { useAobContext } from '../context/aob_context';
+import { usePlatformAccess } from '../context/platformAccess_context';
+import loadingImage from '../images/preloader.gif';
+import Alert from '../components/Alert';
 
 function AddAob() {
-
   const { user } = useUserContext();
+  const platform = usePlatformAccess();
+  const enforceAreaAccess = platform?.isAvailable && !platform.isOwner;
+  const canAddArea = !enforceAreaAccess || platform.hasPermission('chit_area_add');
+  const canDeleteArea = !enforceAreaAccess || platform.hasPermission('chit_area_delete');
   const { aobs, isLoading, addAob, deleteAob, fetchAobs } = useAobContext();
-
+  const userAccounts = user?.results?.userAccounts || [];
+  const membershipId = platform?.activeContext?.parentMembershipId
+    ?? userAccounts.find((account) => account?.parent_membership_id)?.parent_membership_id
+    ?? userAccounts.find((account) => account?.membershipId)?.membershipId
+    ?? userAccounts[0]?.membershipId;
 
   const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
-  const [isEditing, setIsEditing] = useState(false);
+  const [list] = useState([]);
+  const [area, setArea] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const [list, setList] = useState([]);
-  const [formData, setFormData] = useState({
-    area: '',
-    membershipId: user.results.userAccounts[0].membershipId,
-    sourceSystem: 'WEB',
-  });
-
-
-
-
-
-  const removeItem = async (id) => {
-    const result = await deleteAob(id);
-
-    // `result.success` determines if the deletion was successful
-    showAlert(true, result.success ? 'success' : 'danger', result.message);
-  };
-
-
-
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!formData.area) {
-      showAlert(true, 'danger', 'Please enter a value');
-      return;
-    }
-
-
-
-    const result = await addAob(formData);
-
-    if (result.success) {
-      showAlert(true, 'success', result.message || 'AOB added successfully');
-      fetchAobs();
-
-      setFormData({
-        area: '',
-        membershipId: user.results.userAccounts[0].membershipId,
-        sourceSystem: 'WEB',
-      });
-    } else {
-      showAlert(true, 'danger', result.message || 'An error occurred');
-    }
-  };
-
+  useEffect(() => {
+    if (user?.results?.token) fetchAobs();
+  }, [user?.results?.token]);
 
   const showAlert = (show = false, type = '', msg = '') => {
     setAlert({ show, type, msg });
   };
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({ ...prevData, [name]: value }));
+
+  const removeItem = async (id) => {
+    if (!canDeleteArea) {
+      showAlert(true, 'danger', 'Delete Area permission is required');
+      return;
+    }
+    const result = await deleteAob(id);
+    showAlert(true, result.success ? 'success' : 'danger', result.message);
   };
-  //const isButtonDisabled = !formData.firstName;
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!canAddArea) {
+      showAlert(true, 'danger', 'Add Area permission is required');
+      return;
+    }
+    if (!area.trim()) {
+      showAlert(true, 'danger', 'Please enter an area name');
+      return;
+    }
+    if (!membershipId) {
+      showAlert(true, 'danger', 'Membership context is missing. Please re-open Chit Fund from Hub.');
+      return;
+    }
+
+    setIsSaving(true);
+    const result = await addAob({
+      area: area.trim(),
+      membershipId,
+      sourceSystem: 'WEB',
+    });
+    setIsSaving(false);
+
+    if (result.success) {
+      showAlert(true, 'success', result.message || 'Area added successfully');
+      setArea('');
+      fetchAobs();
+    } else {
+      showAlert(true, 'danger', result.message || 'Unable to add area');
+    }
+  };
+
   return (
-    <Wrapper >
-      {isLoading ? (
-        <div className="loading-container">
-          <img src={loadingImage} alt="Loading..." className="loading-img" />
+    <div className="max-w-3xl mx-auto px-4 py-5">
+      <div className="mb-5">
+        <div className="flex items-center gap-2 text-red-600 text-sm font-semibold">
+          <FiMapPin /> Area Management
         </div>
+        <h1 className="text-2xl font-bold text-gray-900 mt-1">Areas</h1>
+        <p className="text-sm text-gray-500 mt-1">Add and manage collection areas for your chit fund.</p>
+      </div>
+
+      {alert.show && <Alert {...alert} removeAlert={showAlert} list={list} />}
+
+      {canAddArea ? (
+        <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-4 sm:p-5 mb-5">
+          <label className="block text-sm font-semibold text-gray-800 mb-2" htmlFor="new-area-input">
+            + Add New Area
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              id="new-area-input"
+              type="text"
+              className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
+              placeholder="e.g. Coimbatore"
+              name="area"
+              value={area}
+              onChange={(event) => setArea(event.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm"
+            >
+              <FiPlus className="w-5 h-5" />
+              {isSaving ? 'Adding…' : '+ Add New Area'}
+            </button>
+          </div>
+        </form>
       ) : (
-        <>
-          <form className='aob-form' onSubmit={handleSubmit} >
-            {alert.show && <Alert {...alert} removeAlert={showAlert} list={list} />}
-            <h3>Add Area of Business ({aobs.length}): </h3>
-
-            <div className='form-control' >
-
-              <input
-                type='text'
-                className='aob'
-                placeholder='e.g. Coimbatore'
-                name="area"
-                value={formData.area} onChange={handleChange}
-
-              />
-              <button type='submit' className='submit-btn'>
-                {isEditing ? 'edit' : 'add'}
-              </button>
-            </div>
-          </form>
-          {aobs.length > 0 && (
-            <div className='aob-container'>
-              <div className='aob-list'>
-                {aobs.map((item) => {
-                  // Add null check before attempting to destructure item
-                  if (!item) return null;
-                  const { id, aob } = item;
-                  return (
-                    <article className='aob-item' key={id}>
-                      <p className='title'>{aob}</p>
-                      <div className='btn-container'>
-
-                        <button
-                          type='button'
-                          className='delete-btn'
-                          onClick={() => removeItem(id)}
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-
-            </div>
-          )}
-        </>
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-4 py-3 text-sm mb-5">
+          You can view areas, but Add Area permission is not assigned.
+        </div>
       )}
-    </Wrapper>
+
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-900">Existing Areas ({aobs.length})</h2>
+        </div>
+        {isLoading ? (
+          <div className="py-10 flex justify-center">
+            <img src={loadingImage} alt="Loading areas" className="w-12 h-12" />
+          </div>
+        ) : aobs.length ? (
+          <div className="divide-y divide-gray-100">
+            {aobs.map((item) => {
+              if (!item) return null;
+              const { id, aob } = item;
+              return (
+                <article key={id} className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-red-50/40">
+                  <p className="font-medium text-gray-800">{aob}</p>
+                  {canDeleteArea && (
+                    <button
+                      type="button"
+                      onClick={() => removeItem(id)}
+                      className="p-2 rounded-lg text-red-600 hover:bg-red-50"
+                      aria-label={`Delete ${aob}`}
+                      title="Delete area"
+                    >
+                      <FaTrash />
+                    </button>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="px-4 py-10 text-center text-sm text-gray-500">
+            No areas yet. Use + Add New Area above to create one.
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
-
-const Wrapper = styled.section`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 1rem;
-
-  .aob-form {
-    width: 100%;
-    max-width: 600px;
-    background-color: #f9f9ff;
-    border-radius: 8px;
-    padding: 1rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  }
-
-  .aob-form h3 {
-    text-align: center;
-    color: #333;
-    margin-bottom: 1rem;
-  }
-
-  .form-control {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    gap: 0.5rem;
-  }
-
-  .aob {
-    flex: 1;
-    padding: 0.6rem 1rem;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1rem;
-    outline: none;
-    transition: border 0.3s;
-  }
-
-  .aob:focus {
-    border-color: #4f46e5; /* Indigo focus */
-  }
-
-  .aob::placeholder {
-    color: #999;
-    font-style: italic;
-  }
-
-  .submit-btn {
-    background-color: #10b981; /* Green */
-    color: white;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-
-  .submit-btn:hover {
-    background-color: #059669;
-  }
-
-  .alert {
-    margin-bottom: 1rem;
-    text-align: center;
-    font-size: 0.9rem;
-    border-radius: 6px;
-    padding: 0.75rem;
-  }
-
-  .alert-success {
-    background-color: #d1fae5;
-    color: #065f46;
-  }
-
-  .alert-danger {
-    background-color: #fee2e2;
-    color: #991b1b;
-  }
-
-  .aob-container {
-    width: 100%;
-    max-width: 600px;
-    margin-top: 2rem;
-  }
-
-  .aob-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #f1f5f9;
-    padding: 0.6rem 1rem;
-    border-radius: 6px;
-    margin-bottom: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  }
-
-  .title {
-    font-weight: 500;
-    color: #1f2937;
-  }
-
-  .edit-btn, .delete-btn {
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-size: 0.85rem;
-    padding: 0.3rem 0.5rem;
-    border-radius: 4px;
-    transition: background 0.3s;
-  }
-
-  .edit-btn {
-    color: #0ea5e9;
-  }
-
-  .edit-btn:hover {
-    background-color: #e0f2fe;
-  }
-
-  .delete-btn {
-    color: white;
-    background-color: #ef4444;
-  }
-
-  .delete-btn:hover {
-    background-color: #dc2626;
-  }
-
-  .clear-btn {
-    margin-top: 1rem;
-    display: block;
-    background: transparent;
-    color: #dc2626;
-    border: none;
-    font-size: 0.9rem;
-    cursor: pointer;
-    text-align: center;
-    transition: color 0.3s;
-  }
-
-  .clear-btn:hover {
-    color: #b91c1c;
-  }
-    .loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 3rem;
-}
-
-.loading-img {
-  width: 80px;
-  height: 80px;
-}
-
-
-  @media (max-width: 768px) {
-    .form-control {
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .aob, .submit-btn {
-      width: 100%;
-    }
-
-    .aob-form, .aob-container {
-      padding: 1rem;
-    }
-  }
-`;
 
 export default AddAob;

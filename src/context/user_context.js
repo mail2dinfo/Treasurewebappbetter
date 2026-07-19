@@ -14,7 +14,7 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null); // Store user details here
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // Add loading state
-  const [userRole, setUserRole] = useState(null); // Store user role here
+  const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole')); // Store user role here
 
   // Initialize user from localStorage on app start
   useEffect(() => {
@@ -26,6 +26,13 @@ export const UserProvider = ({ children }) => {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setIsLoggedIn(true);
+        if (!localStorage.getItem('userRole')) {
+          const restoredRole = userData?.results?.userAccounts?.[0]?.accountName;
+          if (restoredRole) {
+            setUserRole(restoredRole);
+            localStorage.setItem('userRole', restoredRole);
+          }
+        }
         console.log('User restored from localStorage:', userData);
       } catch (error) {
         console.error('Error parsing saved user data:', error);
@@ -51,6 +58,8 @@ export const UserProvider = ({ children }) => {
     // Clear localStorage
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('platform_active_context');
   };
 
   const updateUserDetails = async (responseData) => {
@@ -100,6 +109,11 @@ export const UserProvider = ({ children }) => {
   // Function to update user role (for future role selection)
   const updateUserRole = (role) => {
     setUserRole(role);
+    if (role) {
+      localStorage.setItem('userRole', role);
+    } else {
+      localStorage.removeItem('userRole');
+    }
   };
 
   return (

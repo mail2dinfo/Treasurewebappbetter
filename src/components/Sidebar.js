@@ -1,5 +1,4 @@
 import React from 'react'
-import logo from '../assets/logo.png'
 import { Link } from 'react-router-dom'
 import {
   FaTimes,
@@ -14,6 +13,7 @@ import { useUserContext } from '../context/user_context'
 import { useBilling } from '../context/billing_context'
 import { hasPermission } from '../rbacPermissionUtils'
 import { getNavBillingBadge } from '../utils/billingPaymentUtils'
+import MyTreasureBrand from './MyTreasureBrand'
 
 const Sidebar = () => {
   const { isLoggedIn, isSidebarOpen, closeSidebar, userRole } = useUserContext();
@@ -51,13 +51,11 @@ const Sidebar = () => {
           <div className="flex flex-col h-full">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <Link to="/" onClick={closeSidebar}>
-                <img
-                  src={logo}
-                  alt="Treasure"
-                  className="h-10 w-auto"
-                />
-              </Link>
+              <MyTreasureBrand
+                to="/"
+                subtitle="Finance Hub"
+                onClick={closeSidebar}
+              />
               <button
                 type="button"
                 onClick={closeSidebar}

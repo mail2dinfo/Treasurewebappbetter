@@ -2,8 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { FaPlus, FaEdit, FaTrash, FaChevronDown, FaChevronUp, FaSave, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { useProductContext } from '../context/product_context';
+import { usePlatformAccess } from '../context/platformAccess_context';
 
 const ProductsPage = () => {
+  const platform = usePlatformAccess();
+  const enforceProductAccess = platform?.isAvailable && !platform.isOwner;
+  const canAddProduct = !enforceProductAccess || platform.hasPermission('chit_product_add');
+  const canEditProduct = !enforceProductAccess || platform.hasPermission('chit_product_edit');
+  const canDeleteProduct = !enforceProductAccess || platform.hasPermission('chit_product_delete');
   const {
     state: { products, loading, error },
     addProduct,
@@ -166,6 +172,10 @@ const ProductsPage = () => {
 
   // Create Product Button Handler
   const handleCreateProduct = () => {
+    if (!canAddProduct) {
+      toast.error('Add Product permission is required');
+      return;
+    }
     setFormData({
       productName: '',
       product: '',
@@ -303,12 +313,20 @@ const ProductsPage = () => {
 
   // Show delete confirmation dialog
   const handleDeleteProduct = (product) => {
+    if (!canDeleteProduct) {
+      toast.error('Delete Product permission is required');
+      return;
+    }
     setProductToDelete(product);
     setShowDeleteConfirm(true);
   };
 
   // Confirm delete product
   const confirmDeleteProduct = () => {
+    if (!canDeleteProduct) {
+      toast.error('Delete Product permission is required');
+      return;
+    }
     if (productToDelete) {
       deleteProduct(productToDelete.id).then(() => {
         if (selectedProduct && selectedProduct.id === productToDelete.id) {
@@ -409,6 +427,10 @@ const ProductsPage = () => {
 
   // Edit Specific Row
   const handleEditRow = (product, rowIndex) => {
+    if (!canEditProduct) {
+      toast.error('Edit Product permission is required');
+      return;
+    }
     if (hasUnsavedChanges) {
       if (!window.confirm('You have unsaved changes. Do you want to continue? Your changes will be lost.')) {
         return;
@@ -591,14 +613,16 @@ const ProductsPage = () => {
                   <h2 className="text-lg font-bold text-gray-900">Product List</h2>
                   <p className="text-xs text-gray-500 mt-1">Select a product to view details</p>
                 </div>
-                <button
-                  onClick={handleCreateProduct}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-md hover:shadow-lg"
-                  title="Create Product (Draft)"
-                >
-                  <FaPlus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Create Product</span>
-                </button>
+                {canAddProduct && (
+                  <button
+                    onClick={handleCreateProduct}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                    title="+ Add Products"
+                  >
+                    <FaPlus className="w-4 h-4" />
+                    <span className="hidden sm:inline">+ Add Products</span>
+                  </button>
+                )}
               </div>
 
               {/* Product List */}
@@ -734,55 +758,63 @@ const ProductsPage = () => {
                               <span className="hidden sm:inline">Make it Active</span>
                             </button>
                           ) : null}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditRow(selectedProduct, 0);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white text-sm rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-200 shadow-md hover:shadow-lg"
-                            title="Edit Product"
-                          >
-                            <FaEdit className="w-4 h-4" />
-                            <span className="hidden sm:inline">Edit</span>
-                          </button>
+                          {canEditProduct && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditRow(selectedProduct, 0);
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white text-sm rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                              title="Edit Product"
+                            >
+                              <FaEdit className="w-4 h-4" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </button>
+                          )}
                         </>
                       ) : (
                         <>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleMakeDraft(selectedProduct);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white text-sm rounded-lg hover:from-yellow-700 hover:to-yellow-800 transition-all duration-200 shadow-md hover:shadow-lg"
-                            title="Make it Draft"
-                          >
-                            <FaEdit className="w-4 h-4" />
-                            <span className="hidden sm:inline">Make it Draft</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditRow(selectedProduct, 0);
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg"
-                            title="Edit Product"
-                          >
-                            <FaEdit className="w-4 h-4" />
-                            <span className="hidden sm:inline">Edit</span>
-                          </button>
+                          {canEditProduct && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMakeDraft(selectedProduct);
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white text-sm rounded-lg hover:from-yellow-700 hover:to-yellow-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                              title="Make it Draft"
+                            >
+                              <FaEdit className="w-4 h-4" />
+                              <span className="hidden sm:inline">Make it Draft</span>
+                            </button>
+                          )}
+                          {canEditProduct && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditRow(selectedProduct, 0);
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                              title="Edit Product"
+                            >
+                              <FaEdit className="w-4 h-4" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </button>
+                          )}
                         </>
                       )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteProduct(selectedProduct);
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-md hover:shadow-lg"
-                        title="Delete Product"
-                      >
-                        <FaTrash className="w-4 h-4" />
-                        <span className="hidden sm:inline">Delete</span>
-                      </button>
+                      {canDeleteProduct && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteProduct(selectedProduct);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                          title="Delete Product"
+                        >
+                          <FaTrash className="w-4 h-4" />
+                          <span className="hidden sm:inline">Delete</span>
+                        </button>
+                      )}
                       {isProductMasterCollapsed ? (
                         <FaChevronDown className="w-4 h-4 text-gray-400" />
                       ) : (
@@ -956,13 +988,15 @@ const ProductsPage = () => {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">No Product Selected</h3>
                 <p className="text-sm text-gray-600 mb-6">Select a product from the list to view its details and manage tenure periods</p>
-                <button
-                  onClick={handleCreateProduct}
-                  className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white text-lg font-bold rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                >
-                  <FaPlus className="w-6 h-6" />
-                  Create Your First Product
-                </button>
+                {canAddProduct && (
+                  <button
+                    onClick={handleCreateProduct}
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white text-lg font-bold rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                  >
+                    <FaPlus className="w-6 h-6" />
+                    + Add Products
+                  </button>
+                )}
               </div>
             )}
           </div>

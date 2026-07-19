@@ -189,7 +189,7 @@
 import { useHistory } from "react-router-dom";
 import moment from "moment";
 
-const ReadyGroups = ({ groups, selectedTab }) => {
+const ReadyGroups = ({ groups, selectedTab, basePath = '/chit-fund/user' }) => {
     const readyGroups = groups?.filter((group) => group.Status === "Ready");
     const history = useHistory();
 
@@ -200,7 +200,7 @@ const ReadyGroups = ({ groups, selectedTab }) => {
     };
 
     const handleStartAuction = (groupId) => {
-        history.push(`/chit-fund/user/groups/${groupId}`);
+        history.push(`${basePath}/groups/${groupId}`);
     };
 
     return (

@@ -189,7 +189,7 @@
 import { useHistory } from "react-router-dom";
 import moment from "moment";
 
-const ClosedGroups = ({ groups }) => {
+const ClosedGroups = ({ groups, basePath = '/chit-fund/user' }) => {
   const closedGroups = groups?.filter((group) => group.Status === "Closed");
   const history = useHistory();
 
@@ -200,7 +200,7 @@ const ClosedGroups = ({ groups }) => {
   };
 
   const handleViewDetails = (groupId) => {
-    history.push(`/chit-fund/user/groups/${groupId}`);
+    history.push(`${basePath}/groups/${groupId}`);
   };
 
   return (

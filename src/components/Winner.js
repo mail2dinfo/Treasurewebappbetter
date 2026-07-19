@@ -7,6 +7,9 @@ import { FaTrophy, FaHome, FaArrowLeft, FaCheckCircle, FaStar, FaMedal, FaGift, 
 const Winner = ({ location }) => {
     const history = useHistory();
     const { groupId, reserve } = useParams();
+    const chitBasePath = location?.pathname?.startsWith('/chit-fund/manager')
+        ? '/chit-fund/manager'
+        : '/chit-fund/user';
     const [previewImage, setPreviewImage] = useState('https://github.com/OlgaKoplik/CodePen/blob/master/profile.jpg?raw=true');
     const [error, setError] = useState(null);
     const [altText, setAltText] = useState('');
@@ -56,20 +59,20 @@ const Winner = ({ location }) => {
     }, [imageUrl]);
 
     const handleContinueClick = () => {
-        history.push('/chit-fund/user/home');
+        history.push(`${chitBasePath}/home`);
     };
 
     const handleBackToGroup = () => {
         if (groupId && groupId !== 'undefined') {
-            history.push(`/chit-fund/user/groups/${groupId}`);
+            history.push(`${chitBasePath}/groups/${groupId}`);
         } else {
-            history.push('/chit-fund/user/home');
+            history.push(`${chitBasePath}/home`);
         }
     };
 
     const handlePayNow = () => {
         // Redirect to payables page
-        history.push('/chit-fund/user/payables');
+        history.push(`${chitBasePath}/payables`);
     };
 
     const fetchCompanyLogoUrl = async (logoKey) => {

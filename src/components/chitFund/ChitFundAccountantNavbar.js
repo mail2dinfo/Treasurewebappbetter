@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FiHome, FiDollarSign, FiCreditCard, FiBarChart2, FiLogOut } from 'react-icons/fi';
+import MyTreasureBrand from '../MyTreasureBrand';
 
 const ChitFundAccountantNavbar = () => {
     const location = useLocation();
@@ -21,15 +22,10 @@ const ChitFundAccountantNavbar = () => {
         <nav className="bg-white shadow-lg border-b border-gray-200">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
-                    {/* Logo and App Name */}
-                    <div className="flex items-center">
-                        <Link to="/chit-fund/accountant/dashboard" className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">CF</span>
-                            </div>
-                            <span className="text-xl font-bold text-gray-900">Chit Fund Accountant</span>
-                        </Link>
-                    </div>
+                    <MyTreasureBrand
+                        to="/chit-fund/accountant/dashboard"
+                        subtitle="Chit Fund Accountant"
+                    />
 
                     {/* Navigation Links */}
                     <div className="hidden md:flex items-center space-x-8">

@@ -162,7 +162,10 @@ import loadingImage from '../images/preloader.gif';
 import { useUserContext } from '../context/user_context';
 import { Grid, List } from 'lucide-react';
 
-const Subscribers = () => {
+const Subscribers = ({
+  addSubscriberPath,
+  canAddSubscriber = true,
+}) => {
   const history = useHistory();
   const { companySubscribers, isLoading, error } = useCompanySubscriberContext();
 
@@ -176,7 +179,10 @@ const Subscribers = () => {
   };
 
   const handleMultiStepSubscriber = () => {
-    history.push(`/chit-fund/user/addcompanymultisubscriber/${user.results.userAccounts[0].parent_membership_id}`);
+    history.push(
+      addSubscriberPath
+      || `/chit-fund/user/addcompanymultisubscriber/${user.results.userAccounts[0].parent_membership_id}`
+    );
   };
 
   const searchTerm = (nameFilter || "").toLowerCase();
@@ -232,12 +238,14 @@ const Subscribers = () => {
             className="px-4 py-3 bg-white border border-gray-300 rounded-lg text-base w-full md:flex-1 placeholder-gray-500 focus:border-custom-red focus:ring-1 focus:ring-custom-red transition-all duration-300"
           />
           <div className="flex gap-4 flex-wrap">
-            <button
-              onClick={handleMultiStepSubscriber}
-              className="px-4 py-3 bg-custom-red border border-custom-red rounded-lg text-white font-semibold cursor-pointer transition-all duration-300 hover:bg-red-700 hover:shadow-lg hover:scale-105"
-            >
-              + Add Subscriber
-            </button>
+            {canAddSubscriber && (
+              <button
+                onClick={handleMultiStepSubscriber}
+                className="px-4 py-3 bg-custom-red border border-custom-red rounded-lg text-white font-semibold cursor-pointer transition-all duration-300 hover:bg-red-700 hover:shadow-lg hover:scale-105"
+              >
+                + Add Subscriber
+              </button>
+            )}
             <button
               onClick={handleBackButtonClick}
               className="px-4 py-3 bg-custom-red border border-custom-red rounded-lg text-white font-semibold cursor-pointer transition-all duration-300 hover:bg-red-700 hover:shadow-lg hover:scale-105"

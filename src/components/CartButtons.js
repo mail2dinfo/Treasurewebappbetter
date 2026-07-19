@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     FaUserMinus,
     FaUserPlus,
@@ -29,6 +29,7 @@ const CartButtons = ({ scrolled }) => {
     const [previewUrl, setPreviewUrl] = useState('https://i.imgur.com/ndu6pfe.png'); // Default image
     const [isMobile, setIsMobile] = useState(false);
     const [popupPosition, setPopupPosition] = useState('right-0');
+    const hideTooltipTimer = useRef(null);
 
     const getImageSrc = (userImage) => {
         if (!userImage) return "default-avatar.png"; // Fallback image
@@ -131,10 +132,24 @@ const CartButtons = ({ scrolled }) => {
     };
 
     const showTooltip = () => {
+        if (hideTooltipTimer.current) {
+            clearTimeout(hideTooltipTimer.current);
+            hideTooltipTimer.current = null;
+        }
         calculatePopupPosition();
         setIsTooltipVisible(true);
     };
-    const hideTooltip = () => setIsTooltipVisible(false);
+    const hideTooltip = () => {
+        if (hideTooltipTimer.current) clearTimeout(hideTooltipTimer.current);
+        hideTooltipTimer.current = setTimeout(() => {
+            setIsTooltipVisible(false);
+            hideTooltipTimer.current = null;
+        }, 200);
+    };
+
+    useEffect(() => () => {
+        if (hideTooltipTimer.current) clearTimeout(hideTooltipTimer.current);
+    }, []);
 
     // Icon mapping for menu items
     const getIconForMenuItem = (text) => {
@@ -169,13 +184,21 @@ const CartButtons = ({ scrolled }) => {
                             Hi {user.results.firstname || user.results.name || "Guest"}
                         </div>
                         <div className="relative" onMouseEnter={showTooltip} onMouseLeave={hideTooltip}>
-                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-300 hover:border-red-500 transition-all duration-300 cursor-pointer">
+                            <button
+                                type="button"
+                                onClick={() => isTooltipVisible ? setIsTooltipVisible(false) : showTooltip()}
+                                onFocus={showTooltip}
+                                aria-haspopup="menu"
+                                aria-expanded={isTooltipVisible}
+                                aria-label="Open user menu"
+                                className="block w-10 h-10 rounded-full overflow-hidden border-2 border-gray-300 hover:border-red-500 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-200 transition-all duration-300 cursor-pointer"
+                            >
                                 <img
                                     src={image || previewUrl}
                                     alt={user.results.firstname || "User Avatar"}
                                     className="w-full h-full object-cover"
                                 />
-                            </div>
+                            </button>
                             {isTooltipVisible && (
                                 <>
                                     {/* Invisible bridge to prevent hover gap - mobile: above, desktop: below */}

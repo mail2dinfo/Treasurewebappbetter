@@ -10,13 +10,29 @@ import CollectorReceivables from '../../pages/collector/CollectorReceivables';
 import CollectorDashboard from '../../pages/collector/CollectorDashboard';
 import CollectorAdvanceHistory from '../../pages/collector/CollectorAdvanceHistory';
 import 'react-toastify/dist/ReactToastify.css';
+import { usePlatformAccess } from '../../context/platformAccess_context';
 
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, requiredFeature }) => {
     const { isAuthenticated } = useCollector();
+    const platform = usePlatformAccess();
 
     if (!isAuthenticated) {
-        return <Redirect to="/chit-fund/collector/login" />;
+        return <Redirect to="/login" />;
+    }
+    const isPlatformEmployee = platform?.isAvailable && !platform.isOwner;
+    if (isPlatformEmployee && platform.activeContext?.appCode !== 'CHIT_FUND') {
+        return <Redirect to="/app-selection" />;
+    }
+    const enforceAccess = isPlatformEmployee;
+    if (
+        enforceAccess
+        && (
+            !platform.hasPermission('chit.collector.portal')
+            || (requiredFeature && !platform.hasPermission(requiredFeature))
+        )
+    ) {
+        return <Redirect to="/app-selection" />;
     }
 
     return children;
@@ -34,7 +50,7 @@ const ChitFundCollectorLayout = () => {
 
                             {/* Protected Routes with Header */}
                             <Route path="/chit-fund/collector/dashboard">
-                                <ProtectedRoute>
+                                <ProtectedRoute requiredFeature="chit.collector.dashboard">
                                     <CollectorHeader />
                                     <div className="pt-16">
                                         <CollectorDashboard />
@@ -42,7 +58,7 @@ const ChitFundCollectorLayout = () => {
                                 </ProtectedRoute>
                             </Route>
                             <Route path="/chit-fund/collector/receivables">
-                                <ProtectedRoute>
+                                <ProtectedRoute requiredFeature="chit.collector.receivables">
                                     <CollectorHeader />
                                     <div className="pt-16">
                                         <CollectorReceivables />
@@ -50,7 +66,7 @@ const ChitFundCollectorLayout = () => {
                                 </ProtectedRoute>
                             </Route>
                             <Route path="/chit-fund/collector/advance-history">
-                                <ProtectedRoute>
+                                <ProtectedRoute requiredFeature="chit.collector.advances">
                                     <CollectorHeader />
                                     <div className="pt-16">
                                         <CollectorAdvanceHistory />
@@ -59,7 +75,7 @@ const ChitFundCollectorLayout = () => {
                             </Route>
 
                             {/* Default redirect for /chit-fund/collector */}
-                            <Redirect from="/chit-fund/collector" to="/chit-fund/collector/login" />
+                            <Redirect from="/chit-fund/collector" to="/login" />
                         </Switch>
 
                         <ToastContainer

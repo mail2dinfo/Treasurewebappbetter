@@ -1,5 +1,6 @@
 import React, { createContext, useReducer, useContext, useEffect, useCallback } from "react";
 import { useUserContext } from "./user_context";
+import { usePlatformAccess } from "./platformAccess_context";
 import { API_BASE_URL } from "../utils/apiConfig";
 
 const ProductContext = createContext();
@@ -41,12 +42,17 @@ function productReducer(state, action) {
 
 export const ProductProvider = ({ children }) => {
     const { user } = useUserContext();
+    const platform = usePlatformAccess();
     const [state, dispatch] = useReducer(productReducer, initialState);
+    const userAccounts = user?.results?.userAccounts || [];
+    const membershipId = platform?.activeContext?.parentMembershipId
+        ?? userAccounts.find((account) => account?.parent_membership_id)?.parent_membership_id
+        ?? userAccounts[0]?.parent_membership_id
+        ?? userAccounts[0]?.membershipId;
 
     const loadProducts = useCallback(async () => {
         if (!user?.results?.token) return;
 
-        const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
         if (!membershipId) {
             dispatch({ type: "FETCH_ERROR", payload: "Membership ID not found" });
             return;
@@ -66,7 +72,7 @@ export const ProductProvider = ({ children }) => {
         } catch (error) {
             dispatch({ type: "FETCH_ERROR", payload: error.message });
         }
-    }, [user?.results?.token, user?.results?.userAccounts]);
+    }, [user?.results?.token, membershipId]);
 
     const addProduct = async (newProduct) => {
         if (!user?.results?.token) return { success: false, message: "User not authenticated" };
@@ -162,14 +168,12 @@ export const ProductProvider = ({ children }) => {
         dispatch({ type: "RESET_PRODUCTS" });
     };
 
-    const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
-
     // Load products when user logs in
     useEffect(() => {
         if (user?.results?.token) {
             loadProducts();
         }
-    }, [user, loadProducts]);
+    }, [user?.results?.token, loadProducts]);
 
     return (
         <ProductContext.Provider

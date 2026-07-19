@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useGroupDetailsContext } from "../context/group_context";
 import { useCompanySubscriberContext } from "../context/companysubscriber_context";
-import { useParams, useHistory } from "react-router-dom";
+import { useParams, useHistory, useLocation } from "react-router-dom";
 import { FiTrash2 } from "react-icons/fi";
 import { FaMagic } from "react-icons/fa";
 import loadingImage from "../images/preloader.gif";
@@ -9,7 +9,11 @@ import { ToastContainer, toast } from "react-toastify";
 
 const AddSub = () => {
   const history = useHistory();
+  const location = useLocation();
   const { groupId } = useParams();
+  const basePath = location.pathname.startsWith('/chit-fund/manager')
+    ? '/chit-fund/manager'
+    : '/chit-fund/user';
   const {
     data,
     isLoading,
@@ -54,11 +58,11 @@ const AddSub = () => {
   // --- Handlers ---
   const handleOpenPopup = () => setOpen(true);
   const handleAddNewClick = () => {
-    history.push(`/chit-fund/user/addgroupsubscriber/${groupId}/addnew`);
+    history.push(`${basePath}/addgroupsubscriber/${groupId}/addnew`);
     setOpen(false);
   };
   const handleCompanySubscriberClick = () => {
-    history.push(`/chit-fund/user/addgroupsubscriber/${groupId}/addcompanysubcriber`);
+    history.push(`${basePath}/addgroupsubscriber/${groupId}/addcompanysubcriber`);
     setOpen(false);
   };
   const toggleViewMode = () => {

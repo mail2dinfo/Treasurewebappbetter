@@ -16,6 +16,9 @@ const Subscriber = ({ name, id, phone, user_image_from_s3 }) => {
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
     const [imageError, setImageError] = useState(false);
     const location = useLocation();
+    const basePath = location.pathname.startsWith('/chit-fund/manager')
+        ? '/chit-fund/manager'
+        : '/chit-fund/user';
     const { user } = useUserContext();
     const { groupId } = useParams();
 
@@ -86,7 +89,7 @@ const Subscriber = ({ name, id, phone, user_image_from_s3 }) => {
                     </div>
 
                     <Link
-                        to={`/chit-fund/user/subscriber/${id}`}
+                        to={`${basePath}/subscriber/${id}`}
                         className="flex items-center justify-center gap-2 w-full py-2 px-4 mt-2 text-sm bg-custom-red text-white border-none rounded-lg cursor-pointer transition-colors duration-200 hover:bg-blue-600 text-center no-underline"
                     >
                         <Eye size={16} />

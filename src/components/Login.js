@@ -6,11 +6,12 @@ import { Link } from 'react-router-dom';
 import Alert from '../components/Alert';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { isSuperAdminUser } from '../utils/superAdminUtils';
-import Modal from "../components/Modal";
+import { usePlatformAccess } from '../context/platformAccess_context';
 import { FiEye, FiEyeOff, FiUser, FiLock, FiArrowRight } from 'react-icons/fi';
 
 function Login() {
   const { login, updateUserRole } = useUserContext();
+  const platform = usePlatformAccess();
   const { resetLedgerAccounts } = useLedgerAccountContext();
 
   const [list, setList] = useState([]);
@@ -19,10 +20,8 @@ function Login() {
   const history = useHistory();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [userRole, setUserRole] = useState(null); // State to hold user details
   // Access the AuthContext
   const [isLoading, setIsLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
   const [userObjectFromAPI, setUserObjectFromAPI] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -49,11 +48,26 @@ function Login() {
         setUserObjectFromAPI(data);
         // Set the user object in the AuthContext
         login(data);
-        setUserRole(data?.results?.userAccounts);
 
         if (isSuperAdminUser(data)) {
           updateUserRole('SuperAdmin');
           history.push('/super-admin');
+          return;
+        }
+
+        const accountNames = (data?.results?.userAccounts || []).map(
+          (account) => String(account.accountName || '').toUpperCase()
+        );
+        const hasPlatformRole = accountNames.some((name) => (
+          name.includes('USER')
+          || name.includes('MANAGER')
+          || name.includes('COLLECTOR')
+          || name.includes('ACCOUNTANT')
+        ));
+        if (hasPlatformRole) {
+          await platform?.loadSession(data?.results?.token);
+          updateUserRole(accountNames[0]);
+          history.push('/app-selection');
           return;
         }
 
@@ -65,7 +79,9 @@ function Login() {
           redirectPage(selectedRole);
 
         } else if (data?.results?.userAccounts?.length > 1) {
-          setShowModal(true);
+          updateUserRole(data.results.userAccounts[0]?.accountName || 'Employee');
+          history.push('/app-selection');
+          return;
         } else {
           showAlert(true, 'danger', 'No active account found for this user.');
         }
@@ -92,12 +108,6 @@ function Login() {
   };
   // Define the condition for button disablement
   const isButtonDisabled = !phone || !password || isLoading;
-
-  const handleRoleSelect = (selectedRole) => {
-    updateUserRole(selectedRole);
-    setShowModal(false); // Close the modal after role selection
-    redirectPage(selectedRole)
-  };
 
   const redirectPage = (selectedRole) => {
 
@@ -243,44 +253,6 @@ function Login() {
         </div>
       </div>
 
-      {/* Role Selection Modal */}
-      {showModal && (
-        <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
-          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-800">Select Your Role</h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors duration-200"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {userRole && userRole.map((role) => (
-                <label
-                  key={role.accountName}
-                  className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-red-50 hover:border-custom-red cursor-pointer transition-all duration-200"
-                >
-                  <input
-                    type="radio"
-                    name="role"
-                    value={role.accountName}
-                    onChange={() => handleRoleSelect(role.accountName)}
-                    className="w-4 h-4 text-custom-red border-gray-300 focus:ring-custom-red"
-                  />
-                  <span className="ml-3 text-sm font-medium text-gray-700">
-                    {role.accountName}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }

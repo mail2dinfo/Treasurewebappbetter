@@ -3,20 +3,33 @@ import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { MdBusiness, MdLocationOn, MdLink, MdDataObject, MdTimeline, MdTimeToLeave, MdCalendarToday, MdSchedule, MdTimer } from "react-icons/md";
 import { FontAwesomeIcon } from "react-icons/fa";
-import { useHistory, useParams } from "react-router-dom";
+import { useHistory, useLocation, useParams } from "react-router-dom";
 import List from "../components/List";
 import Alert from "../components/Alert";
 import { API_BASE_URL } from "../utils/apiConfig";
 import { useUserContext } from "../context/user_context";
+import { usePlatformAccess } from "../context/platformAccess_context";
 import SendReminderModal from "../components/SendReminderModal";
 import { Gavel } from "lucide-react";
 
 const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, startTime, endTime, commisionType, is_commision_taken, commision, emi, isGroupProgress, groupType, groupSubcriberResult }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { user } = useUserContext();
+    const platform = usePlatformAccess();
     const [list, setList] = useState([]);
     // const { subscriber } = React.useContext(SubContext);
     const history = useHistory();
+    const locationDetails = useLocation();
+    const basePath = locationDetails.pathname.startsWith('/chit-fund/manager')
+        ? '/chit-fund/manager'
+        : '/chit-fund/user';
+    const isManagerPath = basePath === '/chit-fund/manager';
+    const canViewReceivables = !isManagerPath || platform.hasAnyPermission([
+        'chit_receivables_view',
+        'chit_receivables_pay',
+        'chit_receivables',
+    ]);
+    const canManageAuctions = !isManagerPath || platform.hasPermission('chit_auction_manage');
     const { groupId } = useParams();
     const [localCommision, setLocalCommision] = useState(commision);
     const [lumsumCommissionType, setLumsumCommissionType] = useState("");
@@ -106,7 +119,7 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
     };
 
     const handleGoToAuctions = () => {
-        history.push(`/chit-fund/user/groups/${groupId}/auctions/date/nextAuctionDate=${nextAuctionDate}`);
+        history.push(`${basePath}/groups/${groupId}/auctions/date/nextAuctionDate=${nextAuctionDate}`);
     };
 
     const subscriber = {
@@ -130,11 +143,11 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
     };
     const handleYourDueClick = () => {
         // Redirect to the YourDuePage for the specific groupId
-        history.push(`/chit-fund/user/groups/${groupId}/your-due`);
+        history.push(`${basePath}/groups/${groupId}/your-due`);
     };
     const handleCustomerDueClick = () => {
         // Redirect to the YourDuePage for the specific groupId
-        history.push(`/chit-fund/user/groups/${groupId}/customer-due`);
+        history.push(`${basePath}/groups/${groupId}/customer-due`);
     };
     return (
         <div className="bg-white border border-gray-200 rounded-xl shadow-lg relative mt-6">
@@ -144,7 +157,7 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
             </div>
 
             <div className="p-6 pt-8">
-                <div className="grid grid-cols-3 gap-4 mb-8">
+                <div className={`grid ${canViewReceivables ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1'} gap-4 mb-8`}>
                     {/* Groups Count */}
                     <div className="text-center">
                         <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
@@ -156,31 +169,37 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
                         <p className="text-xs text-gray-500">Completed / Total</p>
                     </div>
 
-                    {/* Your Due */}
-                    <div className="text-center cursor-pointer group" onClick={handleYourDueClick}>
-                        <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:shadow-xl transition-all duration-300">
-                            <span className="text-white font-bold text-lg">
-                                ₹{yourdue[0]?.pending_amount || 0}
-                            </span>
-                        </div>
-                        <p className="text-sm font-medium text-gray-700">Your Due</p>
-                        <p className="text-xs text-gray-500">Pending Amount</p>
-                    </div>
+                    {canViewReceivables && (
+                        <>
+                            {/* Your Due */}
+                            <div className="text-center cursor-pointer group" onClick={handleYourDueClick}>
+                                <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                    <span className="text-white font-bold text-lg">
+                                        ₹{yourdue[0]?.pending_amount || 0}
+                                    </span>
+                                </div>
+                                <p className="text-sm font-medium text-gray-700">Your Due</p>
+                                <p className="text-xs text-gray-500">Pending Amount</p>
+                            </div>
 
-                    {/* Customer Due */}
-                    <div className="text-center cursor-pointer group" onClick={handleCustomerDueClick}>
-                        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:shadow-xl transition-all duration-300">
-                            <span className="text-white font-bold text-lg">
-                                ₹{customerdue[0]?.pending_amount || 0}
-                            </span>
-                        </div>
-                        <p className="text-sm font-medium text-gray-700">Customer Due</p>
-                        <p className="text-xs text-gray-500">Pending Amount</p>
-                    </div>
+                            {/* Customer Due */}
+                            <div className="text-center cursor-pointer group" onClick={handleCustomerDueClick}>
+                                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:shadow-xl transition-all duration-300">
+                                    <span className="text-white font-bold text-lg">
+                                        ₹{customerdue[0]?.pending_amount || 0}
+                                    </span>
+                                </div>
+                                <p className="text-sm font-medium text-gray-700">Customer Due</p>
+                                <p className="text-xs text-gray-500">Pending Amount</p>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Auction Details */}
-                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4 mb-6">
+                {canManageAuctions && (
+                    <>
+                    <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4 mb-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                         <MdDataObject className="text-red-500" />
                         Auction Information
@@ -215,10 +234,10 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
                             </div>
                         </div>
                     </div>
-                </div>
+                    </div>
 
-                {/* Action Buttons */}
-                <div className="space-y-3">
+                    {/* Action Buttons */}
+                    <div className="space-y-3">
                     {isGroupProgress !== "CLOSED" && (
                         <button
                             onClick={handleGoToAuctions}
@@ -248,7 +267,9 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
                             </button>
                         )
                     )}
-                </div>
+                    </div>
+                    </>
+                )}
             </div>
 
             {/* Modal */}
