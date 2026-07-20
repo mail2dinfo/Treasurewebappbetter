@@ -27,17 +27,17 @@ export const SuperAdminKpiCard = ({ icon: Icon, label, value, hint, accent = 're
 );
 
 export const SuperAdminPanel = ({ title, description, actions, children, className = '', flush = false }) => (
-    <section className={`flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm ${className}`}>
+    <section className={`flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white text-left shadow-sm ${className}`}>
         {(title || actions) && (
-            <div className="flex shrink-0 flex-col gap-3 border-b border-slate-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                <div>
+            <div className="flex shrink-0 flex-col gap-3 border-b border-slate-100 px-4 py-4 text-left sm:flex-row sm:items-start sm:justify-between sm:px-6">
+                <div className="min-w-0 text-left">
                     {title && <h2 className="text-base font-semibold text-slate-900 sm:text-lg">{title}</h2>}
                     {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
                 </div>
                 {actions && <div className="shrink-0">{actions}</div>}
             </div>
         )}
-        <div className={flush ? 'flex-1' : 'flex-1 p-4 sm:p-6'}>{children}</div>
+        <div className={flush ? 'text-left' : 'p-4 text-left sm:p-6'}>{children}</div>
     </section>
 );
 

@@ -14,7 +14,7 @@ import VehicleFinanceCollectionsPage from '../../pages/vehicleFinance/VehicleFin
 import VehicleFinanceReportsPage from '../../pages/vehicleFinance/VehicleFinanceReportsPage';
 import PlatformEmployeesPage from '../../pages/PlatformEmployeesPage';
 import MyBillingPage from '../../pages/MyBillingPage';
-import BillingOverdueOverlay from '../BillingOverdueOverlay';
+import BillingAppGuards from '../BillingAppGuards';
 import { BillingProvider } from '../../context/billing_context';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import { getVehicleFinanceMenuItems } from './vehicleFinanceMenuItems';
@@ -206,8 +206,9 @@ const VehicleFinanceAdminLayout = ({ basePath = '/vehicle-finance/user' }) => {
                     appCode="VEHICLE_FINANCE"
                     billingPath="/vehicle-finance/user/billing"
                 >
-                    <BillingOverdueOverlay />
+                    <BillingAppGuards>
                     {shell}
+                    </BillingAppGuards>
                 </BillingProvider>
             ) : (
                 shell

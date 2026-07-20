@@ -406,7 +406,8 @@ const HomePage = ({
     fetchLedgerAccounts();
     fetchLedgerEntries();
     fetchAobs();
-  }, [user]);
+    // Only re-fetch when the auth session changes — not on every user object identity change.
+  }, [user?.results?.token]);
 
   const handleStartGroup = () => {
     history.push(`${basePath}/startagroup`);
@@ -414,10 +415,9 @@ const HomePage = ({
 
   if (isLoading) {
     return (
-      <>
-        <img src={loadingImage} className='loading-img' alt='loading' />
-        <div className="placeholder" style={{ height: '50vh' }}></div>
-      </>
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <img src={loadingImage} className="loading-img" alt="" style={{ marginTop: 0 }} />
+      </div>
     );
   }
 

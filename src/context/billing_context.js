@@ -15,6 +15,9 @@ const initialState = {
     payments: [],
     billingCycleChangeWindow: null,
     availablePlans: [],
+    access: null,
+    showTrialWelcome: false,
+    trialInfo: null,
     isLoading: false,
     isRefreshing: false,
     hasLoaded: false,
@@ -37,6 +40,7 @@ function billingReducer(state, action) {
                 isRefreshing: false,
                 hasLoaded: true,
                 subscription: action.payload.subscription,
+                access: action.payload.access ?? state.access,
                 billingCycleChangeWindow: action.payload.billingCycleChangeWindow ?? state.billingCycleChangeWindow,
             };
         case 'FETCH_PAYMENTS_SUCCESS':
@@ -53,6 +57,22 @@ function billingReducer(state, action) {
                 ...state,
                 isLoading: false,
                 availablePlans: action.payload,
+            };
+        case 'SET_ACCESS':
+            return {
+                ...state,
+                access: action.payload,
+            };
+        case 'SHOW_TRIAL_WELCOME':
+            return {
+                ...state,
+                showTrialWelcome: true,
+                trialInfo: action.payload,
+            };
+        case 'DISMISS_TRIAL_WELCOME':
+            return {
+                ...state,
+                showTrialWelcome: false,
             };
         case 'FETCH_ERROR':
             return { ...state, isLoading: false, isRefreshing: false, error: action.payload };
@@ -122,18 +142,80 @@ export const BillingProvider = ({
                 const errorText = await res.text();
                 throw new Error(errorText || 'Failed to ensure app subscription');
             }
-            return { success: true };
+            const data = await res.json();
+            if (data?.data?.access) {
+                dispatch({ type: 'SET_ACCESS', payload: data.data.access });
+            }
+            if (data?.data?.created) {
+                dispatch({
+                    type: 'SHOW_TRIAL_WELCOME',
+                    payload: data.data.trial || {
+                        plan_id: 'VeryBasic',
+                        monthly_amount: 100,
+                        trial_days: 30,
+                        status: 'paid',
+                    },
+                });
+            }
+            return {
+                success: true,
+                created: Boolean(data?.data?.created),
+                trial: data?.data?.trial || null,
+                access: data?.data?.access || null,
+            };
         } catch (error) {
             console.error('Ensure app subscription error:', error.message);
             return { success: false, error: error.message };
         }
     };
 
+    const dismissTrialWelcome = () => {
+        dispatch({ type: 'DISMISS_TRIAL_WELCOME' });
+    };
+
+    const resumeAppSubscription = async () => {
+        if (!user?.results?.token) {
+            return { success: false, error: 'User not authenticated' };
+        }
+        const membershipId = getMembershipId();
+        if (!membershipId) {
+            return { success: false, error: 'Membership ID not found' };
+        }
+
+        try {
+            const response = await fetch(
+                withAppCodeQuery(
+                    `${API_BASE_URL}/billing-subscription/${membershipId}/resume`,
+                    resolvedAppCode
+                ),
+                {
+                    method: 'POST',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ app_code: resolvedAppCode }),
+                }
+            );
+            const result = await response.json();
+            if (response.ok && result.success) {
+                await fetchCurrentSubscription({ silent: true });
+                await fetchPaymentHistory({ silent: true });
+                return { success: true, data: result.data };
+            }
+            return { success: false, error: result.message || 'Failed to resume' };
+        } catch (error) {
+            return { success: false, error: error.message };
+        }
+    };
+
     const bootstrapBilling = async () => {
-        await ensureAppSubscription();
-        await fetchCurrentSubscription();
-        await fetchPaymentHistory();
-        await fetchAvailablePlans();
+        dispatch({ type: 'FETCH_START' });
+        try {
+            await ensureAppSubscription();
+            await fetchCurrentSubscription({ silent: true });
+            await fetchPaymentHistory({ silent: true });
+            await fetchAvailablePlans();
+        } catch (error) {
+            dispatch({ type: 'FETCH_ERROR', payload: error.message || 'Failed to load billing' });
+        }
     };
 
     const fetchCurrentSubscription = async ({ silent = false } = {}) => {
@@ -169,6 +251,7 @@ export const BillingProvider = ({
                     type: 'FETCH_SUBSCRIPTION_SUCCESS',
                     payload: {
                         subscription: data.data.subscription,
+                        access: data.data.access || null,
                         billingCycleChangeWindow: data.data.billing_cycle_change_window || null,
                     },
                 });
@@ -479,6 +562,9 @@ export const BillingProvider = ({
                 billingPath: resolvedBillingPath,
                 subscription: state.subscription,
                 payments: state.payments,
+                access: state.access,
+                showTrialWelcome: state.showTrialWelcome,
+                trialInfo: state.trialInfo,
                 billingCycleChangeWindow: state.billingCycleChangeWindow,
                 availablePlans: state.availablePlans,
                 isLoading: state.isLoading,
@@ -493,6 +579,8 @@ export const BillingProvider = ({
                 recordPayment,
                 payCycleBill,
                 triggerBillingCycle,
+                resumeAppSubscription,
+                dismissTrialWelcome,
                 resetBillingData,
             }}
         >

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useVehicleFinanceContext } from '../../context/vehicleFinance/VehicleFinanceContext';
 import VehicleFinanceUserDetails from '../../components/vehicleFinance/VehicleFinanceUserDetails';
@@ -23,11 +23,14 @@ const VehicleFinanceDashboard = () => {
         fetchLoans,
         fetchReceipts,
         fetchLedgerAccounts,
-        isLoading,
     } = useVehicleFinanceContext();
 
+    const [pageLoading, setPageLoading] = useState(true);
+
     useEffect(() => {
+        let cancelled = false;
         const loadDashboardData = async () => {
+            setPageLoading(true);
             try {
                 const requests = [];
                 if (canAccessAny(['vf_company_view', 'vf_company'])) requests.push(fetchCompanies());
@@ -46,9 +49,14 @@ const VehicleFinanceDashboard = () => {
                 await Promise.all(requests);
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
+            } finally {
+                if (!cancelled) setPageLoading(false);
             }
         };
         loadDashboardData();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchCompanies, fetchSubscribers, fetchLoans, fetchReceipts, fetchLedgerAccounts, canAccess, canAccessAny]);
 
     const stats = useMemo(() => {
@@ -87,12 +95,11 @@ const VehicleFinanceDashboard = () => {
 
     const primaryCompany = companies?.[0] || null;
 
-    if (isLoading && (!loans || loans.length === 0)) {
+    if (pageLoading) {
         return (
-            <>
-                <img src={loadingImage} className="loading-img" alt="loading" />
-                <div className="placeholder" style={{ height: '50vh' }} />
-            </>
+            <div className="flex min-h-[50vh] items-center justify-center">
+                <img src={loadingImage} className="loading-img" alt="" style={{ marginTop: 0 }} />
+            </div>
         );
     }
 

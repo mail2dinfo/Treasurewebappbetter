@@ -13,7 +13,8 @@ export async function fetchSuperAdminApi(path, token) {
 
     if (!contentType.includes('application/json')) {
         throw new Error(
-            `Analytics API not available at ${url}. Deploy the latest backend or set REACT_APP_API_BASE_URL to your running API (e.g. http://localhost:6001/api/v1 or https://treasure-services-mani.onrender.com/api/v1).`
+            `Billing/admin API not available at ${url}. ` +
+            `Deploy the latest backend to https://treasure-services-mani.onrender.com.`
         );
     }
 
@@ -47,7 +48,8 @@ export async function patchSuperAdminApi(path, token, body) {
 
     if (!contentType.includes('application/json')) {
         throw new Error(
-            `Analytics API not available at ${url}. Deploy the latest backend or set REACT_APP_API_BASE_URL to your running API.`
+            `Billing/admin API not available at ${url}. ` +
+            `Deploy the latest backend to https://treasure-services-mani.onrender.com.`
         );
     }
 

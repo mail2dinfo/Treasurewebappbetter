@@ -17,7 +17,7 @@ import PersonalLoanSubscribersPage from '../../pages/personalLoan/PersonalLoanSu
 import PersonalLoanLoansPage from '../../pages/personalLoan/PersonalLoanLoansPage';
 import PersonalLoanLedgerPage from '../../pages/personalLoan/PersonalLoanLedgerPage';
 import MyBillingPage from '../../pages/MyBillingPage';
-import BillingOverdueOverlay from '../BillingOverdueOverlay';
+import BillingAppGuards from '../BillingAppGuards';
 import PrivateRoute from '../../pages/PrivateRoute';
 
 const PersonalLoanAdminLayout = () => {
@@ -27,7 +27,7 @@ const PersonalLoanAdminLayout = () => {
                 appCode="PERSONAL_LOAN"
                 billingPath="/personal-loan/user/billing"
             >
-                <BillingOverdueOverlay />
+                <BillingAppGuards>
                 <div className="min-h-screen bg-gray-50">
                     {/* Personal Loan Admin Navbar */}
                     <PersonalLoanNavbar />
@@ -72,6 +72,7 @@ const PersonalLoanAdminLayout = () => {
                         pauseOnHover
                     />
                 </div>
+                </BillingAppGuards>
             </BillingProvider>
         </PersonalLoanProvider>
     );

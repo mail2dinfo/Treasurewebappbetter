@@ -16,13 +16,15 @@ const DashboardPage = () => {
         fetchCompanies,
         fetchProducts,
         fetchLoans,
-        isLoading,
     } = useDailyCollectionContext();
     const { subscribers, fetchSubscribers } = useDcSubscriberContext();
     const [imageError, setImageError] = useState(false);
+    const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
+        let cancelled = false;
         const loadDashboardData = async () => {
+            setPageLoading(true);
             try {
                 await Promise.all([
                     fetchCompanies(),
@@ -32,9 +34,14 @@ const DashboardPage = () => {
                 ]);
             } catch (error) {
                 console.error('Error loading daily collection dashboard:', error);
+            } finally {
+                if (!cancelled) setPageLoading(false);
             }
         };
         loadDashboardData();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchCompanies, fetchProducts, fetchLoans, fetchSubscribers]);
 
     const stats = useMemo(() => {
@@ -72,12 +79,11 @@ const DashboardPage = () => {
         setImageError(false);
     }, [primaryCompany?.id, primaryCompany?.company_logo]);
 
-    if (isLoading && (!loans || loans.length === 0) && (!companies || companies.length === 0)) {
+    if (pageLoading) {
         return (
-            <>
-                <img src={loadingImage} className="loading-img" alt="loading" />
-                <div className="placeholder" style={{ height: '50vh' }} />
-            </>
+            <div className="flex min-h-[50vh] items-center justify-center">
+                <img src={loadingImage} className="loading-img" alt="" style={{ marginTop: 0 }} />
+            </div>
         );
     }
 

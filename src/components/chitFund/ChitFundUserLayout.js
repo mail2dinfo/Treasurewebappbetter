@@ -18,6 +18,7 @@ import { ReceivablesProvider } from '../../context/receivables_context';
 import { PayablesProvider } from '../../context/payables_context';
 import { ProductProvider } from '../../context/product_context';
 import { BillingProvider } from '../../context/billing_context';
+import BillingAppGuards from '../BillingAppGuards';
 
 // Chit Fund User Components
 import Navbar from '../Navbar';
@@ -27,7 +28,6 @@ import Sidebar from '../Sidebar';
 import HomePage from '../../pages/HomePage';
 import Company from '../Company';
 import GroupsPage from '../../pages/GroupsPage';
-import GroupAccountDetails from '../../pages/GroupAccountDetails';
 import SingleEmployeePage from '../../pages/SingleEmployeePage';
 import AddAob from '../AddAob';
 import DashboardPage from '../../pages/DashboardPage';
@@ -36,10 +36,8 @@ import Receivables from '../../pages/Receivables';
 import Payables from '../../pages/Payables';
 import ProductsPage from '../../pages/ProductsPage';
 import MyBillingPage from '../../pages/MyBillingPage';
-import BillingOverdueOverlay from '../BillingOverdueOverlay';
 import Subscribers from '../Subscribers';
 import GroupStepForm from '../../pages/MultiStepGroupCreation_New/MultiStepForm';
-import AddCompanySubcriber from '../../pages/AddCompanySubcriber';
 import SubscriberStepForm from '../../pages/MultiStepCustomerCreation/SubscriberStepForm';
 import Help from '../../pages/Help';
 import Faq from '../../pages/Faq';
@@ -70,7 +68,7 @@ const ChitFundUserLayout = () => {
                                                     <PayablesProvider>
                                                         <ProductProvider>
                                                             <BillingProvider appCode="CHIT_FUND" billingPath="/chit-fund/user/billing">
-                                                                <BillingOverdueOverlay />
+                                                                <BillingAppGuards>
                                                                 <div className="min-h-screen bg-gray-50">
                                                                     <Navbar />
                                                                     <Sidebar />
@@ -128,6 +126,7 @@ const ChitFundUserLayout = () => {
                                                                         pauseOnHover
                                                                     />
                                                                 </div>
+                                                                </BillingAppGuards>
                                                             </BillingProvider>
                                                         </ProductProvider>
                                                     </PayablesProvider>

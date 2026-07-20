@@ -6,6 +6,7 @@ import SuperAdminHome from './pages/SuperAdminHome';
 import SuperAdminUserAnalytics from './pages/SuperAdminUserAnalytics';
 import SuperAdminChitFundAnalytics from './pages/SuperAdminChitFundAnalytics';
 import SuperAdminDailyFinanceAnalytics from './pages/SuperAdminDailyFinanceAnalytics';
+import SuperAdminBilling from './pages/SuperAdminBilling';
 import { UserProvider } from './context/user_context';
 import { PlatformAccessProvider } from './context/platformAccess_context';
 import { LedgerAccountProvider } from './context/ledgerAccount_context';
@@ -45,6 +46,7 @@ function App() {
                     <Switch>
                         {/* Super Admin Portal */}
                         <PrivateRoute exact path="/super-admin/user-analytics" component={SuperAdminUserAnalytics} />
+                        <PrivateRoute exact path="/super-admin/billing" component={SuperAdminBilling} />
                         <PrivateRoute exact path="/super-admin/chit-fund-analytics" component={SuperAdminChitFundAnalytics} />
                         <PrivateRoute exact path="/super-admin/daily-finance-analytics" component={SuperAdminDailyFinanceAnalytics} />
                         <PrivateRoute exact path="/super-admin" component={SuperAdminHome} />

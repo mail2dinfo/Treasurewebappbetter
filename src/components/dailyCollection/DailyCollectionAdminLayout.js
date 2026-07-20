@@ -24,7 +24,7 @@ import CollectionsPage from '../../pages/dailyCollection/CollectionsPage';
 import DashboardPage from '../../pages/dailyCollection/DashboardPage';
 import ReportsPage from '../../pages/dailyCollection/ReportsPage';
 import MyBillingPage from '../../pages/MyBillingPage';
-import BillingOverdueOverlay from '../BillingOverdueOverlay';
+import BillingAppGuards from '../BillingAppGuards';
 import PrivateRoute from '../../pages/PrivateRoute';
 
 const DailyCollectionAdminLayout = () => {
@@ -38,7 +38,7 @@ const DailyCollectionAdminLayout = () => {
                                 appCode="DAILY_COLLECTION"
                                 billingPath="/daily-collection/user/billing"
                             >
-                                <BillingOverdueOverlay />
+                                <BillingAppGuards>
                                 <div className="min-h-screen bg-gray-50">
                                     {/* Daily Collection Admin Navbar */}
                                     <DailyCollectionNavbar />
@@ -88,6 +88,7 @@ const DailyCollectionAdminLayout = () => {
                                         pauseOnHover
                                     />
                                 </div>
+                            </BillingAppGuards>
                             </BillingProvider>
                         </AnalyticsProvider>
                     </DcLedgerProvider>

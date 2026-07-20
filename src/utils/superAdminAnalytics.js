@@ -6,6 +6,12 @@ export const SUPER_ADMIN_NAV = [
         icon: 'users',
     },
     {
+        id: 'billing',
+        name: 'Billing Control',
+        path: '/super-admin/billing',
+        icon: 'trending',
+    },
+    {
         id: 'chit-fund',
         name: 'Chit Fund',
         path: '/super-admin/chit-fund-analytics',

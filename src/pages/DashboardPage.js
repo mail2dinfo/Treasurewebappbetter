@@ -46,14 +46,13 @@ const DashboardPage = () => {
             }
         };
         fetchDashboardDetails();
-    }, [user]); // Fetch data whenever the groupId changes
+    }, [user?.results?.token]); // Fetch once per auth session
 
     if (isLoading) {
         return (
-            <>
-                <img src={loadingImage} className='loading-img' alt='loding' />
-                <div className="placeholder" style={{ height: '50vh' }}></div>
-            </>
+            <div className="flex min-h-[50vh] items-center justify-center">
+                <img src={loadingImage} className="loading-img" alt="" style={{ marginTop: 0 }} />
+            </div>
         );
     }
 

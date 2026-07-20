@@ -2,25 +2,13 @@
 const deployEnv = (process.env.REACT_APP_DEPLOY_ENV || '').toLowerCase();
 const isProduction = deployEnv === 'production';
 
-const LOCAL_API_BASE = 'http://localhost:6001/api/v1';
 const RENDER_DEV_API_BASE = 'https://treasure-services-mani.onrender.com/api/v1';
 const RENDER_PROD_API_BASE = 'https://treasure-mani.onrender.com/api/v1';
-
-const isLocalDev =
-    typeof window !== 'undefined' &&
-    (window.location?.hostname === 'localhost' || window.location?.hostname === '127.0.0.1');
 
 const normalizeApiBaseUrl = (url) => {
     if (!url) return null;
 
     let normalized = url.trim().replace(/\/+$/, '');
-
-    // Relative paths (e.g. "/api/v1") hit the React dev server and return index.html.
-    if (normalized.startsWith('/')) {
-        if (typeof window !== 'undefined' && window.location?.hostname === 'localhost') {
-            normalized = `http://localhost:6001${normalized}`;
-        }
-    }
 
     if (!normalized.endsWith('/api/v1')) {
         normalized = `${normalized.replace(/\/api\/v1\/?$/, '')}/api/v1`;
@@ -33,9 +21,8 @@ const configuredApiBaseUrl = process.env.REACT_APP_API_BASE_URL
     ? normalizeApiBaseUrl(process.env.REACT_APP_API_BASE_URL)
     : null;
 
-// Local npm start should never hit prod API unless REACT_APP_API_BASE_URL is set explicitly.
-const defaultApiBaseUrl =
-    isProduction && !isLocalDev ? RENDER_PROD_API_BASE : RENDER_DEV_API_BASE;
+// Explicit .env override wins; otherwise prod deploy → prod API, else Render dev API.
+const defaultApiBaseUrl = isProduction ? RENDER_PROD_API_BASE : RENDER_DEV_API_BASE;
 
 export const API_BASE_URL = configuredApiBaseUrl || defaultApiBaseUrl;
 
@@ -64,8 +51,8 @@ export async function readApiResponse(res) {
     if (looksLikeHtml) {
         throw new Error(
             `API returned HTML instead of JSON (${res.status}). ` +
-                `Set REACT_APP_API_BASE_URL in .env to your backend API ` +
-                `(e.g. http://localhost:6001/api/v1 or https://treasure-services-mani.onrender.com/api/v1). ` +
+                `Deploy the latest backend or set REACT_APP_API_BASE_URL to ` +
+                `https://treasure-services-mani.onrender.com/api/v1. ` +
                 `Current base: ${API_BASE_URL}. Restart npm start after changing .env.`
         );
     }

@@ -35,7 +35,7 @@ import Receivables from '../../pages/Receivables';
 import Payables from '../../pages/Payables';
 import ProductsPage from '../../pages/ProductsPage';
 import MyBillingPage from '../../pages/MyBillingPage';
-import BillingOverdueOverlay from '../BillingOverdueOverlay';
+import BillingAppGuards from '../BillingAppGuards';
 import Subscribers from '../Subscribers';
 
 const ChitFundAdminLayout = () => {
@@ -54,7 +54,7 @@ const ChitFundAdminLayout = () => {
                                                     <PayablesProvider>
                                                         <ProductProvider>
                                                             <BillingProvider appCode="CHIT_FUND" billingPath="/chit-fund/admin/billing">
-                                                                <BillingOverdueOverlay />
+                                                                <BillingAppGuards>
                                                                 <div className="min-h-screen bg-gray-50">
                                                                     <Navbar />
                                                                     <div className="pt-16">
@@ -89,8 +89,8 @@ const ChitFundAdminLayout = () => {
                                                                         pauseOnHover
                                                                     />
                                                                 </div>
+                                                                </BillingAppGuards>
                                                             </BillingProvider>
-                                                        </ProductProvider>
                                                     </PayablesProvider>
                                                 </ReceivablesProvider>
                                             </LedgerEntryProvider>

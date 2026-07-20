@@ -25,6 +25,7 @@ const SuperAdminShell = ({
     title,
     subtitle,
     actions,
+    toolbar,
     children,
 }) => {
     const history = useHistory();
@@ -88,7 +89,7 @@ const SuperAdminShell = ({
 
     return (
         <div className="min-h-screen bg-slate-100">
-            <div className="lg:flex">
+            <div className="lg:flex lg:items-start">
                 <aside className="hidden w-64 shrink-0 flex-col bg-slate-900 lg:fixed lg:inset-y-0 lg:flex">
                     <NavContent onNavigate={handleNavigate} />
                 </aside>
@@ -114,7 +115,7 @@ const SuperAdminShell = ({
                     </div>
                 )}
 
-                <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:pl-64">
+                <div className="flex min-h-screen min-w-0 w-full flex-1 flex-col lg:pl-64">
                     <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
                         <div className="flex items-start justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
                             <div className="flex min-w-0 items-start gap-3">
@@ -125,7 +126,7 @@ const SuperAdminShell = ({
                                 >
                                     <FiMenu className="h-5 w-5" />
                                 </button>
-                                <div className="min-w-0">
+                                <div className="min-w-0 text-left">
                                     <p className="text-xs font-semibold uppercase tracking-wider text-red-500">
                                         Dashboard
                                     </p>
@@ -139,10 +140,17 @@ const SuperAdminShell = ({
                             </div>
                             {actions && <div className="shrink-0">{actions}</div>}
                         </div>
+                        {toolbar && (
+                            <div className="border-t border-slate-100 px-4 py-3 text-left sm:px-6 lg:px-8">
+                                {toolbar}
+                            </div>
+                        )}
                     </header>
 
-                    <main className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-                        {children}
+                    <main className="w-full px-4 py-4 text-left sm:px-6 sm:py-5 lg:px-8">
+                        <div className="mr-auto w-full max-w-5xl text-left">
+                            {children}
+                        </div>
                     </main>
                 </div>
             </div>
