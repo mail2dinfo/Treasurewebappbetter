@@ -18,6 +18,18 @@ const APP_ROUTES = {
         COLLECTOR: '/vehicle-finance/collector/dashboard',
         ACCOUNTANT: '/vehicle-finance/manager/dashboard',
     },
+    DAILY_COLLECTION: {
+        USER: '/daily-collection/user/dashboard',
+        MANAGER: '/daily-collection/user/dashboard',
+        COLLECTOR: '/daily-collection/collector/dashboard',
+        ACCOUNTANT: '/daily-collection/user/dashboard',
+    },
+    PERSONAL_LOAN: {
+        USER: '/personal-loan/user/dashboard',
+        MANAGER: '/personal-loan/user/dashboard',
+        COLLECTOR: '/personal-loan/user/dashboard',
+        ACCOUNTANT: '/personal-loan/user/dashboard',
+    },
 };
 
 const PLATFORM_ACCOUNT_ROLE = {
@@ -45,7 +57,14 @@ const formatAccountLabel = (value) => {
 
 const accountNameToRoleCode = (accountName) => {
     const key = String(accountName || '').trim().toLowerCase();
-    return PLATFORM_ACCOUNT_ROLE[key] || null;
+    if (!key) return null;
+    if (PLATFORM_ACCOUNT_ROLE[key]) return PLATFORM_ACCOUNT_ROLE[key];
+    // Membership names are sometimes "Chit Collector" / "VF Manager", etc.
+    if (key.includes('accountant')) return 'ACCOUNTANT';
+    if (key.includes('collector')) return 'COLLECTOR';
+    if (key.includes('manager')) return 'MANAGER';
+    if (key === 'user' || key.includes('owner')) return 'USER';
+    return null;
 };
 
 const roleCodeToAccountName = (roleCode, membershipAccounts = []) => {
@@ -279,18 +298,31 @@ const AppSelectionPage = () => {
                 return true;
             });
 
+            // Staff only see apps they are enrolled in (roles from platform session).
+            const enrolledApps = isOwner
+                ? uniqueApps
+                : uniqueApps.filter((app) => Array.isArray(app.roles) && app.roles.length > 0);
+
             if (isOwner) {
-                return [...uniqueApps, peopleAccessApp];
+                return [...enrolledApps, peopleAccessApp];
             }
-            return uniqueApps;
+
+            if (enrolledApps.length > 0) {
+                return enrolledApps;
+            }
         }
 
         if (isOwner) {
             return [...allApps, peopleAccessApp];
         }
 
+        // Legacy / empty-session staff: show known apps that match membership roles.
+        if (membershipAccounts.length) {
+            return allApps.filter((app) => buildChoicesFromMembership(app).length > 0);
+        }
+
         return [];
-    }, [isOwner, platform?.isAvailable, platform?.organizations, allApps]);
+    }, [isOwner, membershipAccounts, platform?.isAvailable, platform?.organizations, allApps]);
 
     const openWithAccount = (app, choice) => {
         const parentMembershipId = app.parentMembershipId
@@ -398,13 +430,21 @@ const AppSelectionPage = () => {
                     </h2>
                     <p className="text-sm sm:text-base text-gray-500">
                         Select an application to get started
-                        {membershipAccounts.length > 1
-                            ? ' — you will choose which account to open with'
+                        {apps.length > 1
+                            ? ' — you have access to more than one app'
                             : ''}
                     </p>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12 max-w-5xl mx-auto">
+                    {apps.length === 0 ? (
+                        <div className="col-span-full text-center py-12 px-4 bg-gray-50 rounded-xl border border-gray-200">
+                            <p className="text-gray-800 font-medium">No applications available yet</p>
+                            <p className="text-sm text-gray-500 mt-2">
+                                Ask your organization owner to assign you an app role in Employee &amp; Access.
+                            </p>
+                        </div>
+                    ) : null}
                     {apps.map((app, index) => (
                         <div
                             key={`${app.parentMembershipId || 'app'}-${app.appCode || app.id}`}

@@ -14,6 +14,7 @@ import { FiLogOut, FiBarChart2 } from 'react-icons/fi';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import { useUserContext } from '../../context/user_context';
 import MyTreasureBrand from '../MyTreasureBrand';
+import FinanceHubNavButton from '../FinanceHubNavButton';
 
 const MAIN_LOGIN_PATH = '/login';
 
@@ -61,6 +62,10 @@ const CollectorHeader = () => {
                         </button>
                     </nav>
                     <div className="flex items-center space-x-4">
+                        <FinanceHubNavButton
+                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-md text-sm font-medium text-white hover:bg-red-700"
+                            iconClassName="w-4 h-4"
+                        />
                         <span className="hidden sm:inline text-sm font-medium">
                             {user?.firstname} {user?.lastname || ''}
                         </span>

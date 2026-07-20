@@ -18,6 +18,7 @@ import { useBilling } from '../context/billing_context';
 import { hasPermission } from '../rbacPermissionUtils';
 import { getNavBillingBadge } from '../utils/billingPaymentUtils';
 import MyTreasureBrand from './MyTreasureBrand';
+import FinanceHubNavButton from './FinanceHubNavButton';
 
 
 
@@ -66,8 +67,8 @@ const Nav = () => {
           {/* Brand */}
           <div className="flex-shrink-0">
             <MyTreasureBrand
-              to="/"
-              subtitle="Finance Hub"
+              to="/chit-fund/user/home"
+              subtitle="Chit Fund"
               inverse={scrolled}
               className="transition-transform duration-300 hover:scale-105"
             />
@@ -76,16 +77,13 @@ const Nav = () => {
           {/* Desktop Navigation */}
           <div className="hidden lg:block">
             <div className="ml-10 flex items-baseline space-x-8">
-              {/* Back to Hub Button */}
-              <Link
-                to="/app-selection"
+              <FinanceHubNavButton
                 className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 ${scrolled
                   ? 'text-white hover:text-red-100 hover:bg-white/10'
                   : 'text-gray-700 hover:text-red-600 hover:bg-red-50'
                   }`}
-              >
-                🏠 Back to Hub
-              </Link>
+                iconClassName="w-4 h-4"
+              />
               {isLoggedIn && hasPermission(userRole, 'viewHome') && (
                 <Link
                   to="/home"

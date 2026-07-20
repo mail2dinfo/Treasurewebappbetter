@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useUserContext } from '../../context/user_context';
 import { usePlatformAccess } from '../../context/platformAccess_context';
-import { FiLogOut, FiHome, FiGrid, FiCreditCard } from 'react-icons/fi';
+import { FiLogOut, FiHome, FiCreditCard } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { downloadImage } from '../../utils/downloadImage';
 import { getVehicleFinanceBasePath } from './vehicleFinanceMenuItems';
 import MyTreasureBrand from '../MyTreasureBrand';
+import FinanceHubNavButton from '../FinanceHubNavButton';
 import { useBilling } from '../../context/billing_context';
 import { getNavBillingBadge } from '../../utils/billingPaymentUtils';
+import { getLoggedInRoleLabel } from '../../utils/roleLabels';
 
 const BillingNavButton = ({ billingPath }) => {
     const history = useHistory();
@@ -47,17 +49,6 @@ const BillingNavButton = ({ billingPath }) => {
 const navButtonClass =
     'flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-custom-red hover:bg-gray-100 rounded-lg transition-colors';
 
-const formatRoleLabel = (roleCode, basePath) => {
-    const normalized = String(roleCode || '').toUpperCase();
-    if (normalized === 'MANAGER') return 'Manager';
-    if (normalized === 'COLLECTOR') return 'Collector';
-    if (normalized === 'ACCOUNTANT') return 'Accountant';
-    if (normalized === 'USER' || normalized === 'OWNER') return 'User';
-    if (basePath.includes('/manager')) return 'Manager';
-    if (basePath.includes('/collector')) return 'Collector';
-    return 'User';
-};
-
 const capitalizeName = (value) => {
     const name = String(value || '').trim();
     if (!name) return 'User';
@@ -83,10 +74,12 @@ const VehicleFinanceNavbar = () => {
         || user?.results?.name
         || 'User'
     );
-    const roleLabel = formatRoleLabel(
-        platform?.activeContext?.roleCode || userRole,
-        basePath
-    );
+    const roleLabel = getLoggedInRoleLabel({
+        platform,
+        userRole,
+        userAccounts: user?.results?.userAccounts,
+        pathname: location.pathname,
+    });
 
     useEffect(() => {
         if (user) {
@@ -130,10 +123,6 @@ const VehicleFinanceNavbar = () => {
         history.push(dashboardPath);
     };
 
-    const handleGoToHub = () => {
-        history.push('/app-selection');
-    };
-
     return (
         <header className="bg-white border-b-2 border-custom-red sticky top-0 z-50 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -146,11 +135,7 @@ const VehicleFinanceNavbar = () => {
                             <span>Home</span>
                         </button>
 
-                        <button type="button" onClick={handleGoToHub} className={navButtonClass}>
-                            <FiGrid className="w-4 h-4 mr-1.5" />
-                            <span className="hidden sm:inline">Finance Hub</span>
-                            <span className="sm:hidden">Hub</span>
-                        </button>
+                        <FinanceHubNavButton className={navButtonClass} />
 
                         {showBilling && <BillingNavButton billingPath={billingPath} />}
 

@@ -12,11 +12,6 @@ export const links = [
     text: 'Help',
     url: '/help',
   },
-  {
-    id: 3,
-    text: 'Faq',
-    url: '/Faq',
-  },
 ]
 
 export const services = [

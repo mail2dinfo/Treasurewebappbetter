@@ -4,6 +4,7 @@ import { useSubscriberContext } from '../../../context/subscriber/SubscriberCont
 import { useLanguage } from '../../../context/language_context';
 import { FiMenu, FiX, FiUser, FiLogOut } from 'react-icons/fi';
 import MyTreasureBrand from '../../MyTreasureBrand';
+import FinanceHubNavButton from '../../FinanceHubNavButton';
 
 const SubscriberHeader = () => {
     const history = useHistory();
@@ -79,6 +80,10 @@ const SubscriberHeader = () => {
 
                     {/* User Profile & Actions */}
                     <div className="flex items-center space-x-4">
+                        <FinanceHubNavButton
+                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50"
+                            iconClassName="w-4 h-4"
+                        />
                         {/* Welcome Message */}
                         <div className="hidden lg:flex items-center space-x-3">
                             <img

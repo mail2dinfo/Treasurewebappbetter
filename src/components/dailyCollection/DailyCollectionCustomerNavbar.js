@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FiHome, FiDollarSign, FiCreditCard, FiUser, FiLogOut } from 'react-icons/fi';
 import MyTreasureBrand from '../MyTreasureBrand';
+import FinanceHubNavButton from '../FinanceHubNavButton';
 
 const DailyCollectionCustomerNavbar = () => {
     const location = useLocation();
@@ -44,10 +45,18 @@ const DailyCollectionCustomerNavbar = () => {
                                 </Link>
                             );
                         })}
+                        <FinanceHubNavButton
+                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50"
+                            iconClassName="w-4 h-4"
+                        />
                     </div>
 
                     {/* Mobile menu button */}
-                    <div className="md:hidden">
+                    <div className="flex items-center gap-2 md:hidden">
+                        <FinanceHubNavButton
+                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50"
+                            iconClassName="w-4 h-4"
+                        />
                         <button className="text-gray-600 hover:text-blue-600">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

@@ -20,24 +20,7 @@ import { useHistory } from "react-router-dom";
 import { API_BASE_URL } from '../utils/apiConfig';
 import { hasPermission } from '../rbacPermissionUtils';
 import { downloadImage } from "../utils/downloadImage";
-
-const formatRoleLabel = (value) => {
-    const raw = String(value || '').trim();
-    if (!raw) return '';
-    return raw
-        .split(/[\s_]+/)
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-        .join(' ');
-};
-
-const ROLE_CODE_LABELS = {
-    OWNER: 'Owner',
-    USER: 'User',
-    MANAGER: 'Manager',
-    COLLECTOR: 'Collector',
-    ACCOUNTANT: 'Accountant',
-};
+import { formatRoleLabel, getLoggedInRoleLabel } from '../utils/roleLabels';
 
 const CartButtons = ({ scrolled }) => {
     const history = useHistory();
@@ -59,36 +42,21 @@ const CartButtons = ({ scrolled }) => {
         || 'Guest'
     );
 
-    const roleLabel = useMemo(() => {
-        const activeRoleCode = String(platform?.activeContext?.roleCode || '').toUpperCase();
-        if (activeRoleCode && ROLE_CODE_LABELS[activeRoleCode]) {
-            return ROLE_CODE_LABELS[activeRoleCode];
-        }
-
-        const fromUserRole = formatRoleLabel(userRole);
-        if (fromUserRole) return fromUserRole;
-
-        const accounts = user?.results?.userAccounts || [];
-        const accountName = accounts.find((account) => account?.accountName)?.accountName;
-        if (accountName) return formatRoleLabel(accountName);
-
-        if (platform?.isOwner) return 'Owner';
-
-        // Path fallback for chit-fund staff shells
-        const path = String(location.pathname || '');
-        if (path.includes('/chit-fund/manager')) return 'Manager';
-        if (path.includes('/chit-fund/collector')) return 'Collector';
-        if (path.includes('/chit-fund/accountant')) return 'Accountant';
-        if (path.includes('/chit-fund/user')) return 'User';
-
-        return 'User';
-    }, [
-        platform?.activeContext?.roleCode,
-        platform?.isOwner,
-        userRole,
-        user?.results?.userAccounts,
-        location.pathname,
-    ]);
+    const roleLabel = useMemo(
+        () => getLoggedInRoleLabel({
+            platform,
+            userRole,
+            userAccounts: user?.results?.userAccounts,
+            pathname: location.pathname,
+        }),
+        [
+            platform?.activeContext?.roleCode,
+            platform?.isOwner,
+            userRole,
+            user?.results?.userAccounts,
+            location.pathname,
+        ]
+    );
 
     const getImageSrc = (userImage) => {
         if (!userImage) return "default-avatar.png"; // Fallback image

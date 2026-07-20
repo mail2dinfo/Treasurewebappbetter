@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useHistory } from 'react-router-dom';
+import { Link, useHistory, useLocation } from 'react-router-dom';
 import { FiMenu, FiX, FiLogOut, FiBarChart2, FiDollarSign, FiList } from 'react-icons/fi';
 import { useCollector } from '../../context/CollectorProvider';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import { useUserContext } from '../../context/user_context';
 import MyTreasureBrand from '../MyTreasureBrand';
+import FinanceHubNavButton from '../FinanceHubNavButton';
+import { getLoggedInRoleLabel } from '../../utils/roleLabels';
 
 const MAIN_LOGIN_PATH = '/login';
 
@@ -18,15 +20,22 @@ const resolveCollectorName = (user) => {
 
 const CollectorHeader = () => {
     const { user, logout } = useCollector();
-    const { logout: logoutMainUser } = useUserContext();
+    const { logout: logoutMainUser, userRole } = useUserContext();
     const platform = usePlatformAccess();
     const history = useHistory();
+    const location = useLocation();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const enforceAccess = platform?.isAvailable
         && !platform.isOwner
         && platform.activeContext?.appCode === 'CHIT_FUND';
     const canAccess = (featureKey) => !enforceAccess || platform.hasPermission(featureKey);
     const displayName = resolveCollectorName(user);
+    const roleLabel = getLoggedInRoleLabel({
+        platform,
+        userRole,
+        userAccounts: user?.userAccounts || user?.results?.userAccounts,
+        pathname: location.pathname,
+    });
 
     const handleLogout = () => {
         platform?.clearActiveContext();
@@ -72,9 +81,13 @@ const CollectorHeader = () => {
 
                     {/* User Info and Logout */}
                     <div className="flex items-center space-x-3 sm:space-x-4">
+                        <FinanceHubNavButton
+                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-md text-sm font-medium text-white hover:bg-red-700"
+                            iconClassName="w-4 h-4"
+                        />
                         <div className="text-right leading-tight">
                             <p className="text-sm font-semibold text-white">Hi {displayName}</p>
-                            <p className="text-xs text-red-100">Logged in as Collector</p>
+                            <p className="text-xs text-red-100">Logged in as {roleLabel}</p>
                         </div>
                         <button
                             type="button"
@@ -142,7 +155,7 @@ const CollectorHeader = () => {
                             <div className="border-t border-red-500 pt-2 mt-2">
                                 <div className="px-3 py-2 text-sm text-red-100">
                                     <p className="font-semibold text-white">Hi {displayName}</p>
-                                    <p className="text-xs">Logged in as Collector</p>
+                                    <p className="text-xs">Logged in as {roleLabel}</p>
                                 </div>
                                 <button
                                     type="button"

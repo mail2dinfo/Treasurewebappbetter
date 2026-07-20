@@ -1340,12 +1340,12 @@ const PlatformEmployeesPage = ({
                         <button
                             type="button"
                             onClick={() => history.push(backPath)}
-                            aria-label="Back to Hub"
-                            title="Back to Hub"
+                            aria-label="Finance Hub"
+                            title="Finance Hub"
                             className={btnPrimary}
                         >
                             <FiArrowLeft className="w-5 h-5" />
-                            Back to Hub
+                            Finance Hub
                         </button>
                         {canAddEmployee && (
                             <button

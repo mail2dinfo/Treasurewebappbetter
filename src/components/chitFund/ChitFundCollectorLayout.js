@@ -14,17 +14,31 @@ import { usePlatformAccess } from '../../context/platformAccess_context';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredFeature }) => {
-    const { isAuthenticated } = useCollector();
+    const { isAuthenticated, token } = useCollector();
     const platform = usePlatformAccess();
 
-    if (!isAuthenticated) {
+    // Accept freshly written tokens from /login or app-selection (same tick as navigation).
+    const hasSession = Boolean(
+        isAuthenticated
+        || token
+        || localStorage.getItem('collector_token')
+    );
+
+    if (!hasSession) {
         return <Redirect to="/login" />;
     }
     const isPlatformEmployee = platform?.isAvailable && !platform.isOwner;
-    if (isPlatformEmployee && platform.activeContext?.appCode !== 'CHIT_FUND') {
+    // Only bounce when a different app context is already selected (null context is OK after direct collector login).
+    if (
+        isPlatformEmployee
+        && platform.activeContext?.appCode
+        && platform.activeContext.appCode !== 'CHIT_FUND'
+    ) {
         return <Redirect to="/app-selection" />;
     }
-    const enforceAccess = isPlatformEmployee;
+    const enforceAccess = isPlatformEmployee
+        && platform.activeContext?.appCode === 'CHIT_FUND'
+        && String(platform.activeContext?.roleCode || '').toUpperCase() === 'COLLECTOR';
     if (
         enforceAccess
         && (

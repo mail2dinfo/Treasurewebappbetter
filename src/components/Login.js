@@ -55,33 +55,43 @@ function Login() {
           return;
         }
 
-        const accountNames = (data?.results?.userAccounts || []).map(
+        // Fresh login: do not carry a previous user's app/role context.
+        platform?.clearActiveContext?.();
+
+        const userAccounts = data?.results?.userAccounts || [];
+        const accountNames = userAccounts.map(
           (account) => String(account.accountName || '').toUpperCase()
         );
+        const hasCollectorRole = accountNames.some((name) => name.includes('COLLECTOR'));
         const hasPlatformRole = accountNames.some((name) => (
           name.includes('USER')
           || name.includes('MANAGER')
           || name.includes('COLLECTOR')
           || name.includes('ACCOUNTANT')
         ));
-        if (hasPlatformRole) {
+
+        // Pre-seed collector tokens so opening a collector app from Finance Hub
+        // does not bounce back to /login before CollectorProvider hydrates.
+        if (hasCollectorRole && data?.results?.token) {
+          localStorage.setItem('collector_token', data.results.token);
+          localStorage.setItem('collector_user', JSON.stringify(data.results));
+          localStorage.setItem('vf_collector_token', data.results.token);
+          localStorage.setItem('vf_collector_user', JSON.stringify(data.results));
+        }
+
+        // User / Manager / Collector / Accountant all land on Finance Hub so
+        // multi-app enrollments (e.g. Chit + VF) appear together for selection.
+        if (hasPlatformRole || userAccounts.length > 1) {
           await platform?.loadSession(data?.results?.token);
-          updateUserRole(accountNames[0]);
+          updateUserRole(userAccounts[0]?.accountName || accountNames[0] || 'Employee');
           history.push('/app-selection');
           return;
         }
 
-        if (data?.results?.userAccounts?.length === 1) {
-          // Redirect to the role choosing page
-          const selectedRole = data?.results?.userAccounts[0]?.accountName || 'User';
-
+        if (userAccounts.length === 1) {
+          const selectedRole = userAccounts[0]?.accountName || 'User';
           updateUserRole(selectedRole);
           redirectPage(selectedRole);
-
-        } else if (data?.results?.userAccounts?.length > 1) {
-          updateUserRole(data.results.userAccounts[0]?.accountName || 'Employee');
-          history.push('/app-selection');
-          return;
         } else {
           showAlert(true, 'danger', 'No active account found for this user.');
         }
@@ -114,21 +124,17 @@ function Login() {
     console.log(selectedRole);
     console.log(userObjectFromAPI?.results?.userId);
 
-    if (selectedRole.includes('User') || selectedRole.includes('Manager')) {
+    if (
+      selectedRole.includes('User')
+      || selectedRole.includes('Manager')
+      || selectedRole.includes('Accountant')
+      || selectedRole.includes('Collector')
+    ) {
+      // Staff/owner always choose an app (supports 1 or many enrollments).
       history.push('/app-selection');
     } else if (selectedRole.includes('Subscriber')) {
       history.push('/chit-fund/subscriber');
-    } else if (selectedRole.includes('Accountant')) {
-      history.push('/accountant-page');
-    } else if (selectedRole.includes('Collector')) {
-      const collectorUser = userObjectFromAPI?.results;
-      if (collectorUser?.token) {
-        localStorage.setItem('collector_token', collectorUser.token);
-        localStorage.setItem('collector_user', JSON.stringify(collectorUser));
-      }
-      history.push(`/chit-fund/collector/receivables`);
     } else {
-      // Handle unknown account names
       history.push('/unknown-account-page');
     }
   };

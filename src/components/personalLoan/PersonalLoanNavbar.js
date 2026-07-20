@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import { useUserContext } from '../../context/user_context';
-import { FiLogOut, FiHome, FiGrid, FiCreditCard } from 'react-icons/fi';
+import { usePlatformAccess } from '../../context/platformAccess_context';
+import { FiLogOut, FiHome, FiCreditCard } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { downloadImage } from '../../utils/downloadImage';
 import MyTreasureBrand from '../MyTreasureBrand';
+import FinanceHubNavButton from '../FinanceHubNavButton';
 import { useBilling } from '../../context/billing_context';
 import { getNavBillingBadge } from '../../utils/billingPaymentUtils';
 import { PL_BASE_PATH } from './personalLoanMenuItems';
+import { getLoggedInRoleLabel } from '../../utils/roleLabels';
 
 const navButtonClass =
     'flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-custom-red hover:bg-gray-100 rounded-lg transition-colors';
@@ -54,7 +57,9 @@ const BillingNavButton = ({ billingPath }) => {
 
 const PersonalLoanNavbar = () => {
     const history = useHistory();
-    const { user, logout } = useUserContext();
+    const location = useLocation();
+    const { user, logout, userRole } = useUserContext();
+    const platform = usePlatformAccess();
     const [isTooltipVisible, setIsTooltipVisible] = useState(false);
     const [previewUrl, setPreviewUrl] = useState('https://i.imgur.com/ndu6pfe.png');
 
@@ -66,6 +71,12 @@ const PersonalLoanNavbar = () => {
         || user?.results?.name
         || 'User'
     );
+    const roleLabel = getLoggedInRoleLabel({
+        platform,
+        userRole,
+        userAccounts: user?.results?.userAccounts,
+        pathname: location.pathname,
+    });
 
     useEffect(() => {
         if (user) {
@@ -122,15 +133,7 @@ const PersonalLoanNavbar = () => {
                             <span>Home</span>
                         </button>
 
-                        <button
-                            type="button"
-                            onClick={() => history.push('/app-selection')}
-                            className={navButtonClass}
-                        >
-                            <FiGrid className="w-4 h-4 mr-1.5" />
-                            <span className="hidden sm:inline">Finance Hub</span>
-                            <span className="sm:hidden">Hub</span>
-                        </button>
+                        <FinanceHubNavButton className={navButtonClass} />
 
                         <BillingNavButton billingPath={billingPath} />
 
@@ -138,7 +141,7 @@ const PersonalLoanNavbar = () => {
                             <p className="text-sm font-semibold text-gray-800 truncate max-w-[10rem]">
                                 Hi {displayName}
                             </p>
-                            <p className="text-xs text-gray-500">Logged in as User</p>
+                            <p className="text-xs text-gray-500">Logged in as {roleLabel}</p>
                         </div>
 
                         <div className="relative">
@@ -147,7 +150,7 @@ const PersonalLoanNavbar = () => {
                                 onClick={() => setIsTooltipVisible(!isTooltipVisible)}
                                 onBlur={() => setTimeout(() => setIsTooltipVisible(false), 150)}
                                 className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-300 hover:border-custom-red transition-colors"
-                                aria-label={`${displayName}, User`}
+                                aria-label={`${displayName}, ${roleLabel}`}
                             >
                                 <img
                                     src={previewUrl}
@@ -166,7 +169,7 @@ const PersonalLoanNavbar = () => {
                                             Hi {displayName}
                                         </p>
                                         <p className="text-xs text-gray-500 mt-0.5">
-                                            Logged in as User
+                                            Logged in as {roleLabel}
                                         </p>
                                     </div>
                                     <button

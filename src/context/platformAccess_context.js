@@ -173,11 +173,12 @@ export const PlatformAccessProvider = ({ children }) => {
     }, [isLoggedIn, user?.results?.token, loadSession]);
 
     const selectAppRole = useCallback((parentMembershipId, app, role) => {
+        const roleCode = String(role?.roleCode || '').toUpperCase();
         const nextContext = {
             parentMembershipId,
             appCode: app?.appCode,
             displayName: app?.displayName,
-            roleCode: role?.roleCode,
+            roleCode,
             accountName: role?.accountName || role?.roleCode,
             enrollmentId: role?.enrollmentId,
             permissions: getGrantedPermissions(role),
@@ -188,7 +189,7 @@ export const PlatformAccessProvider = ({ children }) => {
         setActiveContext(nextContext);
 
         const sharedUser = user?.results;
-        if (nextContext.roleCode === 'COLLECTOR' && sharedUser?.token) {
+        if (roleCode === 'COLLECTOR' && sharedUser?.token) {
             if (nextContext.appCode === 'CHIT_FUND') {
                 localStorage.setItem('collector_token', sharedUser.token);
                 localStorage.setItem('collector_user', JSON.stringify(sharedUser));
