@@ -95,3 +95,20 @@ export const getVehicleFinanceMenuItems = (basePath) => [
         description: 'Staff & responsibilities',
     },
 ];
+
+export const getVehicleFinanceOwnerBillingMenuItem = (basePath = '/vehicle-finance/user') => ({
+    id: 'billing',
+    label: 'Billing',
+    path: `${basePath}/billing`,
+    icon: '🧾',
+    description: 'App subscription & payments',
+    ownerOnly: true,
+});
+
+export const getVehicleFinanceMenuItemsWithBilling = (basePath, { includeBilling = false } = {}) => {
+    const items = getVehicleFinanceMenuItems(basePath);
+    if (includeBilling && basePath === '/vehicle-finance/user') {
+        return [...items, getVehicleFinanceOwnerBillingMenuItem(basePath)];
+    }
+    return items;
+};

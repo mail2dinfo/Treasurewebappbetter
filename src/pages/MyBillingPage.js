@@ -24,6 +24,7 @@ const MyBillingPage = () => {
         isLoading,
         hasLoaded,
         error,
+        appCode,
         fetchCurrentSubscription,
         fetchPaymentHistory,
         fetchAvailablePlans,
@@ -34,6 +35,13 @@ const MyBillingPage = () => {
         triggerBillingCycle,
         resetBillingData
     } = useBilling();
+
+    const appLabel = {
+        CHIT_FUND: 'Chit Fund',
+        DAILY_COLLECTION: 'Daily Collection',
+        VEHICLE_FINANCE: 'Vehicle Finance',
+        PERSONAL_LOAN: 'Personal Loan',
+    }[appCode] || appCode;
 
     const [activeTab, setActiveTab] = useState('billing');
     const [selectedPlan, setSelectedPlan] = useState(null);
@@ -679,7 +687,7 @@ const MyBillingPage = () => {
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900">My Billing</h1>
                             <p className="mt-2 text-gray-600">
-                                Manage your subscription and view payment history.
+                                Manage your {appLabel} subscription and view payment history.
                             </p>
                         </div>
 

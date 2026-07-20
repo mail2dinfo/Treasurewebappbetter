@@ -8,10 +8,11 @@ import {
     getDismissStorageKey,
 } from '../utils/billingPaymentUtils';
 
-const BillingOverdueOverlay = ({ billingPath = '/chit-fund/user/billing' }) => {
+const BillingOverdueOverlay = ({ billingPath: billingPathProp }) => {
     const location = useLocation();
     const { user } = useUserContext();
-    const { subscription, payments, isLoading } = useBilling();
+    const { subscription, payments, isLoading, billingPath: contextBillingPath, appCode } = useBilling();
+    const billingPath = billingPathProp || contextBillingPath || '/chit-fund/user/billing';
     const [isDismissed, setIsDismissed] = useState(false);
 
     const membershipId =
@@ -25,13 +26,14 @@ const BillingOverdueOverlay = ({ billingPath = '/chit-fund/user/billing' }) => {
 
     const dismissKey = useMemo(() => {
         if (!membershipId || !summary.shouldShowUrgentOverlay) return null;
-        return getDismissStorageKey(
+        const baseKey = getDismissStorageKey(
             membershipId,
             summary.totalDue,
             summary.outstandingCycles.length,
             summary.isPlanAboutToExpire
         );
-    }, [membershipId, summary]);
+        return appCode ? `${baseKey}:${appCode}` : baseKey;
+    }, [membershipId, summary, appCode]);
 
     useEffect(() => {
         if (!dismissKey) {

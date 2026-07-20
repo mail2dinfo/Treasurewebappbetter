@@ -1,7 +1,12 @@
-import React, { createContext, useReducer, useContext, useEffect } from 'react';
+import React, { createContext, useReducer, useContext, useEffect, useMemo } from 'react';
 import { useUserContext } from './user_context';
 import { API_BASE_URL, IS_PRODUCTION_DEPLOY } from '../utils/apiConfig';
 import { BILLING_PLANS, mergePlansWithCatalog } from '../utils/billingPlans';
+import {
+    DEFAULT_BILLING_APP_CODE,
+    getBillingPathForApp,
+    normalizeBillingAppCode,
+} from '../utils/billingAppCodes';
 
 const BillingContext = createContext();
 
@@ -58,22 +63,77 @@ function billingReducer(state, action) {
     }
 }
 
-export const BillingProvider = ({ children }) => {
+const withAppCodeQuery = (url, appCode) => {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}app_code=${encodeURIComponent(appCode)}`;
+};
+
+export const BillingProvider = ({
+    children,
+    appCode = DEFAULT_BILLING_APP_CODE,
+    billingPath,
+}) => {
     const { user } = useUserContext();
     const [state, dispatch] = useReducer(billingReducer, initialState);
+    const resolvedAppCode = useMemo(
+        () => normalizeBillingAppCode(appCode),
+        [appCode]
+    );
+    const resolvedBillingPath = billingPath || getBillingPathForApp(resolvedAppCode);
 
-    // Fetch billing data when user is available
+    useEffect(() => {
+        dispatch({ type: 'RESET_BILLING' });
+    }, [resolvedAppCode]);
+
     useEffect(() => {
         if (user?.results?.token) {
-            fetchCurrentSubscription();
-            fetchPaymentHistory();
-            fetchAvailablePlans();
+            bootstrapBilling();
         }
-    }, [user?.results?.token]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.results?.token, resolvedAppCode]);
 
     const getMembershipId = () => {
         const account = user?.results?.userAccounts?.[0];
         return account?.parent_membership_id || account?.membership_id || null;
+    };
+
+    const authHeaders = (extra = {}) => ({
+        Authorization: `Bearer ${user.results.token}`,
+        ...extra,
+    });
+
+    const ensureAppSubscription = async () => {
+        const membershipId = getMembershipId();
+        if (!membershipId || !user?.results?.token) return { success: false };
+
+        try {
+            const res = await fetch(
+                withAppCodeQuery(
+                    `${API_BASE_URL}/billing-subscription/${membershipId}/ensure`,
+                    resolvedAppCode
+                ),
+                {
+                    method: 'POST',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({ app_code: resolvedAppCode }),
+                }
+            );
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || 'Failed to ensure app subscription');
+            }
+            return { success: true };
+        } catch (error) {
+            console.error('Ensure app subscription error:', error.message);
+            return { success: false, error: error.message };
+        }
+    };
+
+    const bootstrapBilling = async () => {
+        await ensureAppSubscription();
+        await fetchCurrentSubscription();
+        await fetchPaymentHistory();
+        await fetchAvailablePlans();
     };
 
     const fetchCurrentSubscription = async ({ silent = false } = {}) => {
@@ -90,14 +150,15 @@ export const BillingProvider = ({ children }) => {
         }
 
         try {
-            const res = await fetch(`${API_BASE_URL}/billing-subscription/${membershipId}`, {
-                headers: {
-                    Authorization: `Bearer ${user.results.token}`,
-                },
-            });
+            const res = await fetch(
+                withAppCodeQuery(
+                    `${API_BASE_URL}/billing-subscription/${membershipId}`,
+                    resolvedAppCode
+                ),
+                { headers: authHeaders() }
+            );
 
             if (!res.ok) {
-                const errorText = await res.text();
                 throw new Error(`Failed to fetch subscription: ${res.status}`);
             }
 
@@ -133,22 +194,21 @@ export const BillingProvider = ({ children }) => {
         }
 
         try {
-            const res = await fetch(`${API_BASE_URL}/billing-payments/${membershipId}`, {
-                headers: {
-                    Authorization: `Bearer ${user.results.token}`,
-                },
-            });
+            const res = await fetch(
+                withAppCodeQuery(
+                    `${API_BASE_URL}/billing-payments/${membershipId}`,
+                    resolvedAppCode
+                ),
+                { headers: authHeaders() }
+            );
 
             if (!res.ok) {
-                const errorText = await res.text();
                 throw new Error(`Failed to fetch payments: ${res.status}`);
             }
 
             const data = await res.json();
 
             if (data.success && data.data) {
-
-                // Handle different data structures from backend
                 let paymentData;
                 if (data.data.cycle_payments) {
                     paymentData = {
@@ -188,9 +248,7 @@ export const BillingProvider = ({ children }) => {
 
         try {
             const res = await fetch(`${API_BASE_URL}/billing-subscription/plans/available`, {
-                headers: {
-                    Authorization: `Bearer ${user.results.token}`,
-                },
+                headers: authHeaders(),
             });
 
             if (!res.ok) throw new Error('Failed to fetch plans');
@@ -221,12 +279,10 @@ export const BillingProvider = ({ children }) => {
 
             const response = await fetch(`${API_BASE_URL}/billing-subscription/change-plan`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${user.results.token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     membership_id: membershipId,
+                    app_code: resolvedAppCode,
                     ...planChangeData
                 })
             });
@@ -256,39 +312,28 @@ export const BillingProvider = ({ children }) => {
         }
 
         try {
-            // Ensure membership_id is included in the request body
             const requestBody = {
                 membership_id: membershipId,
+                app_code: resolvedAppCode,
                 ...paymentData
             };
 
-            console.log('Recording payment with data:', requestBody);
-
             const response = await fetch(`${API_BASE_URL}/billing-payments`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${user.results.token}`,
-                    'Content-Type': 'application/json'
-                },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify(requestBody)
             });
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('Payment recorded successfully:', result);
-
-                // Refresh billing data after successful payment
                 await fetchCurrentSubscription({ silent: true });
                 await fetchPaymentHistory({ silent: true });
-
                 return { success: true, data: result };
             } else {
                 const errorData = await response.json();
-                console.error('Payment failed:', errorData);
                 return { success: false, error: errorData.message || 'Payment failed' };
             }
         } catch (error) {
-            console.error('Payment error:', error);
             return { success: false, error: error.message };
         }
     };
@@ -302,14 +347,20 @@ export const BillingProvider = ({ children }) => {
         }
 
         try {
-            const response = await fetch(`${API_BASE_URL}/billing-payments/${membershipId}/pay-cycle`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${user.results.token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(cyclePaymentData)
-            });
+            const response = await fetch(
+                withAppCodeQuery(
+                    `${API_BASE_URL}/billing-payments/${membershipId}/pay-cycle`,
+                    resolvedAppCode
+                ),
+                {
+                    method: 'POST',
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({
+                        ...cyclePaymentData,
+                        app_code: resolvedAppCode,
+                    })
+                }
+            );
 
             if (response.ok) {
                 const result = await response.json();
@@ -341,14 +392,17 @@ export const BillingProvider = ({ children }) => {
 
         try {
             const response = await fetch(
-                `${API_BASE_URL}/billing-subscription/${membershipId}/change-billing-cycle`,
+                withAppCodeQuery(
+                    `${API_BASE_URL}/billing-subscription/${membershipId}/change-billing-cycle`,
+                    resolvedAppCode
+                ),
                 {
                     method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${user.results.token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ billing_cycle: billingCycle }),
+                    headers: authHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify({
+                        billing_cycle: billingCycle,
+                        app_code: resolvedAppCode,
+                    }),
                 }
             );
 
@@ -386,13 +440,11 @@ export const BillingProvider = ({ children }) => {
         try {
             const response = await fetch(`${API_BASE_URL}/billing-payments/trigger-cycle`, {
                 method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${user.results.token}`,
-                    'Content-Type': 'application/json',
-                },
+                headers: authHeaders({ 'Content-Type': 'application/json' }),
                 body: JSON.stringify({
                     force: !IS_PRODUCTION_DEPLOY,
                     membership_id: membershipId,
+                    app_code: resolvedAppCode,
                 }),
             });
 
@@ -423,6 +475,8 @@ export const BillingProvider = ({ children }) => {
     return (
         <BillingContext.Provider
             value={{
+                appCode: resolvedAppCode,
+                billingPath: resolvedBillingPath,
                 subscription: state.subscription,
                 payments: state.payments,
                 billingCycleChangeWindow: state.billingCycleChangeWindow,

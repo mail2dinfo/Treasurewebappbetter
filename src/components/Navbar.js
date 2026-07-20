@@ -25,7 +25,7 @@ import MyTreasureBrand from './MyTreasureBrand';
 const Nav = () => {
   const [scrolled, setScrolled] = useState(false);
   const { isLoggedIn, isSidebarOpen, openSidebar, closeSidebar, userRole } = useUserContext();
-  const { subscription, payments } = useBilling();
+  const { subscription, payments, billingPath } = useBilling();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -100,7 +100,7 @@ const Nav = () => {
               )}
               {isLoggedIn && (
                 <Link
-                  to="/my-billing"
+                  to={billingPath || '/chit-fund/user/billing'}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 relative ${scrolled
                     ? 'text-white hover:text-red-100 hover:bg-white/10'
                     : 'text-gray-700 hover:text-red-600 hover:bg-red-50'

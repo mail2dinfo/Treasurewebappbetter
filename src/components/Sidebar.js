@@ -17,7 +17,7 @@ import MyTreasureBrand from './MyTreasureBrand'
 
 const Sidebar = () => {
   const { isLoggedIn, isSidebarOpen, closeSidebar, userRole } = useUserContext();
-  const { subscription, payments } = useBilling();
+  const { subscription, payments, billingPath } = useBilling();
 
   const billingBadge = getNavBillingBadge(subscription, payments);
 
@@ -93,7 +93,7 @@ const Sidebar = () => {
                 {isLoggedIn && (
                   <li>
                     <Link
-                      to="/my-billing"
+                      to={billingPath || '/chit-fund/user/billing'}
                       onClick={closeSidebar}
                       className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 group relative"
                     >

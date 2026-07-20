@@ -53,8 +53,8 @@ const ChitFundAdminLayout = () => {
                                                 <ReceivablesProvider>
                                                     <PayablesProvider>
                                                         <ProductProvider>
-                                                            <BillingProvider>
-                                                                <BillingOverdueOverlay billingPath="/chit-fund/admin/billing" />
+                                                            <BillingProvider appCode="CHIT_FUND" billingPath="/chit-fund/admin/billing">
+                                                                <BillingOverdueOverlay />
                                                                 <div className="min-h-screen bg-gray-50">
                                                                     <Navbar />
                                                                     <div className="pt-16">

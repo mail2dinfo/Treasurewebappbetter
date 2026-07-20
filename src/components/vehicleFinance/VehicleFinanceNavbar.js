@@ -2,11 +2,47 @@ import React, { useState, useEffect } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useUserContext } from '../../context/user_context';
 import { usePlatformAccess } from '../../context/platformAccess_context';
-import { FiLogOut, FiHome, FiGrid } from 'react-icons/fi';
+import { FiLogOut, FiHome, FiGrid, FiCreditCard } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { downloadImage } from '../../utils/downloadImage';
 import { getVehicleFinanceBasePath } from './vehicleFinanceMenuItems';
 import MyTreasureBrand from '../MyTreasureBrand';
+import { useBilling } from '../../context/billing_context';
+import { getNavBillingBadge } from '../../utils/billingPaymentUtils';
+
+const BillingNavButton = ({ billingPath }) => {
+    const history = useHistory();
+    const { subscription, payments } = useBilling();
+    const badge = getNavBillingBadge(subscription, payments);
+
+    if (!billingPath) return null;
+
+    return (
+        <button
+            type="button"
+            onClick={() => history.push(billingPath)}
+            className={`${navButtonClass} relative`}
+        >
+            <FiCreditCard className="w-4 h-4 mr-1.5" />
+            <span>Billing</span>
+            {badge.status !== 'unknown' && (
+                <span
+                    className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${
+                        badge.color === 'red'
+                            ? 'bg-red-100 text-red-800'
+                            : badge.color === 'blue'
+                                ? 'bg-blue-100 text-blue-800'
+                                : badge.color === 'green'
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-800'
+                    }`}
+                >
+                    {badge.message}
+                </span>
+            )}
+        </button>
+    );
+};
 
 const navButtonClass =
     'flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-custom-red hover:bg-gray-100 rounded-lg transition-colors';
@@ -39,6 +75,8 @@ const VehicleFinanceNavbar = () => {
 
     const basePath = getVehicleFinanceBasePath(location.pathname);
     const dashboardPath = `${basePath}/dashboard`;
+    const showBilling = basePath === '/vehicle-finance/user';
+    const billingPath = showBilling ? `${basePath}/billing` : null;
     const displayName = capitalizeName(
         user?.results?.firstname
         || user?.results?.userDetail?.userName
@@ -113,6 +151,8 @@ const VehicleFinanceNavbar = () => {
                             <span className="hidden sm:inline">Finance Hub</span>
                             <span className="sm:hidden">Hub</span>
                         </button>
+
+                        {showBilling && <BillingNavButton billingPath={billingPath} />}
 
                         <div className="hidden sm:block text-right px-2 border-l border-gray-200">
                             <p className="text-sm font-semibold text-gray-800 truncate max-w-[10rem]">
