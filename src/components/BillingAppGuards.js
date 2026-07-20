@@ -12,7 +12,6 @@ const BillingAppGuards = ({ children }) => {
     const history = useHistory();
     const {
         appCode,
-        billingPath,
         showTrialWelcome,
         trialInfo,
         dismissTrialWelcome,
@@ -25,6 +24,11 @@ const BillingAppGuards = ({ children }) => {
         && !access?.can_auto_resume
     );
 
+    const handleCloseToAppSelection = () => {
+        dismissTrialWelcome();
+        history.push('/app-selection');
+    };
+
     return (
         <>
             <BillingTrialWelcomeModal
@@ -32,10 +36,7 @@ const BillingAppGuards = ({ children }) => {
                 appCode={appCode}
                 trial={trialInfo}
                 onContinue={dismissTrialWelcome}
-                onViewPlans={() => {
-                    dismissTrialWelcome();
-                    history.push(billingPath);
-                }}
+                onClose={handleCloseToAppSelection}
             />
             <BillingAccessGate>
                 {showOverdueOverlay && <BillingOverdueOverlay />}
