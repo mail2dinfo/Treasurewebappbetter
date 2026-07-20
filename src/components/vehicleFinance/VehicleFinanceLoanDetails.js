@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { FiX } from 'react-icons/fi';
+import { FiX, FiTrash2 } from 'react-icons/fi';
 import { useVehicleFinanceContext } from '../../context/vehicleFinance/VehicleFinanceContext';
 import VehicleFinanceLoanAgreementPanel from './VehicleFinanceLoanAgreementPanel';
 
 const VehicleFinanceLoanDetails = ({ loanId, initialLoan = null, onClose }) => {
-    const { getLoanById, fetchCompanies, companies } = useVehicleFinanceContext();
+    const { getLoanById, fetchCompanies, companies, deleteLoan } = useVehicleFinanceContext();
     const [loan, setLoan] = useState(initialLoan || null);
     const [receivables, setReceivables] = useState([]);
     const [isLoading, setIsLoading] = useState(!initialLoan);
     const [error, setError] = useState('');
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -77,6 +79,24 @@ const VehicleFinanceLoanDetails = ({ loanId, initialLoan = null, onClose }) => {
         }
     };
 
+    const handleDeleteLoan = async () => {
+        setIsDeleting(true);
+        try {
+            const result = await deleteLoan(loan.id);
+            if (result.success) {
+                alert('Loan and all related receivables deleted successfully.');
+                onClose();
+            } else {
+                alert(`Failed to delete loan: ${result.message || result.error || 'Unknown error'}`);
+            }
+        } catch (err) {
+            alert(`Failed to delete loan: ${err.message}`);
+        } finally {
+            setIsDeleting(false);
+            setShowDeleteConfirm(false);
+        }
+    };
+
     if (isLoading && !loan) {
         return (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[120] p-4">
@@ -114,9 +134,19 @@ const VehicleFinanceLoanDetails = ({ loanId, initialLoan = null, onClose }) => {
                             </p>
                         ) : null}
                     </div>
-                    <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
-                        <FiX className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowDeleteConfirm(true)}
+                            className="px-3 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg flex items-center gap-1"
+                        >
+                            <FiTrash2 className="w-4 h-4" />
+                            Delete
+                        </button>
+                        <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+                            <FiX className="w-5 h-5" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
@@ -207,6 +237,36 @@ const VehicleFinanceLoanDetails = ({ loanId, initialLoan = null, onClose }) => {
                         </div>
                     )}
                 </div>
+
+                {showDeleteConfirm && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-4 rounded-xl">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Delete Loan</h3>
+                            <p className="text-sm text-gray-600 mb-4">This cannot be undone.</p>
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-sm text-red-700">
+                                Deletes the loan, all receivables, receipts, and related ledger entries.
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-2 border rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteLoan}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg disabled:opacity-50"
+                                >
+                                    {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

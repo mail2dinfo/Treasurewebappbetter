@@ -30,7 +30,7 @@ const VehicleFinanceLoanCollectionForm = ({ loan, onClose, onSuccess }) => {
     const loadReceivables = async () => {
         const result = await fetchReceivablesByLoan(loan.id);
         if (result.success) {
-            const pendingReceivables = result.data.filter(r => r.status !== 'PAID');
+            const pendingReceivables = result.data.filter((r) => !r.is_paid && String(r.status || '').toUpperCase() !== 'PAID');
             setReceivables(pendingReceivables);
             if (pendingReceivables.length > 0) {
                 setFormData(prev => ({ ...prev, receivableId: pendingReceivables[0].id }));
@@ -163,6 +163,15 @@ const VehicleFinanceLoanCollectionForm = ({ loan, onClose, onSuccess }) => {
             });
 
             if (result.success) {
+                const paymentType = result.data?.paymentType;
+                const remainingAmount = result.data?.remainingAmount;
+                if (paymentType === 'partial' && remainingAmount > 0) {
+                    alert(
+                        `Partial payment collected! Remaining ₹${Number(remainingAmount).toLocaleString('en-IN')} stays pending. Ledger entry recorded.`
+                    );
+                } else {
+                    alert('Full payment collected! Receivable closed and ledger entry recorded.');
+                }
                 // Refresh ledger accounts to update balances
                 await fetchLedgerAccounts();
                 if (onSuccess) onSuccess(result.data);

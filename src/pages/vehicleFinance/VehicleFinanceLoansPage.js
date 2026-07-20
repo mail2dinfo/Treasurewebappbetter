@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FiPlus, FiDollarSign, FiEye, FiX, FiDownload } from 'react-icons/fi';
+import { FiPlus, FiDollarSign, FiEye, FiX, FiDownload, FiTrash2 } from 'react-icons/fi';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { useVehicleFinanceContext } from '../../context/vehicleFinance/VehicleFinanceContext';
 import { useUserContext } from '../../context/user_context';
@@ -13,7 +13,7 @@ import { useVfPermission } from '../../components/vehicleFinance/useVfPermission
 
 const VehicleFinanceLoansPage = () => {
     const location = useLocation();
-    const { loans, fetchLoans, isLoading, error, companies, fetchCompanies } = useVehicleFinanceContext();
+    const { loans, fetchLoans, isLoading, error, companies, fetchCompanies, deleteLoan } = useVehicleFinanceContext();
     const { user } = useUserContext();
     const { canAccess, canAccessModule } = useVfPermission();
     // Loans category permissions from People & Access (no Collections fallback).
@@ -21,6 +21,11 @@ const VehicleFinanceLoansPage = () => {
     const canDisburse = canViewLoans && canAccess('vf_loan_disburse');
     const canCollectLoan = canViewLoans && canAccess('vf_loan_collect');
     const canForeclose = canViewLoans && canAccess('vf_loan_foreclose');
+    const canDeleteLoan = canViewLoans && (
+        canAccess('vf_loan_disburse')
+        || canAccess('vf_loan_foreclose')
+        || canAccess('vf_loan_view')
+    );
     const [activeTab, setActiveTab] = useState('ACTIVE');
     const [showDisbursementForm, setShowDisbursementForm] = useState(false);
     const [showCollectionForm, setShowCollectionForm] = useState(false);
@@ -28,6 +33,8 @@ const VehicleFinanceLoansPage = () => {
     const [selectedLoan, setSelectedLoan] = useState(null);
     const [selectedLoanId, setSelectedLoanId] = useState(null);
     const [viewLoan, setViewLoan] = useState(null);
+    const [loanToDelete, setLoanToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const hasFetchedRef = useRef(false);
 
     // Fetch loans and companies when component mounts
@@ -74,6 +81,25 @@ const VehicleFinanceLoansPage = () => {
     const handleViewDetails = (loan) => {
         setViewLoan(loan);
         setSelectedLoanId(loan.id);
+    };
+
+    const handleDeleteLoan = async () => {
+        if (!loanToDelete?.id) return;
+        setIsDeleting(true);
+        try {
+            const result = await deleteLoan(loanToDelete.id);
+            if (result.success) {
+                alert('Loan and all related receivables deleted successfully.');
+                setLoanToDelete(null);
+                fetchLoans();
+            } else {
+                alert(`Failed to delete loan: ${result.message || result.error || 'Unknown error'}`);
+            }
+        } catch (err) {
+            alert(`Failed to delete loan: ${err.message}`);
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const formatCurrency = (amount) => {
@@ -391,6 +417,20 @@ const VehicleFinanceLoansPage = () => {
                                                     >
                                                         <FiEye className="w-5 h-5" />
                                                     </button>
+                                                    {canDeleteLoan && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                event.stopPropagation();
+                                                                setLoanToDelete(loan);
+                                                            }}
+                                                            className="text-red-600 hover:text-red-900"
+                                                            title="Delete Loan"
+                                                        >
+                                                            <FiTrash2 className="w-5 h-5" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -438,8 +478,44 @@ const VehicleFinanceLoansPage = () => {
                         onClose={() => {
                             setSelectedLoanId(null);
                             setViewLoan(null);
+                            fetchLoans();
                         }}
                     />
+                )}
+
+                {loanToDelete && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Delete Loan</h3>
+                            <p className="text-sm text-gray-600 mb-4">This cannot be undone.</p>
+                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-sm text-red-700">
+                                Deletes the loan, all receivables, receipts, and related ledger entries.
+                            </div>
+                            <div className="text-sm text-gray-700 mb-6 space-y-1">
+                                <p><strong>Subscriber:</strong> {loanToDelete.subscriber?.vf_cust_name || 'N/A'}</p>
+                                <p><strong>Loan ID:</strong> {loanToDelete.id}</p>
+                                <p><strong>Amount:</strong> {formatCurrency(loanToDelete.loan_amount || loanToDelete.principal_amount)}</p>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setLoanToDelete(null)}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-2 border rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteLoan}
+                                    disabled={isDeleting}
+                                    className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg disabled:opacity-50"
+                                >
+                                    {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

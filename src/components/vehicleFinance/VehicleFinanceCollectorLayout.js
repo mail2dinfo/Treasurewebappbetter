@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Switch, Route, Redirect } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -10,7 +10,7 @@ import {
 import { API_BASE_URL } from '../../utils/apiConfig';
 import VehicleFinanceCollectorLogin from '../../pages/vehicleFinance/VehicleFinanceCollectorLogin';
 import VehicleFinanceCollectionsPage from '../../pages/vehicleFinance/VehicleFinanceCollectionsPage';
-import { FiLogOut, FiBarChart2 } from 'react-icons/fi';
+import { FiLogOut, FiBarChart2, FiRefreshCw } from 'react-icons/fi';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import { useUserContext } from '../../context/user_context';
 import MyTreasureBrand from '../MyTreasureBrand';
@@ -87,43 +87,121 @@ const CollectorHeader = () => {
 const VehicleFinanceCollectorDashboard = () => {
     const { user, token, parentMembershipId } = useVehicleFinanceCollector();
     const [data, setData] = useState(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
 
     const membershipId =
         parentMembershipId ||
         user?.userAccounts?.[0]?.parent_membership_id;
     const userId = user?.userId;
 
-    useEffect(() => {
+    const loadDashboard = useCallback(async () => {
         if (!membershipId || !token) return;
-        fetch(
-            `${API_BASE_URL}/vf/collector/dashboard?parent_membership_id=${membershipId}&collector_user_id=${userId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-        )
-            .then((r) => r.json())
-            .then((d) => setData(d.results));
+        setIsRefreshing(true);
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/vf/collector/dashboard?parent_membership_id=${membershipId}&collector_user_id=${userId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const body = await res.json();
+            setData(body.results || null);
+        } catch (err) {
+            console.error('Failed to load collector dashboard', err);
+        } finally {
+            setIsRefreshing(false);
+        }
     }, [membershipId, token, userId]);
 
+    useEffect(() => {
+        loadDashboard();
+    }, [loadDashboard]);
+
+    useEffect(() => {
+        const handlePaid = () => {
+            loadDashboard();
+        };
+        window.addEventListener('vfCollectionPaid', handlePaid);
+        window.addEventListener('loanDeleted', handlePaid);
+        return () => {
+            window.removeEventListener('vfCollectionPaid', handlePaid);
+            window.removeEventListener('loanDeleted', handlePaid);
+        };
+    }, [loadDashboard]);
+
     const summary = data?.summary || {};
+    const formatMoney = (value) => `₹${parseFloat(value || 0).toLocaleString('en-IN')}`;
+
+    const cards = [
+        {
+            label: 'Total Due',
+            hint: 'All unpaid dues assigned to you',
+            value: summary.totalDue,
+            color: 'text-gray-900',
+            bg: 'bg-gray-100',
+        },
+        {
+            label: "Today's Due",
+            hint: 'Installments due today',
+            value: summary.todayDueAmount ?? summary.todayDue,
+            color: 'text-blue-700',
+            bg: 'bg-blue-100',
+        },
+        {
+            label: 'Today Collected',
+            hint: 'Payments you recorded today',
+            value: summary.collectedToday,
+            color: 'text-green-700',
+            bg: 'bg-green-100',
+        },
+        {
+            label: 'Today Overdue',
+            hint: 'Overdue amount to chase today',
+            value: summary.todayOverdueAmount ?? summary.todayOverdue ?? summary.overdueAmount,
+            color: 'text-orange-700',
+            bg: 'bg-orange-100',
+        },
+        {
+            label: 'Total Overdue',
+            hint: 'All overdue unpaid amount',
+            value: summary.totalOverdue ?? summary.overdueAmount,
+            color: 'text-red-700',
+            bg: 'bg-red-100',
+        },
+    ];
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-6">
-            <h1 className="text-2xl font-bold mb-6">Collector Dashboard</h1>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                {[
-                    { label: 'Total Due', value: summary.totalDue },
-                    { label: "Today's Due", value: summary.todayDueAmount },
-                    { label: 'Overdue', value: summary.overdueCount },
-                    { label: 'Collected Today', value: summary.collectedToday },
-                ].map((c) => (
-                    <div key={c.label} className="bg-white border rounded-xl p-4">
-                        <p className="text-sm text-gray-500">{c.label}</p>
-                        <p className="text-2xl font-bold text-red-600">
-                            ₹{parseFloat(c.value || 0).toLocaleString('en-IN')}
+            <div className="mb-6 flex items-center justify-between gap-3">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Collector Dashboard</h1>
+                    <p className="text-sm text-gray-500 mt-1">Your collection targets and today&apos;s progress</p>
+                </div>
+                <button
+                    type="button"
+                    onClick={loadDashboard}
+                    disabled={isRefreshing}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                >
+                    <FiRefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    Refresh
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+                {cards.map((card) => (
+                    <div key={card.label} className="bg-white border rounded-xl p-4 shadow-sm">
+                        <div className={`inline-flex p-2 rounded-lg ${card.bg} mb-3`}>
+                            <FiBarChart2 className={`w-4 h-4 ${card.color}`} />
+                        </div>
+                        <p className="text-sm font-medium text-gray-600">{card.label}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{card.hint}</p>
+                        <p className={`text-2xl font-bold mt-2 ${card.color}`}>
+                            {formatMoney(card.value)}
                         </p>
                     </div>
                 ))}
             </div>
-            <VehicleFinanceCollectionsPage />
+
+            <VehicleFinanceCollectionsPage onPaymentSuccess={loadDashboard} />
         </div>
     );
 };

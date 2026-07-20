@@ -135,6 +135,12 @@ function vehicleFinanceReducer(state, action) {
                 ),
                 isLoading: false
             };
+        case 'DELETE_LOAN':
+            return {
+                ...state,
+                loans: state.loans.filter((loan) => String(loan.id) !== String(action.payload)),
+                isLoading: false,
+            };
         case 'SET_RECEIVABLES':
             return { ...state, receivables: action.payload, isLoading: false };
         case 'SET_RECEIPTS':
@@ -711,7 +717,7 @@ export function VehicleFinanceProvider({ children }) {
             const token = user?.results?.token;
             if (!token) throw new Error('Authentication token not found');
 
-            const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+            const membershipId = getMembershipId(user);
             if (!membershipId) {
                 throw new Error('Membership ID not found');
             }
@@ -740,11 +746,58 @@ export function VehicleFinanceProvider({ children }) {
 
             // Refresh loans to get updated outstanding amounts
             await fetchLoans();
+            dispatch({ type: 'SET_LOADING', payload: false });
             return { success: true, data: result.results };
         } catch (error) {
             const errorMessage = error.message || "Unknown error occurred";
             dispatch({ type: 'SET_ERROR', payload: errorMessage });
             return { success: false, error: errorMessage };
+        }
+    };
+
+    // Delete loan (cascades receivables, receipts, ledger entries)
+    const deleteLoan = async (loanId) => {
+        try {
+            dispatch({ type: 'SET_LOADING', payload: true });
+            const token = user?.results?.token;
+            if (!token) throw new Error('Authentication token not found');
+
+            const membershipId = getMembershipId(user);
+            if (!membershipId) throw new Error('Membership ID not found');
+
+            const res = await fetch(`${API_BASE_URL}/vf/loans/${loanId}`, {
+                method: 'DELETE',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ membershipId }),
+            });
+
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(result.message || 'Failed to delete loan');
+            }
+
+            dispatch({ type: 'DELETE_LOAN', payload: loanId });
+            await fetchLoans();
+
+            const responseData = result.data || result.results || result;
+            window.dispatchEvent(new CustomEvent('loanDeleted', {
+                detail: {
+                    loanId,
+                    accountBalanceUpdates: responseData?.accountBalanceUpdates || [],
+                    affectedDates: responseData?.affectedDates || [],
+                    cascadeFromDate: responseData?.cascadeFromDate,
+                },
+            }));
+
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return { success: true, data: responseData };
+        } catch (error) {
+            const errorMessage = error.message || 'Unknown error occurred';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            return { success: false, error: errorMessage, message: errorMessage };
         }
     };
 
@@ -1055,6 +1108,7 @@ export function VehicleFinanceProvider({ children }) {
         getLoanById,
         forecloseLoan,
         collectPayment,
+        deleteLoan,
         fetchReceivablesByLoan,
         fetchReceipts,
         fetchLedgerAccounts,
