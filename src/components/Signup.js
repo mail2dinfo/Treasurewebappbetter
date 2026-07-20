@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useHistory } from 'react-router-dom';
 import ReactFlagsSelect from "react-flags-select";
 import "./flags.css";
 import { Link } from 'react-router-dom';
-import LoadingBar from './LoadingBar';
 import Alert from '../components/Alert';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { FiEye, FiEyeOff, FiUser, FiLock, FiMail, FiPhone, FiArrowRight, FiCheck } from 'react-icons/fi';
@@ -20,7 +18,7 @@ function SignUp() {
         sourceSystem: 'WEB',
     });
 
-    const [otp, setOtp] = useState('');
+    const [otp] = useState('');
     const [selectedCountry, setSelectedCountry] = useState('auto');
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [isLoading, setIsLoading] = useState(false); // State for controlling loading bar
@@ -28,7 +26,7 @@ function SignUp() {
 
     const showSelectedLabel = true; // Change this to true or false based on your requirement
     const searchable = true;
-    const [list, setList] = useState([]);
+    const [list] = useState([]);
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
     const [showSuccess, setShowSuccess] = useState(false);
 

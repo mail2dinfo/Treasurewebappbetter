@@ -3,7 +3,7 @@ import imageCompression from 'browser-image-compression';
 
 const ImageUpload = ({ initialImage, onImageChange }) => {
     const [previewUrl, setPreviewUrl] = useState('');
-    const [compressedImage, setCompressedImage] = useState(null);
+    const [, setCompressedImage] = useState(null);
 
     // Initialize with the existing image if provided
     useEffect(() => {

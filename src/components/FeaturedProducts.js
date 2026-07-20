@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { FaUsers, FaUserPlus, FaDollarSign, FaArrowRight, FaMotorcycle, FaCoins, FaChartLine } from "react-icons/fa";
+import { FaUsers, FaArrowRight, FaMotorcycle, FaCoins } from "react-icons/fa";
 
 const FeaturedProducts = () => {
     const financeApps = [

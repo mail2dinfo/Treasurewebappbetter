@@ -19,7 +19,6 @@ const AddSub = () => {
     isLoading,
     fetchGroups,
     deleteGroupSubscriber,
-    noofCompanySubscriber,
   } = useGroupDetailsContext();
 
   // Helper function to get initials from name

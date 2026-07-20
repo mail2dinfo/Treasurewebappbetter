@@ -37,9 +37,9 @@ const HorizontalSubscriberContainer = styled.div`
 
 const SubscriberList = ({ groupId, refresh }) => {
   const [subscribers, setSubscribers] = useState([]);
-  const [totalSubscribers, setTotalSubscribers] = useState(20);
+  const [, setTotalSubscribers] = useState(20);
   const [isLoading, setIsLoading] = useState(true);
-  const { isLoggedIn, user } = useUserContext();
+  const { user } = useUserContext();
 
   useEffect(() => {
     const fetchSubscribers = async () => {

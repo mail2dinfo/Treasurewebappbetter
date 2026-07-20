@@ -6,7 +6,6 @@ import { useUserContext } from '../context/user_context';
 import Alert from '../components/Alert';
 import { useLocation } from 'react-router-dom';
 import AssignGroupAmountPopup from "../components/AssignGroupAmountPopup";
-import defaultUserImage from '../images/default.png';
 import { Phone, Eye, User } from 'lucide-react';
 
 const Subscriber = ({ name, id, phone, user_image_from_s3 }) => {

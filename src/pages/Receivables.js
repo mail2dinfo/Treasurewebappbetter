@@ -2,9 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useReceivablesContext } from '../context/receivables_context';
 import loadingImage from '../images/preloader.gif';
-import { FiArrowUp, FiArrowDown, FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiTrendingUp, FiGrid, FiList, FiRefreshCw } from 'react-icons/fi';
-import { GoArrowBoth } from 'react-icons/go';
-import Tooltip from 'react-tooltip-lite';
+import { FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiGrid, FiList, FiRefreshCw } from 'react-icons/fi';
 import ReceivablePayementModal from '../components/ReceivablePayementModal';
 import { useAobContext } from '../context/aob_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
@@ -16,7 +14,6 @@ const Receivable = () => {
   const enforceReceivableAccess = platform?.isAvailable && !platform.isOwner;
   const canPayReceivable = !enforceReceivableAccess || platform.hasPermission('chit_receivables_pay');
   const { fetchReceivables, receivables, isLoading } = useReceivablesContext();
-  const [hoveredPayments, setHoveredPayments] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedReceivable, setSelectedReceivable] = useState(null);
   const { aobs, fetchAobs } = useAobContext();
@@ -46,14 +43,6 @@ const Receivable = () => {
   const [subscriberFilter, setSubscriberFilter] = useState("");
   const [areaFilter, setAreaFilter] = useState(""); // if you want to implement area filter too
 
-
-  const handleMouseEnter = (payments) => {
-    setHoveredPayments(payments);
-  };
-
-  const handleMouseLeave = () => {
-    setHoveredPayments(null);
-  };
 
   const formatCurrency = (amount) => {
     return `₹${Number(amount).toLocaleString("en-IN")}`;

@@ -23,7 +23,7 @@ const PreviewAndSubmit = () => {
     } = useContext(AppContext);
 
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
-    const [list, setList] = useState([]);
+    const [list] = useState([]);
 
     const { isLoggedIn, user, userRole } = useUserContext();
     const history = useHistory();

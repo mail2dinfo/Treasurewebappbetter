@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { API_BASE_URL, WEBSOCKET_URL } from "../utils/apiConfig";
+import { WEBSOCKET_URL } from "../utils/apiConfig";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import io from "socket.io-client";
 import { useLocation, useParams } from "react-router-dom";
 import { useUserContext } from "../context/user_context";
 import { useHistory } from "react-router-dom";
-import { Winner } from "../components/Winner";
 import Modal from "../components/Modal";
-import { UserInfo, GroupSubscriberDetailsPopup } from "../components";
-import Alert from "../components/Alert";
-import { FaEdit, FaTrash, FaArrowLeft, FaGavel, FaUsers, FaClock, FaMoneyBillWave, FaTrophy, FaCalendar, FaPlay, FaStop } from 'react-icons/fa';
+import { GroupSubscriberDetailsPopup } from "../components";
+import { FaArrowLeft, FaGavel, FaUsers, FaClock, FaMoneyBillWave, FaTrophy, FaPlay } from 'react-icons/fa';
 import { useGroupDetailsContext } from '../context/group_context';
 import { toast } from 'react-toastify';
 
@@ -33,7 +31,7 @@ const AuctionsPage = () => {
     const groupsAccountsDetail = data?.results;
     const [isPlacingBid, setIsPlacingBid] = useState(false);
 
-    const { groupId, nextAuctionDate } = useParams();
+    const { groupId } = useParams();
     const [isAuctionOpen, setIsAuctionOpen] = useState(false);
     const [bidAmount, setBidAmount] = useState("");
     const [socket, setSocket] = useState(null);
@@ -44,7 +42,6 @@ const AuctionsPage = () => {
 
     const [isexistAucModalOpen, setIsexistAucModalOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [alert, setAlert] = useState({ show: false, msg: "", type: "" });
 
     const [selectedSubscriberidForBid, setSelectedSubscriberIdForBid] = useState(null);
     const [selectedgrpSubscriberidForBid, setSelectedgrpSubscriberIdForBid] = useState(null);
@@ -95,10 +92,6 @@ const AuctionsPage = () => {
 
     const handleOpenModal = () => {
         setIsModalOpen(true);
-    };
-
-    const showAlert = (show = false, type = "", msg = "") => {
-        setAlert({ show, type, msg });
     };
 
     const handleCloseModal = () => {
@@ -483,7 +476,6 @@ const AuctionsPage = () => {
                                             firstname,
                                             name,
                                             phone,
-                                            user_image,
                                             user_image_from_s3,
                                             amount,
                                             created_at,

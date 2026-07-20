@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
-// import { SubContext } from '../context/subscribecontext';
-import styled from 'styled-components';
-import { GoRepo, GoArrowDown, GoArrowBoth } from 'react-icons/go';
-import { FiUsers, FiUserPlus, FiArrowUp, FiArrowDown } from 'react-icons/fi';
+import React from 'react';
+import { GoRepo, GoArrowBoth } from 'react-icons/go';
+import { FiUserPlus, FiArrowUp, FiArrowDown } from 'react-icons/fi';
 import { useDashboardContext } from '../context/dashboard_context';
 const DashboardMasterInfo = () => {
 
@@ -11,7 +9,6 @@ const DashboardMasterInfo = () => {
   const {
     userMembershipTotalDue,
     userMembershipTotalGroups,
-    userMembershipGroupsByStatus,
     userMembershipNoofSubscribers,
   } = dashboardDetails.results || {};
 

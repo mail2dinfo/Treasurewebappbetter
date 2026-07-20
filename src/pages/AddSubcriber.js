@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useHistory } from 'react-router-dom';
 import { useUserContext } from '../context/user_context';
-import List from '../components/List';
-import Alert from '../components/Alert';
 import { API_BASE_URL } from '../utils/apiConfig';
-import AvatarGroup from '../components/AvatarGroup';
 // import AvatarGenerator from '../components/AvatarGenerator';
 import AvatarUploader from '../components/AvatarUploader';
 import AssignGroupAmountPopup from "../components/AssignGroupAmountPopup";
@@ -38,20 +35,17 @@ function AddSubcriber() {
 
   // const [image, setImage] = useState('');
   // const [previewImage, setPreviewImage] = useState('https://github.com/OlgaKoplik/CodePen/blob/master/profile.jpg?raw=true');
-  const [altText, setAltText] = useState('');
 
 
   const history = useHistory();
   const [mob, setMob] = useState('');
   const [name, setName] = useState('');
-  const [list, setList] = useState([]);
-  const [isEditing, setIsEditing] = useState(false);
+  const [, setList] = useState([]);
+  const [isEditing] = useState(false);
 
-  const [editID, setEditID] = useState(null);
   const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
 
-  const [avatars, setAvatars] = useState(null);
-  const [showList, setShowList] = useState(false);
+  const [, setAvatars] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSubscriberAdded, setIsSubscriberAdded] = useState(false);
 
@@ -254,42 +248,6 @@ function AddSubcriber() {
   };
 
 
-  const deleteGroupSubscriber = async (id) => {
-
-    const apiUrl = `${API_BASE_URL}/groupsubscribers/${id}`;
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${user?.results?.token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-
-
-        showAlert(true, 'success', 'item removed');
-        setList(list.filter((item) => item.id !== id));
-
-        //fetchSubscribers(); // Refresh the list of subscribers after deleting one.
-      } else {
-        const errorResponse = await response.json();
-        showAlert(true, 'danger', errorResponse.message);
-      }
-    } catch (error) {
-      console.error('An error occurred while deleting the group subscriber:', error);
-      showAlert(true, 'danger', 'An error occurred while deleting the group subscriber');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
-  const removeItem = (id) => {
-    deleteGroupSubscriber(id);
-  };
   // const editItem = (id) => {
   //   const specificItem = list.find((item) => item.id === id);
   //   setIsEditing(true);
@@ -300,10 +258,6 @@ function AddSubcriber() {
     setShowConfirmation(false); // Close modal if user cancels
   };
 
-  // Function to toggle the showList state
-  const toggleList = () => {
-    setShowList(!showList);
-  };
   const handleBackButtonClick = () => {
     history.push(`/chit-fund/user/addgroupsubscriber/${groupId}`); // Use backticks (`) for template literals
   };

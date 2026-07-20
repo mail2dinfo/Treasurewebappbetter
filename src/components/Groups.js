@@ -9,7 +9,7 @@ import GroupAccountsPdf from '../components/PDF/GroupAccountsPdf';
 import { useUserContext } from '../context/user_context';
 
 const Groups = ({ data }) => {
-  const { user, userRole } = useUserContext();
+  const { user } = useUserContext();
   //start of PDF generation code
   const userCompany = user?.results?.userCompany;
   const [groupTransactionInfo, setGroupTransactionInfo] = useState([]);// State to store group details

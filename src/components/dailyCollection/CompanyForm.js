@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiX, FiSave, FiImage } from 'react-icons/fi';
+import { FiX, FiSave } from 'react-icons/fi';
 import LogoUploader from './LogoUploader';
 import { uploadImage } from '../../utils/uploadImage';
 import { API_BASE_URL } from '../../utils/apiConfig';

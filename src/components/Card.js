@@ -303,7 +303,17 @@ const Card = () => {
               <h4>{name}</h4>
               <p>@{name || 'organiser'}</p>
             </div>
-            {userRole === 'User' && <a onClick={handleStartCompany}>Edit Company</a>}
+            {userRole === 'User' && (
+              <a
+                href="#edit-company"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleStartCompany();
+                }}
+              >
+                Edit Company
+              </a>
+            )}
           </header>
           <p className="bio">{bio}</p>
           <div className="links">

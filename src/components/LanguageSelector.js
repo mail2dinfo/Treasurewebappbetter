@@ -3,7 +3,7 @@ import { useLanguage } from '../context/language_context';
 import { Globe, ChevronDown } from 'lucide-react';
 
 const LanguageSelector = ({ className = '' }) => {
-    const { currentLanguage, changeLanguage, t } = useLanguage();
+    const { currentLanguage, changeLanguage } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
 
     const languages = [

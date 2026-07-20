@@ -61,7 +61,7 @@ const VehicleFinanceNavbar = () => {
     const { user, logout, userRole } = useUserContext();
     const platform = usePlatformAccess();
     const [isTooltipVisible, setIsTooltipVisible] = useState(false);
-    const [image, setImage] = useState('');
+    const [image] = useState('');
     const [previewUrl, setPreviewUrl] = useState('https://i.imgur.com/ndu6pfe.png');
 
     const basePath = getVehicleFinanceBasePath(location.pathname);

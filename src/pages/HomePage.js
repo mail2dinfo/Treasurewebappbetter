@@ -379,7 +379,6 @@ import { useLedgerAccountContext } from "../context/ledgerAccount_context";
 import { useLedgerEntryContext } from "../context/ledgerEntry_context";
 import { useAobContext } from "../context/aob_context";
 import { useGroupsDetailsContext } from "../context/groups_context";
-import { useProductContext } from "../context/product_context";
 import '../style/home.css'; // Make sure this path is correct
 
 const HomePage = ({
@@ -392,13 +391,13 @@ const HomePage = ({
 }) => {
   const history = useHistory();
   const [selectedTab, setSelectedTab] = useState('ready');
-  const { isLoggedIn, user } = useUserContext();
+  const { user } = useUserContext();
   const { fetchCompanySubscribers } = useCompanySubscriberContext();
   const { fetchLedgerAccounts } = useLedgerAccountContext();
   const { fetchLedgerEntries } = useLedgerEntryContext();
   const { fetchAobs } = useAobContext();
   const { state, fetchAllGroups } = useGroupsDetailsContext();
-  const { groups, premium, profits, isLoading } = state;
+  const { groups, premium, isLoading } = state;
 
   useEffect(() => {
     fetchAllGroups();

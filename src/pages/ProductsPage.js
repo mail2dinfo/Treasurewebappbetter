@@ -26,7 +26,7 @@ const ProductsPage = () => {
   const [isProductMasterCollapsed, setIsProductMasterCollapsed] = useState(false);
   const [isDraftMode, setIsDraftMode] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [editingRowIndex, setEditingRowIndex] = useState(null);
+  const [, setEditingRowIndex] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Products are loaded automatically by the context when user logs in
@@ -46,14 +46,13 @@ const ProductsPage = () => {
     tenure: '',
     status: 'DRAFT'
   });
-  const [monthlyDetails, setMonthlyDetails] = useState([]);
+  const [, setMonthlyDetails] = useState([]);
   const [modalMonthlyDetails, setModalMonthlyDetails] = useState([]); // Separate state for modal
   const [formErrors, setFormErrors] = useState({});
   const [tenureSortOrder, setTenureSortOrder] = useState('asc'); // 'asc' or 'desc'
   const [modalTenureSortOrder, setModalTenureSortOrder] = useState('asc'); // 'asc' or 'desc' for modal
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
-  const [editingRow, setEditingRow] = useState(null); // Track which row is being edited (format: "rowIndex")
   const [showRowEditModal, setShowRowEditModal] = useState(false);
   const [editingRowData, setEditingRowData] = useState(null);
   const [editingRowIndexModal, setEditingRowIndexModal] = useState(null);
@@ -348,31 +347,6 @@ const ProductsPage = () => {
     setProductToDelete(null);
   };
 
-  // Handle inline editing of individual fields
-  const handleInlineEdit = (productId, rowIndex, field, value) => {
-    const updatedMonthlyDetails = selectedProduct.monthlyDetails.map((detail, index) =>
-      index === rowIndex ? { ...detail, [field]: value } : detail
-    );
-
-    const updatedProduct = {
-      ...selectedProduct,
-      monthlyDetails: updatedMonthlyDetails
-    };
-
-    // Update the product via API
-    updateProduct(productId, { monthlyDetails: updatedMonthlyDetails })
-      .then(() => {
-        // Update local state
-        setSelectedProduct(updatedProduct);
-        toast.success(`${field} updated successfully`);
-        setEditingRow(null); // Close editing mode
-      })
-      .catch(error => {
-        console.error('Error updating field:', error);
-        toast.error('Error updating field');
-      });
-  };
-
   // Handle row click to open edit modal
   const handleRowClick = (rowIndex) => {
     const rowData = selectedProduct.monthlyDetails[rowIndex];
@@ -464,15 +438,6 @@ const ProductsPage = () => {
     setSelectedProduct(product);
     setIsProductMasterCollapsed(false);
     setHasUnsavedChanges(false);
-  };
-
-  // Handle monthly detail changes (for main product display)
-  const handleMonthlyDetailChange = (monthIndex, field, value) => {
-    const updatedDetails = monthlyDetails.map((detail, index) =>
-      index === monthIndex ? { ...detail, [field]: value } : detail
-    );
-    setMonthlyDetails(updatedDetails);
-    setHasUnsavedChanges(true);
   };
 
   // Handle modal monthly detail changes (doesn't immediately reflect in main UI)

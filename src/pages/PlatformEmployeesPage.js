@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { FiArrowLeft, FiBarChart2, FiEdit2, FiEye, FiFileText, FiGrid, FiList, FiLogOut, FiMapPin, FiMinus, FiPlus, FiPower, FiTrash2, FiUsers, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiBarChart2, FiEdit2, FiEye, FiFileText, FiGrid, FiList, FiLogOut, FiMapPin, FiMinus, FiPlus, FiTrash2, FiUsers, FiX } from 'react-icons/fi';
 import { API_BASE_URL, readApiResponse } from '../utils/apiConfig';
 import {
     CHIT_ADMINISTRATION_CATEGORIES,

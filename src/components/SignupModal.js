@@ -5,7 +5,7 @@ import "./flags.css";
 import LoadingBar from './LoadingBar';
 import Alert from './Alert';
 import { API_BASE_URL } from '../utils/apiConfig';
-import { FiEye, FiEyeOff, FiUser, FiLock, FiMail, FiPhone, FiArrowRight, FiCheck, FiX } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiLock, FiMail, FiPhone, FiArrowRight, FiCheck, FiX } from 'react-icons/fi';
 
 function SignupModal({ isOpen, onClose }) {
     const [formData, setFormData] = useState({
@@ -22,7 +22,7 @@ function SignupModal({ isOpen, onClose }) {
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [list, setList] = useState([]);
+    const [list] = useState([]);
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
     const [showSuccess, setShowSuccess] = useState(false);
 

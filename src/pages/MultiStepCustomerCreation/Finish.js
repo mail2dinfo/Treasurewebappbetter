@@ -6,7 +6,7 @@ import { useUserContext } from '../../context/user_context';
 import { useHistory } from 'react-router-dom';
 
 const Finish = () => {
-    const { user, isLoggedIn } = useUserContext();
+    const { isLoggedIn } = useUserContext();
     const myContext = useContext(AppContext);
 
     const { stepDetails, personalDetails, password: tempPassword } = myContext || {};

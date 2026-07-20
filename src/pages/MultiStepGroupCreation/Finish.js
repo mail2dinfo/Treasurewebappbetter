@@ -7,7 +7,7 @@ import { useHistory } from 'react-router-dom';
 
 const Finish = () => {
 
-    const { isLoggedIn, user } = useUserContext();
+    const { isLoggedIn } = useUserContext();
 
 
     const myContext = useContext(AppContext);
@@ -22,9 +22,6 @@ const Finish = () => {
         history.push('/chit-fund/user/home'); // Replace '/' with the actual URL of your home page
     };
 
-    const finish = () => {
-        console.log(updateContext);
-    }
     return (
         <div className="container">
             <p>New Group <strong>{name}</strong>   has been created successfully</p>

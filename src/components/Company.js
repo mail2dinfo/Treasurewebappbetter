@@ -33,7 +33,7 @@ function Company() {
         companyId: '',
     });
     const [previewUrl, setPreviewUrl] = useState(image?.previewUrl || "https://i.imgur.com/ndu6pfe.png");
-    const [errorMessage, setErrorMessage] = useState('')
+    const [, setErrorMessage] = useState('')
     const [selectedCountry, setSelectedCountry] = useState('IN');
     const countries = [
         { value: "IN", label: "India", countryCode: "+91" },
@@ -140,8 +140,8 @@ function Company() {
 
 
 
-    const [signupMessage, setSignupMessage] = useState('');
-    const [membershipId, setMembershipId] = useState(user.results.userAccounts[0]?.parent_membership_id
+    const [, setSignupMessage] = useState('');
+    const [membershipId] = useState(user.results.userAccounts[0]?.parent_membership_id
     );
 
 
@@ -151,7 +151,7 @@ function Company() {
     const showSelectedLabel = true; // Change this to true or false based on your requirement
     const searchable = true;
 
-    const [list, setList] = useState([]);
+    const [list] = useState([]);
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
 
 
@@ -160,11 +160,6 @@ function Company() {
 
 
 
-    const extractImageNumber = (url) => {
-        if (!url) return '';
-        const match = url.match(/compressed-(\d+)\.jpg$/);
-        return match ? match[1] : ''; // Extracts only the number after "compressed-"
-    };
     const handleCountryChange = (value) => {
         setSelectedCountry(value);
 

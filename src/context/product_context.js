@@ -164,10 +164,6 @@ export const ProductProvider = ({ children }) => {
         );
     };
 
-    const resetProducts = () => {
-        dispatch({ type: "RESET_PRODUCTS" });
-    };
-
     // Load products when user logs in
     useEffect(() => {
         if (user?.results?.token) {

@@ -4,7 +4,6 @@ import styled from "styled-components";
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
 //import './ProfileCard.css';
-import List from '../components/List';
 import Alert from '../components/Alert';
 import loadingImage from '../images/preloader.gif';
 import moment from 'moment';
@@ -13,7 +12,7 @@ import ImageUploader from '../components/ImageUploader';
 const ProfileCard = ({ subscriberId }) => {
 
 
-  const [list, setList] = useState([]);
+  const [list] = useState([]);
   const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +20,7 @@ const ProfileCard = ({ subscriberId }) => {
   const [previewImage, setPreviewImage] = useState('https://github.com/OlgaKoplik/CodePen/blob/master/profile.jpg?raw=true');
   const [altText, setAltText] = useState('');
 
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
   const [subscriberData, setSubscriberData] = useState(null);
   const [futureGrpData, setFutureGrpData] = useState(0);
   const [closed, setClosed] = useState(0);
@@ -31,13 +30,12 @@ const ProfileCard = ({ subscriberId }) => {
   const [due, setDue] = useState(0);
 
 
-  const { isLoggedIn, user } = useUserContext();
+  const { user } = useUserContext();
   const [showModal, setShowModal] = useState(false);
   const [areasOfBusiness, setAreasOfBusiness] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [signupMessage, setSignupMessage] = useState('');
-  const [formData, setFormData] = useState({
+  const [formData] = useState({
     // firstname: '',
     // lastname: '',
     // dob: '',
@@ -155,10 +153,6 @@ const ProfileCard = ({ subscriberId }) => {
 
   const showAlert = (show = false, type = '', msg = '') => {
     setAlert({ show, type, msg });
-  };
-  const clearList = () => {
-    showAlert(true, 'danger', 'empty list');
-    // setList([]);
   };
   const handleAddButtonClick = async (area) => {
     try {

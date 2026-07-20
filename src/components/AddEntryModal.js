@@ -72,7 +72,7 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
   const [tempData, setTempData] = useState(null);
   const [isLoadingSubscribers, setIsLoadingSubscribers] = useState(false);
 
-  const [list, setList] = useState([]);
+  const [list] = useState([]);
   const [alert, setAlert] = useState({ show: false, type: "", message: "" });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -107,7 +107,6 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
 
     if (formData.category === "Groups") {
       // For Groups, we'll create multiple entries - only for subscribers with amounts
-      const selectedGroup = groups.find((g) => String(g.id) === String(selectedGroupId));
       const entries = selectedSubscriberIds
         .filter(groupSubscriberId => {
           const amount = subscriberAmounts[groupSubscriberId] || 0;
@@ -288,14 +287,6 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
     );
     return filteredSubscribers.length > 0 && selectedSubscriberIds.length === filteredSubscribers.length;
   };
-
-  const isIndeterminate = () => {
-    const filteredSubscribers = groupSubscribers.filter((cust) =>
-      cust.name.toLowerCase().includes((formData.subscriberSearch || "").toLowerCase())
-    );
-    return selectedSubscriberIds.length > 0 && selectedSubscriberIds.length < filteredSubscribers.length;
-  };
-
 
 
   return (

@@ -1,13 +1,11 @@
 import React from 'react'
 import styled from 'styled-components'
-import { formatPrice } from '../utils/helpers'
 import { Link } from 'react-router-dom'
-import { FaEdit, FaTrash } from 'react-icons/fa';
 const ListView = ({ items }) => {
   return (
     <Wrapper>
       {items?.map((item) => {
-        const { id, user_image, name, phone, country, country_code } = item
+        const { id, user_image, name, phone } = item
         return (
           <article key={id}>
             <img src={user_image} alt={name} />

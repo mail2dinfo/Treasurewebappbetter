@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import Modal from 'react-modal';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
-import { FiDownload, FiPrinter } from 'react-icons/fi';
+import { FiDownload } from 'react-icons/fi';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import Mypdf from '../components/PDF/Mypdf';
 import loadingImage from "../images/preloader.gif";
@@ -36,7 +36,7 @@ const GroupSubscriberWiseDataList = ({ items }) => {
     useEffect(() => {
         if (data && data.results) {
             // Set groupTransactionInfo when data is available
-            const { amount, type, commisionType, commissionAmount, groupName } = data.results;
+            const { groupName } = data.results;
 
             setGroupName(groupName);
 

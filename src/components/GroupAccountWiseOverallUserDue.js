@@ -10,7 +10,7 @@ const GroupAccountWiseOverallUserDue = ({ data }) => {
     useEffect(() => {
      
         if (data && data.results) {
-            const { groupWiseResult, groupsAccountWiseResult } = data.results;
+            const { groupsAccountWiseResult } = data.results;
             setAccountWiseData(groupsAccountWiseResult);
 
           

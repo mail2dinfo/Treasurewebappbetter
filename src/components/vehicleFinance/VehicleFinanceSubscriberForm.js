@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FiX, FiSave, FiImage, FiUpload, FiTrash2 } from 'react-icons/fi';
+import { FiX, FiSave, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { uploadImage } from '../../utils/uploadImage';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import FixedMapPicker from '../FixedMapPicker';
@@ -23,7 +23,7 @@ const VehicleFinanceSubscriberForm = ({ subscriber, onSave, onCancel, isLoading 
     });
 
     const [errors, setErrors] = useState({});
-    const [imageFiles, setImageFiles] = useState({
+    const [, setImageFiles] = useState({
         photo: null,
         aadhaarFront: null,
         aadhaarBack: null,
@@ -491,7 +491,7 @@ const VehicleFinanceSubscriberForm = ({ subscriber, onSave, onCancel, isLoading 
                                 <div className="relative">
                                     <img
                                         src={previewUrls.photo}
-                                        alt="Subscriber photo"
+                                        alt="Subscriber"
                                         className="w-32 h-32 object-cover rounded-lg border border-gray-300"
                                     />
                                     <button

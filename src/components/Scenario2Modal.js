@@ -5,11 +5,11 @@ import { useCompanySubscriberContext } from '../context/companysubscriber_contex
 import { User, Phone, Search, X, AlertTriangle, DollarSign } from 'lucide-react';
 
 const Scenario2Modal = ({ isOpen, onClose, subscriber, groupId, scenarioData }) => {
-    const { deleteGroupSubscriberWithScenario, replaceGroupSubscriber } = useGroupDetailsContext();
+    const { replaceGroupSubscriber } = useGroupDetailsContext();
     const { companySubscribers, fetchCompanySubscribers } = useCompanySubscriberContext();
 
     const [loading, setLoading] = useState(false);
-    const [selectedAction, setSelectedAction] = useState('');
+    const [, setSelectedAction] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedSubscriber, setSelectedSubscriber] = useState(null);
     const [showSubscriberSelection, setShowSubscriberSelection] = useState(false);

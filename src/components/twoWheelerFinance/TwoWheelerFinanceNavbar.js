@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FiHome, FiCreditCard, FiUsers, FiFileText, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiCreditCard, FiUsers, FiFileText } from 'react-icons/fi';
 import MyTreasureBrand from '../MyTreasureBrand';
 import FinanceHubNavButton from '../FinanceHubNavButton';
 

@@ -26,19 +26,6 @@ const RecentTransactions = ({ transactions, loading }) => {
         });
     };
 
-    const getPaymentMethodIcon = (method) => {
-        switch (method) {
-            case 'GPAY':
-                return '💳';
-            case 'CASH':
-                return '💵';
-            case 'ONLINE':
-                return '🌐';
-            default:
-                return '💳';
-        }
-    };
-
     if (loading) {
         return (
             <div className="space-y-4">
@@ -136,67 +123,6 @@ const RecentTransactions = ({ transactions, loading }) => {
                         </div>
                     </div>
                 ))}
-            </div>
-        </div>
-    );
-};
-
-const TransactionItem = ({ transaction }) => {
-    const {
-        name,
-        payment_method,
-        payment_type,
-        payment_amount,
-        payment_status,
-        created_at,
-        arrow
-    } = transaction;
-
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'SUCCESS': return '#4CAF50';
-            case 'PENDING': return '#FF9800';
-            case 'FAILED': return '#f44336';
-            default: return '#666';
-        }
-    };
-
-    const getArrowIcon = (arrow) => {
-        return arrow === 'UP' ? '⬆️' : '⬇️';
-    };
-
-    const getPaymentTypeLabel = (type) => {
-        switch (type) {
-            case 'MONTHLY_PAYMENT': return 'Monthly Payment';
-            case 'AUCTION_PAYMENT': return 'Auction Payment';
-            case 'ADVANCE_PAYMENT': return 'Advance Payment';
-            default: return type;
-        }
-    };
-
-    return (
-        <div className="transaction-item">
-            <div className="transaction-icon">
-                {getArrowIcon(arrow)}
-            </div>
-
-            <div className="transaction-details">
-                <div className="transaction-type">
-                    {getPaymentTypeLabel(payment_type)}
-                </div>
-                <div className="transaction-method">
-                    {payment_method} • {new Date(created_at).toLocaleDateString()}
-                </div>
-            </div>
-
-            <div className="transaction-amount">
-                <div className="amount">₹{payment_amount.toLocaleString()}</div>
-                <div
-                    className="status"
-                    style={{ color: getStatusColor(payment_status) }}
-                >
-                    {payment_status}
-                </div>
             </div>
         </div>
     );

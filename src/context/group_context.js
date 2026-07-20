@@ -35,10 +35,9 @@
 // };
 
 // context/group_context.js
-import React, { createContext, useReducer, useContext } from "react";
+import React, { createContext, useContext } from "react";
 import { useUserContext } from "./user_context";
 import { API_BASE_URL } from "../utils/apiConfig";
-import { toast } from "react-toastify";
 
 const GroupDetailsContext = createContext();
 

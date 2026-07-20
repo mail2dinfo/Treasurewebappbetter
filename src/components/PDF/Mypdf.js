@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import React from 'react';
+import { Document, Page, View, StyleSheet } from '@react-pdf/renderer';
 import PDFTable from './PDFTable';
 import PDFHeader from './PDFHeader';
-import logo from '../../assets/logo.png'
 
 const styles = StyleSheet.create({
     page: {

@@ -13,29 +13,27 @@ const EmployeeProfilecard = ({ employeeId }) => {
 
     const history = useHistory();
 
-    const [list, setList] = useState([]);
+    const [list] = useState([]);
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
 
     const [previewImage, setPreviewImage] = useState('https://github.com/OlgaKoplik/CodePen/blob/master/profile.jpg?raw=true');
-    const [altText, setAltText] = useState('');
-    const [error, setError] = useState(null);
+    const [, setError] = useState(null);
 
     const [employeeData, setEmployeeData] = useState(null);
-    const [futureGrpData, setFutureGrpData] = useState(null);
+    const [, setFutureGrpData] = useState(null);
 
 
-    const { isLoggedIn, user } = useUserContext();
+    const { user } = useUserContext();
     const [showModal, setShowModal] = useState(false);
     const [showDueRegionPopup, setShowDueRegionPopup] = useState(false);
-    const [showModalGroupWise, setShowModalGroupWise] = useState(false);
 
     const [areasOfBusiness, setAreasOfBusiness] = useState([]);
     const [regionWiseData, setRegionWiseData] = useState([]);
-    const [employeeRegionData, setEmployeeRegionData] = useState([]);
+    const [, setEmployeeRegionData] = useState([]);
     const [employeeCollectionRegion, setEmployeeCollectionRegion] = useState([]);
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchRegionQuery, setSearchRegionQuery] = useState('');
+    const [, setSearchRegionQuery] = useState('');
 
     const [totAmnt, setTotAmnt] = useState('0');
     const [totCollected, setTotCollected] = useState('0');
@@ -252,20 +250,12 @@ const EmployeeProfilecard = ({ employeeId }) => {
         }
     };
 
-    const handleSearchChange = (event) => {
-        setSearchQuery(event.target.value);
-    };
-
     const handleSearchRegionChange = (event) => {
         setSearchQuery(event.target.value);
     };
 
     const filteredAreasOfBusiness = areasOfBusiness.filter(area =>
         area.aob.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const filteredRegionWiseData = regionWiseData.filter(regionData =>
-        regionData.aob.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const fetchCompanyLogoUrl = async (logoKey) => {
@@ -327,10 +317,6 @@ const EmployeeProfilecard = ({ employeeId }) => {
 
     const showAlert = (show = false, type = '', msg = '') => {
         setAlert({ show, type, msg });
-    };
-    const clearList = () => {
-        showAlert(true, 'danger', 'empty list');
-        // setList([]);
     };
 
     return (<section className='section'>

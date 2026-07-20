@@ -324,9 +324,7 @@
 import React, { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import { FaTrash } from "react-icons/fa";
-import { useUserContext } from "../context/user_context";
 import { useGroupDetailsContext } from "../context/group_context";
-import { useCompanySubscriberContext } from "../context/companysubscriber_context";
 import { User, Phone, Wifi, WifiOff } from "lucide-react";
 import Scenario1Modal from "./Scenario1Modal";
 import Scenario2Modal from "./Scenario2Modal";
@@ -334,8 +332,6 @@ import Scenario3Modal from "./Scenario3Modal";
 import Scenario4Modal from "./Scenario4Modal";
 import { useLocation } from "react-router-dom";
 import { usePlatformAccess } from "../context/platformAccess_context";
-
-const DEFAULT_IMAGE = "/default-image.jpg"; // fallback image path
 
 const GroupsSubscriber = () => {
   const location = useLocation();
@@ -345,12 +341,11 @@ const GroupsSubscriber = () => {
     || platform.hasPermission('chit_subscriber_delete');
   const canManageSubscribers = canDeleteSubscriber;
 
-  const { data, deleteGroupSubscriberbyCompositekey, checkDeletionScenario, deleteGroupSubscriberWithScenario } = useGroupDetailsContext();
-  const { companySubscribers, fetchCompanySubscribers } = useCompanySubscriberContext();
+  const { data, deleteGroupSubscriberbyCompositekey, checkDeletionScenario } = useGroupDetailsContext();
 
   const [groupSubscriber, setGroupSubscriber] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showScenarioModal, setShowScenarioModal] = useState(false);
+  const [, setShowScenarioModal] = useState(false);
   const [showScenario1Modal, setShowScenario1Modal] = useState(false);
   const [showScenario2Modal, setShowScenario2Modal] = useState(false);
   const [showScenario3Modal, setShowScenario3Modal] = useState(false);
@@ -460,18 +455,6 @@ const GroupsSubscriber = () => {
     setShowScenario4Modal(false);
     setSelectedSubscriber(null);
     setScenarioData(null);
-  };
-
-  const handleScenarioSuccess = () => {
-    console.log('🔍 Scenario action completed successfully');
-    setShowScenarioModal(false);
-    setShowScenario1Modal(false);
-    setShowScenario2Modal(false);
-    setShowScenario3Modal(false);
-    setShowScenario4Modal(false);
-    setSelectedSubscriber(null);
-    setScenarioData(null);
-    // The context will automatically refresh the data
   };
 
   const handleConfirmDelete = async () => {

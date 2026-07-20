@@ -172,7 +172,6 @@ const PreviewAndSubmit = () => {
                 commissionMonth: 0,
                 commissionAmount: groupDetails.commAmt,
                 auctionPlace: groupDetails.auctPlace,
-                firstAuctDate: groupDetails.firstAuctDate,
                 auctionMode: groupDetails.auctFreq,
                 sourceSystem: 'WEB',
                 stepper: 0,

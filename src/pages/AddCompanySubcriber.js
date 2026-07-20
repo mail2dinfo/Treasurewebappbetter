@@ -31,7 +31,6 @@ const AddCompanySubcriber = () => {
     const [selectedCountry, setSelectedCountry] = useState('auto');
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
     const [list, setList] = useState([]);
-    const eresponseData = null;
     const history = useHistory();
     const [formData, setFormData] = useState({
         name: '',
@@ -214,7 +213,7 @@ const AddCompanySubcriber = () => {
                 console.log(responseData);
                 showAlert(true, 'success', responseData.message);
             } else {
-                eresponseData = await response.json();
+                const eresponseData = await response.json();
                 console.log(eresponseData);
 
                 showAlert(true, 'danger', eresponseData.message);
@@ -222,7 +221,7 @@ const AddCompanySubcriber = () => {
             }
         } catch (error) {
             // Handle network or fetch error, update the message state
-            showAlert(true, 'danger', eresponseData.message);
+            showAlert(true, 'danger', error?.message || 'Something went wrong');
 
         } finally {
             setIsLoading(false); // Hide loading bar when data fetching is complete

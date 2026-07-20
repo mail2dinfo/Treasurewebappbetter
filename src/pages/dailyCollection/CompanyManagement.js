@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useDailyCollectionContext } from '../../context/dailyCollection/DailyCollectionContext';
 import CompanyForm from '../../components/dailyCollection/CompanyForm';
 import { FiPlus, FiEdit2, FiTrash2, FiPhone, FiMapPin, FiAlertCircle, FiX, FiBriefcase } from 'react-icons/fi';
-import { API_BASE_URL } from '../../utils/apiConfig';
 
 const CompanyManagement = () => {
     const { companies, isLoading, error, fetchCompanies, createCompany, updateCompany, deleteCompany, clearError } = useDailyCollectionContext();

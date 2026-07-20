@@ -1,6 +1,5 @@
 import React from 'react';
 import styled from 'styled-components'
-import logo from '../assets/logo.png'
 
 const ReportTemplate = ({ items }) => {
     console.log('items');

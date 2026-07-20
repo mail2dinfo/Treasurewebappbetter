@@ -34,9 +34,9 @@ const SubscriberLiveAuction = () => {
     const [bidAmount, setBidAmount] = useState('');
     const [bidList, setBidList] = useState([]);
     const [isPlacingBid, setIsPlacingBid] = useState(false);
-    const [auctionStatus, setAuctionStatus] = useState('OPEN');
+    const [, setAuctionStatus] = useState('OPEN');
     const [winnerData, setWinnerData] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [, setIsLoading] = useState(false);
     const [isBidDisabled, setIsBidDisabled] = useState(false);
     const [socket, setSocket] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
@@ -194,9 +194,8 @@ const SubscriberLiveAuction = () => {
                     // Handle amount conversion - check multiple possible fields
                     let aucAmount = auctionObj.amount || auctionObj.bid_amount || auctionObj.bidAmount || auctionObj.auction_amount || "0";
                     if (typeof aucAmount === 'number') aucAmount = aucAmount.toString();
-                    if (typeof aucAmount === 'string') aucAmount = aucAmount;
 
-                    const amount = parseInt(aucAmount) || 0;
+                    const amount = parseInt(aucAmount, 10) || 0;
                     console.log('Extracted amount:', amount);
 
                     // If amount is 0, this might be a notification without amount data

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
-import { FiPlus, FiDollarSign, FiUser, FiCalendar, FiTrendingUp, FiTrendingDown, FiEye, FiX, FiDownload } from 'react-icons/fi';
+import { useLocation } from 'react-router-dom';
+import { FiPlus, FiDollarSign, FiEye, FiX, FiDownload } from 'react-icons/fi';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { usePersonalLoanContext } from '../../context/personalLoan/PersonalLoanContext';
 import { useUserContext } from '../../context/user_context';
@@ -11,7 +11,6 @@ import PersonalLoanListPDF from '../../components/personalLoan/PDF/PersonalLoanL
 import PersonalLoanDetailsPDF from '../../components/personalLoan/PDF/PersonalLoanDetailsPDF';
 
 const PersonalLoanLoansPage = () => {
-    const history = useHistory();
     const location = useLocation();
     const { loans, fetchLoans, isLoading, getLoanById, error, companies, fetchCompanies } = usePersonalLoanContext();
     const { user } = useUserContext();

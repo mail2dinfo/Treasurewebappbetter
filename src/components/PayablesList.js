@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from "../context/user_context";
-import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck } from 'react-icons/fi';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -189,13 +189,12 @@ const PayablesList = ({ payables, region, onFilteredCount, refreshPayables }) =>
 
             {/* Payables List */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredPeople.map((person, index) => {
+                {filteredPeople.map((person) => {
                     const {
                         name,
                         phone,
                         user_image_from_s3,
-                        pytotal, pbpaid, pbdue, rbtotal, rbpaid, rbdue,
-                        id, group_id, subscriber_id, group_subscriber_id, group_account_id,
+                        pytotal, pbpaid, pbdue, rbdue,
                         auct_date, group_name, unique_id, payment_for
                     } = person;
 

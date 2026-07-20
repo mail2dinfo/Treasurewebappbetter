@@ -8,8 +8,7 @@ import { API_BASE_URL } from '../../utils/apiConfig';
 const SubscriberProfile = () => {
     const { user, loading } = useSubscriberContext();
     const { t } = useLanguage();
-    const [isEditing, setIsEditing] = useState(false);
-    const [image, setImage] = useState('');
+    const [image] = useState('');
     const [previewUrl, setPreviewUrl] = useState('https://i.imgur.com/ndu6pfe.png'); // Default image
     const [formData, setFormData] = useState({
         firstname: '',
@@ -64,35 +63,6 @@ const SubscriberProfile = () => {
         } catch (error) {
             setPreviewUrl('https://i.imgur.com/ndu6pfe.png');
         }
-    };
-
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
-    };
-
-    const handleSave = async () => {
-        // TODO: Implement profile update API call
-        console.log('Saving profile:', formData);
-        setIsEditing(false);
-    };
-
-    const handleCancel = () => {
-        // Reset form data to original user data
-        if (user) {
-            setFormData({
-                firstname: user.firstname || '',
-                lastname: user.lastname || '',
-                email: user.email || '',
-                phone: user.phone || '',
-                dob: user.dob || '',
-                gender: user.gender || ''
-            });
-        }
-        setIsEditing(false);
     };
 
     if (loading) {

@@ -1,16 +1,7 @@
 import React from 'react'
 import { useParams } from 'react-router-dom';
-import { useProductsContext } from '../context/products_context'
-import { single_product_url as url } from '../utils/constants'
-import { formatPrice } from '../utils/helpers'
 import {
-  Loading,
-  Error,
-  ProductImages,
-  AddToCart,
-  Stars,
-  PageHero,
-  ProfileCardComponent, ProfileCard
+  ProfileCard
 } from '../components'
 import styled from 'styled-components'
 
@@ -29,5 +20,4 @@ const Wrapper = styled.main`
 
 
 `
-
 export default SingleSubscriberPage

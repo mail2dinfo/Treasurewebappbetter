@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GoRepo, GoGist, GoArrowBoth } from 'react-icons/go';
+import { GoRepo, GoArrowBoth } from 'react-icons/go';
 import { FiUsers, FiUserPlus } from 'react-icons/fi';
 
 const UserInfo = ({ data }) => {

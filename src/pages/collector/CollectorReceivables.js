@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { FiDollarSign, FiUsers, FiTrendingUp, FiEye, FiArrowLeft, FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiCreditCard, FiRefreshCw, FiGrid, FiList } from 'react-icons/fi';
+import React, { useState, useEffect } from 'react';
+import { FiDollarSign, FiUsers, FiTrendingUp, FiArrowLeft, FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiCreditCard, FiRefreshCw, FiGrid, FiList } from 'react-icons/fi';
 import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import loadingImage from '../../images/preloader.gif';
@@ -21,7 +21,6 @@ const CollectorReceivables = () => {
         isFetchingReceivables,
         error,
         fetchReceivables,
-        fetchAreaReceivables,
         getAreaSummary,
         getReceivablesSummary,
         user,
@@ -78,23 +77,10 @@ const CollectorReceivables = () => {
 
     const areaSummary = getAreaSummary();
 
-    // Show debug info on screen temporarily
-    const debugInfo = {
-        receivablesCount: receivables?.length || 0,
-        isFetchingReceivables,
-        error,
-        areaCount: Object.keys(areaSummary).length
-    };
-
     // Manual fetch function for testing
     const handleManualFetch = () => {
         console.log('🔄 Manual fetch triggered');
         fetchReceivables();
-    };
-
-    const handleAreaClick = (areaName) => {
-        fetchAreaReceivables(areaName);
-        setShowAreaDetails(true);
     };
 
     const handleBackToAreas = () => {

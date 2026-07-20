@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { useHistory, useParams } from 'react-router-dom';
 
 const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, groupAccountId }) => {
 
@@ -7,11 +6,7 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
         groupTransactionInfo,
         transactionInfo,
         outstandingAdvanceTransactionInfo,
-        auctionStatus: groupAuctionStatus
     } = groupDetails;
-
-    const history = useHistory();
-    const { groupId, grpSubId } = useParams();
 
     // State for sorting
     const [sortConfig, setSortConfig] = useState({ key: 'sno', direction: 'asc' });

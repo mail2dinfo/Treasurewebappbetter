@@ -10,8 +10,7 @@ import {
 import ReceivableReceitPdf from "./PDF/ReceivableReceitPdf";
 import ReceivableConfirmPanel, { ReceivableLiveBalancePanel } from "./ReceivableConfirmPanel";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { FiDownload, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck, FiAlertCircle, FiPrinter } from 'react-icons/fi';
-import { FaRupeeSign, FaCheckCircle, FaMoneyBillWave, FaBalanceScale, FaExclamationCircle } from 'react-icons/fa';
+import { FiDownload, FiUser, FiPhone, FiCalendar, FiDollarSign, FiX, FiCheck, FiAlertCircle, FiPrinter } from 'react-icons/fi';
 import 'react-toastify/dist/ReactToastify.css';
 
 const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables }) => {
@@ -134,10 +133,6 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
         group_name,
         auct_date,
         user_image_from_s3,
-        rbtotal,
-        rbpaid,
-        rbdue,
-        total_wallet_balance
     } = currentReceivable;
 
     const formatCurrency = (amt) => `₹${Number(amt).toLocaleString("en-IN")}`;

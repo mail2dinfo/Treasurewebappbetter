@@ -32,7 +32,7 @@ function VerifyOTP() {
                 body: JSON.stringify({ phone: formattedPhone, otp }),
             });
 
-            const responseData = await response.json();
+            await response.json();
 
 
             if (response.ok) {

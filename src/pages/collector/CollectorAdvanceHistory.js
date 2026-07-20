@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FiDollarSign, FiCalendar, FiUser, FiCreditCard, FiFilter, FiX, FiRefreshCw, FiPlus, FiCheckCircle } from 'react-icons/fi';
+import { FiDollarSign, FiFilter, FiX, FiRefreshCw, FiPlus, FiCheckCircle } from 'react-icons/fi';
 import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import AddAdvanceModal from '../../components/collector/AddAdvanceModal';

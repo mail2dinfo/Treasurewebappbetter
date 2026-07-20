@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useUserContext } from '../context/user_context';
 import { useLedgerAccountContext } from "../context/ledgerAccount_context";
@@ -14,7 +14,7 @@ function Login() {
   const platform = usePlatformAccess();
   const { resetLedgerAccounts } = useLedgerAccountContext();
 
-  const [list, setList] = useState([]);
+  const [list] = useState([]);
   const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
 
   const history = useHistory();

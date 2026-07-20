@@ -128,14 +128,6 @@ const AvatarSubscriberList = ({ groupSubscriber }) => {
     fetchImages();
   }, [groupSubscriber]);
 
-
-  const getImageSrc = (user_image) => {
-    if (!user_image) return "default-image.jpg"; // Fallback if image is missing
-    return user_image.startsWith("data:image/") || user_image.startsWith("http")
-      ? user_image
-      : `data:image/jpeg;base64,${user_image}`;
-  };
-
   if (!Array.isArray(groupSubscriber) || groupSubscriber.length === 0) {
     return <p>No subscribers available</p>;
   }
@@ -144,8 +136,6 @@ const AvatarSubscriberList = ({ groupSubscriber }) => {
     <AvatarGroupContainer className="avatar-group">
       <div className="hidden-avatars">+{groupSubscriber.length}</div>
       {groupSubscriber.map((dat, index) => {
-        const uniqueId = dat.unique_id; // ✅ Extract unique_id correctly
-
         return (
           <div className="avatar_container" key={index}>
             <div className="avatar">

@@ -91,6 +91,7 @@ const ChitFundAdminLayout = () => {
                                                                 </div>
                                                                 </BillingAppGuards>
                                                             </BillingProvider>
+                                                        </ProductProvider>
                                                     </PayablesProvider>
                                                 </ReceivablesProvider>
                                             </LedgerEntryProvider>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { useSubscriberContext } from '../../../context/subscriber/SubscriberContext';
 import { useLanguage } from '../../../context/language_context';
-import { FiMenu, FiX, FiUser, FiLogOut } from 'react-icons/fi';
+import { FiMenu, FiX, FiLogOut } from 'react-icons/fi';
 import MyTreasureBrand from '../../MyTreasureBrand';
 import FinanceHubNavButton from '../../FinanceHubNavButton';
 

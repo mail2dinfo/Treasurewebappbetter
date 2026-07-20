@@ -7,7 +7,6 @@ const DashboardGroupsAccounts = () => {
     const { dashboardDetails } = useDashboardContext();
     const {
         userMembershipByGroupId,
-        userMembershipGroupsByStatus
     } = dashboardDetails.results || {};
     console.log('mani- masi');
     console.log(userMembershipByGroupId);

@@ -19,7 +19,7 @@ const AddEmployee = () => {
         fetchEmployees
     } = useEmployeeContext();
     console.log(employeeList);
-    const [list, setList] = useState([]);
+    const [list] = useState([]);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',

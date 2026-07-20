@@ -58,7 +58,6 @@ const TransactionList = ({ transactions, loading }) => {
 
 const TransactionItem = ({ transaction }) => {
     const {
-        name,
         payment_method,
         payment_type,
         payment_amount,

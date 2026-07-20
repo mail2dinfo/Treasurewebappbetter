@@ -6,7 +6,7 @@ import { toast, ToastContainer } from "react-toastify";
 import { API_BASE_URL } from '../utils/apiConfig';
 import ReceivableReceitPdf from "./PDF/ReceivableReceitPdf";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { FiDownload, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck, FiAlertCircle, FiPrinter } from 'react-icons/fi';
+import { FiDownload, FiUser, FiPhone, FiCalendar, FiDollarSign, FiX, FiCheck, FiAlertCircle, FiPrinter } from 'react-icons/fi';
 import 'react-toastify/dist/ReactToastify.css';
 
 const PayablePaymentModal = ({ isOpen, onClose, payable, fetchPayables }) => {

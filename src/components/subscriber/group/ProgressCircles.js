@@ -9,7 +9,6 @@ const ProgressCircles = ({ groupDetails, selectedCircle, onCircleClick, auctionS
         totalGroups = 0,
         groupsCompleted = 0,
         totalDue = 0,
-        profit = 0,
         outstandingAdvanceTransactionInfo = [],
         advanceLedgerDetails = {} // New field from backend
     } = groupDetails || {};

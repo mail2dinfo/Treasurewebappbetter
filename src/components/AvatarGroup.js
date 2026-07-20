@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../utils/apiConfig';
+import React from 'react';
 import styled from 'styled-components';
 
 const AvatarGroupContainer = styled.div`

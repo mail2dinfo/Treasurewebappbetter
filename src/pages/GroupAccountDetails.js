@@ -11,8 +11,8 @@ const GroupAccountDetails = () => {
   const { group_id, grpAccountId } = useParams();
   console.log(group_id);
   console.log(grpAccountId);
-  const [isLoading, setIsLoading] = useState(true);
-  const { isLoggedIn, user } = useUserContext();
+  const [, setIsLoading] = useState(true);
+  const { user } = useUserContext();
   const [subscribers, setData] = useState([]); // Initialize data as null
 
 

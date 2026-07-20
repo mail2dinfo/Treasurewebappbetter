@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { GoRepo } from 'react-icons/go';
-import { FiUsers, FiUserPlus, FiArrowLeft } from 'react-icons/fi';
 import { FaMoneyBillWave, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
-import { useHistory } from 'react-router-dom';
 
 const GroupWiseOverallDue = ({ GroupWiseOverallDuedata }) => {
-  const history = useHistory(); // Initialize useHistory
   const [total_supposed_to_pay, setTotal_supposed_to_pay] = useState('');
   const [total_paid_amount, setTotal_paid_amount] = useState('');
   const [total_outstanding_balance, setTotal_outstanding_balance] = useState('');
@@ -80,10 +76,6 @@ const GroupWiseOverallDue = ({ GroupWiseOverallDuedata }) => {
     total_outstanding_balance,
   });
 
-
-  const handleBackButtonClick = () => {
-    history.goBack(); // Use history.goBack() to navigate back
-  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-lg relative">

@@ -76,7 +76,7 @@ const FixedMapPicker = ({ latitude, longitude, onLocationSelect, isOpen, onClose
                     // Create map with fixed size configuration
                     const map = L.map(mapRef.current, {
                         preferCanvas: true, // Use Canvas for better performance
-                        zoomControl: true,
+                        zoomControl: false,
                         attributionControl: false,
                         zoomSnap: 1,
                         zoomDelta: 1,
@@ -95,8 +95,6 @@ const FixedMapPicker = ({ latitude, longitude, onLocationSelect, isOpen, onClose
                         zoomAnimation: false,
                         fadeAnimation: false,
                         markerZoomAnimation: false,
-                        // Fixed size
-                        zoomControl: false
                     }).setView([latitude || 12.9716, longitude || 77.5946], 13);
 
                     // Use a stable tile layer

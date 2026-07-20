@@ -17,8 +17,8 @@ const SubscriberGroupDetails = () => {
     } = useSubscriberContext();
 
     const [selectedCircle, setSelectedCircle] = useState('groups'); // Default to groups (Group Accounts)
-    const [groupSocket, setGroupSocket] = useState(null);
-    const [isGroupConnected, setIsGroupConnected] = useState(false);
+    const [, setGroupSocket] = useState(null);
+    const [, setIsGroupConnected] = useState(false);
     const [auctionStatus, setAuctionStatus] = useState('CLOSED'); // Track auction status
     const [groupAccountId, setGroupAccountId] = useState(null); // Store groupAccountId for auction
 

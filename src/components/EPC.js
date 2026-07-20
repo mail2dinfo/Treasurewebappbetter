@@ -1,41 +1,32 @@
 
 import React, { useState, useEffect } from 'react';
-import { useHistory } from 'react-router-dom';
 import styled from "styled-components";
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
 import loadingImage from '../images/preloader.gif';
-import EmployeeRegionWiseDue from './EmployeeRegionWiseDue'
 import Alert from '../components/Alert';
 
 
 const EmployeeProfilecard = ({ employeeId }) => {
 
-    const history = useHistory();
-
-    const [list, setList] = useState([]);
+    const [list] = useState([]);
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
 
     const [previewImage, setPreviewImage] = useState('https://github.com/OlgaKoplik/CodePen/blob/master/profile.jpg?raw=true');
-    const [altText, setAltText] = useState('');
-    const [error, setError] = useState(null);
+    const [, setError] = useState(null);
 
     const [employeeData, setEmployeeData] = useState(null);
-    const [futureGrpData, setFutureGrpData] = useState(null);
+    const [, setFutureGrpData] = useState(null);
 
 
-    const { isLoggedIn, user } = useUserContext();
+    const { user } = useUserContext();
     const [showModal, setShowModal] = useState(false);
-    const [showDueRegionPopup, setShowDueRegionPopup] = useState(false);
-    const [showModalGroupWise, setShowModalGroupWise] = useState(false);
 
     const [areasOfBusiness, setAreasOfBusiness] = useState([]);
-    const [regionWiseData, setRegionWiseData] = useState([]);
-    const [employeeRegionData, setEmployeeRegionData] = useState([]);
-    const [employeeCollectionRegion, setEmployeeCollectionRegion] = useState([]);
+    const [, setEmployeeRegionData] = useState([]);
+    const [, setEmployeeCollectionRegion] = useState([]);
 
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchRegionQuery, setSearchRegionQuery] = useState('');
 
     const [totAmnt, setTotAmnt] = useState('0');
     const [totCollected, setTotCollected] = useState('0');
@@ -48,16 +39,6 @@ const EmployeeProfilecard = ({ employeeId }) => {
 
 
 
-    const redirectToSubscriberPage = () => {
-
-        // Log the URL before redirection
-        console.log(`Redirecting to: /employee/${employeeId}/areasubscribers`);
-
-        // Redirect to the desired page
-        history.push(`/emp/${employeeId}/areasubscribers`);
-    };
-
-
     //region popup 
     const openModal = () => {
         setShowModal(true);
@@ -66,17 +47,6 @@ const EmployeeProfilecard = ({ employeeId }) => {
     const closeModal = () => {
         setShowModal(false);
         setSearchQuery(''); // Clear search query when closing modal
-    };
-
-    // due region wise pop up 
-    const openDueRegionPopup = () => {
-        setShowDueRegionPopup(true);
-        loadDueRegionWiseData();
-    };
-
-    const closeDueRegionPopup = () => {
-        setShowDueRegionPopup(false);
-        setSearchRegionQuery('');
     };
 
     useEffect(() => {
@@ -111,40 +81,6 @@ const EmployeeProfilecard = ({ employeeId }) => {
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        if (showDueRegionPopup) {
-            loadDueRegionWiseData();
-        }
-    }, [showDueRegionPopup]);
-
-    const loadDueRegionWiseData = async () => {
-        try {
-            setLoading(true);
-            const apiUrl = `${API_BASE_URL}/employee/${employeeId}`;
-
-            const response = await fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${user?.results?.token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch areas of business');
-            }
-            const data = await response.json();
-            console.log(data);
-            setRegionWiseData(data?.results?.employeeRegionWiseResult);
-
-            setLoading(false);
-        } catch (error) {
-            console.error(error);
-            setLoading(false);
-        }
-    };
-
 
     const fetchEmployeeData = async () => {
         try {
@@ -254,20 +190,12 @@ const EmployeeProfilecard = ({ employeeId }) => {
         }
     };
 
-    const handleSearchChange = (event) => {
-        setSearchQuery(event.target.value);
-    };
-
     const handleSearchRegionChange = (event) => {
         setSearchQuery(event.target.value);
     };
 
     const filteredAreasOfBusiness = areasOfBusiness.filter(area =>
         area.aob.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const filteredRegionWiseData = regionWiseData.filter(regionData =>
-        regionData.aob.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const fetchCompanyLogoUrl = async (logoKey) => {
@@ -329,10 +257,6 @@ const EmployeeProfilecard = ({ employeeId }) => {
 
     const showAlert = (show = false, type = '', msg = '') => {
         setAlert({ show, type, msg });
-    };
-    const clearList = () => {
-        showAlert(true, 'danger', 'empty list');
-        // setList([]);
     };
 
     return (<section className='section'>

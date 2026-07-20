@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FiUsers, FiUserPlus, FiUser, FiArrowLeft, FiArrowUp, FiDownload } from 'react-icons/fi';
+import { FiArrowLeft, FiArrowUp, FiDownload } from 'react-icons/fi';
 import { FaMoneyBillWave, FaCheckCircle, FaExclamationCircle, FaPlus, FaMinus } from "react-icons/fa";
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import AuctionWinnerReceiptPdf from '../components/PDF/AuctionWinnerReceiptPdf';

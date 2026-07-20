@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
-import { FiPlus, FiDollarSign, FiUser, FiCalendar, FiTrendingUp, FiTrendingDown, FiEye, FiX, FiDownload } from 'react-icons/fi';
+import { useLocation } from 'react-router-dom';
+import { FiPlus, FiDollarSign, FiEye, FiX, FiDownload } from 'react-icons/fi';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { useVehicleFinanceContext } from '../../context/vehicleFinance/VehicleFinanceContext';
 import { useUserContext } from '../../context/user_context';
@@ -12,7 +12,6 @@ import VehicleFinanceListPDF from '../../components/vehicleFinance/PDF/VehicleFi
 import { useVfPermission } from '../../components/vehicleFinance/useVfPermission';
 
 const VehicleFinanceLoansPage = () => {
-    const history = useHistory();
     const location = useLocation();
     const { loans, fetchLoans, isLoading, error, companies, fetchCompanies } = useVehicleFinanceContext();
     const { user } = useUserContext();

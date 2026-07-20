@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useHistory, useLocation } from 'react-router-dom';
-import styled from 'styled-components';
 import { API_BASE_URL } from '../utils/apiConfig';
 import loadingImage from '../images/preloader.gif';
 import { useUserContext } from '../context/user_context';
@@ -18,7 +17,7 @@ import SimpleLocationPicker from '../components/SimpleLocationPicker';
 import "../style/SubscriberProfile.css";
 
 const SubscriberProfile = () => {
-  const { user, userRole } = useUserContext();
+  const { user } = useUserContext();
   const platform = usePlatformAccess();
   const enforceSubscriberAccess = platform?.isAvailable && !platform.isOwner;
   const canChangeSubscriberPassword = !enforceSubscriberAccess
@@ -34,7 +33,7 @@ const SubscriberProfile = () => {
 
   const { id: subscriberId } = useParams();
   const [loading, setLoading] = useState(false);
-  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [, setPdfGenerating] = useState(false);
   const [subscriberData, setSubscriberData] = useState(formatSubscriberData({}));
   const [areasOfBusiness, setAreasOfBusiness] = useState([]);
   const [editState, setEditState] = useState({
@@ -53,7 +52,7 @@ const SubscriberProfile = () => {
   const userCompany = user?.results?.userCompany;
 
   //show Alert button
-  const [list, setList] = useState([]);
+  const [list] = useState([]);
   const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
 
   const showAlert = (show = false, type = '', msg = '') => {

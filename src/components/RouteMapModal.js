@@ -12,7 +12,7 @@ const RouteMapModal = ({ isOpen, onClose, subscriberData }) => {
     const [mapLoaded, setMapLoaded] = useState(false);
     const [error, setError] = useState(null);
     const [selectedMapType, setSelectedMapType] = useState(null); // null means show choice
-    const [isLoading, setIsLoading] = useState(false);
+    const [, setIsLoading] = useState(false);
     const isMountedRef = useRef(true);
     const timeoutRef = useRef(null);
 
@@ -116,7 +116,7 @@ const RouteMapModal = ({ isOpen, onClose, subscriberData }) => {
                     // Initialize map with working configuration from FixedMapPicker
                     const map = L.map(mapRef.current, {
                         preferCanvas: true,
-                        zoomControl: true,
+                        zoomControl: false,
                         attributionControl: false,
                         zoomSnap: 1,
                         zoomDelta: 1,
@@ -134,7 +134,6 @@ const RouteMapModal = ({ isOpen, onClose, subscriberData }) => {
                         zoomAnimation: false,
                         fadeAnimation: false,
                         markerZoomAnimation: false,
-                        zoomControl: false
                     }).setView([currentLocation.lat, currentLocation.lng], 13);
 
                     // Use stable tile layer
@@ -222,7 +221,7 @@ const RouteMapModal = ({ isOpen, onClose, subscriberData }) => {
                     `);
 
                     // Draw a line between current location and subscriber
-                    const polyline = L.polyline(
+                    L.polyline(
                         [
                             [currentLocation.lat, currentLocation.lng],
                             [subscriberData.latitude, subscriberData.longitude]

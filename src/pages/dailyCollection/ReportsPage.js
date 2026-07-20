@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDailyCollectionContext } from '../../context/dailyCollection/DailyCollectionContext';
 import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
-import { exportToCSV, exportToJSON, formatDate, generateReportFilename, printToPDF } from '../../utils/exportUtils';
+import { exportToCSV } from '../../utils/exportUtils';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import Mypdf from '../../components/PDF/Mypdf';
 import ErrorBoundary from '../../components/ErrorBoundary';
@@ -29,28 +29,12 @@ import {
     FiPieChart,
     FiRefreshCw,
     FiEye,
-    FiPrinter,
-    FiSearch,
-    FiChevronDown,
     FiX
 } from 'react-icons/fi';
 
 const ReportsPage = () => {
     const { user } = useUserContext();
-    const { companies, products, loans } = useDailyCollectionContext();
-
-    // Custom formatCurrency for PDF (without Unicode rupee symbol)
-    const formatCurrencyForPDF = (amount) => {
-        if (!amount && amount !== 0) return 'Rs. 0';
-        // Use Rs. instead of ₹ for PDF compatibility
-        const num = Number(amount);
-        const formatted = num.toLocaleString('en-IN', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-        });
-        const result = `Rs. ${formatted}`;
-        return result;
-    };
+    const { companies, loans } = useDailyCollectionContext();
 
     const [reports, setReports] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -456,190 +440,6 @@ const ReportsPage = () => {
         } finally {
             setIsLoading(false);
         }
-    };
-
-    // Get company data for PDF (using actual daily collection company data from database)
-    const getCompanyData = () => {
-        const dailyCollectionCompany = companies?.[0];
-        const chitFundCompany = user?.results?.userCompany?.[0];
-
-        console.log('=== GET COMPANY DATA DEBUG ===');
-        console.log('Daily Collection Companies:', companies);
-        console.log('Selected Company:', dailyCollectionCompany);
-        console.log('Company Logo (base64):', dailyCollectionCompany?.company_logo ? 'Present' : 'Missing');
-        console.log('Company Logo (S3):', dailyCollectionCompany?.company_logo_s3_image ? 'Present' : 'Missing');
-        console.log('Chit Fund Company:', chitFundCompany);
-
-        // Use daily collection company data first, then fallback to chit fund company
-        if (dailyCollectionCompany) {
-            const companyData = {
-                // Daily collection specific fields (from database)
-                company_name: dailyCollectionCompany.company_name,
-                company_logo: dailyCollectionCompany.company_logo, // Use base64 format
-                contact_no: dailyCollectionCompany.contact_no,
-                address: dailyCollectionCompany.address,
-                // Map to PDF header format for compatibility
-                name: dailyCollectionCompany.company_name,
-                phone: dailyCollectionCompany.contact_no,
-                street_address: dailyCollectionCompany.address,
-                city: '',
-                state: '',
-                zipcode: '',
-                country: '',
-                email: '',
-                registration_no: '',
-                company_since: ''
-            };
-            console.log('Using Daily Collection Company Data:', companyData);
-            return companyData;
-        } else if (chitFundCompany) {
-            console.log('Using Chit Fund Company Data:', chitFundCompany);
-            return chitFundCompany;
-        } else {
-            console.log('Using Default Company Data');
-            return {
-                company_name: 'Daily Collection Company',
-                name: 'Daily Collection Company',
-                address: 'Company Address',
-                contact_no: 'N/A',
-                phone: 'N/A'
-            };
-        }
-    };
-
-    // Format data for PDF based on report type
-    const formatDataForPDF = (data, reportType) => {
-        console.log('=== FORMAT DATA FOR PDF DEBUG ===');
-        console.log('Report Type:', reportType);
-        console.log('Data:', data);
-        console.log('Data type:', typeof data);
-        console.log('Data keys:', Object.keys(data || {}));
-
-        if (reportType === 'loan-summary') {
-            // Return loan details for PDF table, not just summary metrics
-            if (data.loans && Array.isArray(data.loans) && data.loans.length > 0) {
-                const loanDetails = data.loans.map(loan => ({
-                    customerName: loan.customerName || loan.customer_name || 'N/A',
-                    customerPhone: loan.customerPhone || loan.customer_phone || 'N/A',
-                    productName: loan.productName || loan.product_name || 'N/A',
-                    principalAmount: formatCurrencyForPDF(loan.principalAmount || loan.principal_amount || 0),
-                    cashInHand: formatCurrencyForPDF(loan.cashInHand || loan.cash_in_hand || 0),
-                    collectedAmount: formatCurrencyForPDF(loan.collectedAmount || loan.collected_amount || 0),
-                    outstanding: formatCurrencyForPDF(loan.closingBalance || loan.closing_balance || 0),
-                    status: loan.status || 'N/A',
-                    disbursementDate: loan.disbursementDate || loan.disbursement_date || 'N/A'
-                }));
-                console.log('Formatted loan-summary data (loan details):', loanDetails);
-                return loanDetails;
-            } else {
-                // Fallback to summary if no loans
-                const formattedData = [
-                    { metric: 'Total Loans', value: data.totalLoans || 0 },
-                    { metric: 'Active Loans', value: data.activeLoans || 0 },
-                    { metric: 'Completed Loans', value: data.completedLoans || 0 },
-                    { metric: 'Overdue Loans', value: data.overdueLoans || 0 },
-                    { metric: 'Total Disbursed', value: formatCurrencyForPDF(data.totalDisbursed || 0) },
-                    { metric: 'Total Collected', value: formatCurrencyForPDF(data.totalCollected || 0) }
-                ];
-                console.log('Formatted loan-summary data (summary fallback):', formattedData);
-                return formattedData;
-            }
-        } else if (reportType === 'demand-report' && data.receivables) {
-            return data.receivables.map(rec => ({
-                customerName: rec.customerName || '',
-                customerPhone: rec.customerPhone || '',
-                productName: rec.productName || '',
-                dueAmount: formatCurrencyForPDF(rec.dueAmount || 0),
-                openingBalance: formatCurrencyForPDF(rec.openingBalance || 0),
-                closingBalance: formatCurrencyForPDF(rec.closingBalance || 0)
-            }));
-        } else if (reportType === 'outstanding-report' && data.customers) {
-            // Flatten customer data with loan details for PDF
-            const flattenedData = [];
-            data.customers.forEach(customer => {
-                if (customer.loans && customer.loans.length > 0) {
-                    // Add a row for each loan
-                    customer.loans.forEach(loan => {
-                        flattenedData.push({
-                            customerName: customer.customerName || '',
-                            customerPhone: customer.customerPhone || '',
-                            productName: loan.productName || 'N/A',
-                            principalAmount: formatCurrencyForPDF(loan.principalAmount || 0),
-                            outstandingAmount: formatCurrencyForPDF(loan.outstandingAmount || 0),
-                            futureDue: formatCurrencyForPDF(loan.futureDue || 0),
-                            remainingInstallments: loan.remainingInstallments || 0,
-                            totalOutstanding: formatCurrencyForPDF(customer.totalOutstanding || 0),
-                            totalFutureDue: formatCurrencyForPDF(customer.totalFutureDue || 0)
-                        });
-                    });
-                } else {
-                    // If no loans, still add customer summary
-                    flattenedData.push({
-                        customerName: customer.customerName || '',
-                        customerPhone: customer.customerPhone || '',
-                        productName: 'N/A',
-                        principalAmount: 'N/A',
-                        outstandingAmount: formatCurrencyForPDF(customer.totalOutstanding || 0),
-                        futureDue: formatCurrencyForPDF(customer.totalFutureDue || 0),
-                        remainingInstallments: 0,
-                        totalOutstanding: formatCurrencyForPDF(customer.totalOutstanding || 0),
-                        totalFutureDue: formatCurrencyForPDF(customer.totalFutureDue || 0)
-                    });
-                }
-            });
-            return flattenedData;
-        } else if (reportType === 'overdue-report' && data.loans) {
-            return data.loans.map(loan => ({
-                customerName: loan.customerName || '',
-                customerPhone: loan.customerPhone || '',
-                productName: loan.productName || '',
-                principalAmount: formatCurrencyForPDF(loan.principalAmount || 0),
-                overdueAmount: formatCurrencyForPDF(loan.overdueAmount || 0),
-                overdueDays: loan.overdueDays || 0,
-                lastPaymentDate: loan.lastPaymentDate || 'N/A'
-            }));
-        }
-        return [];
-    };
-
-    // Get table headers based on report type
-    const getTableHeaders = (reportType) => {
-        if (reportType === 'loan-summary') {
-            return [
-                { title: 'Metric', value: 'metric' },
-                { title: 'Value', value: 'value' }
-            ];
-        } else if (reportType === 'demand-report') {
-            return [
-                { title: 'Customer', value: 'customerName' },
-                { title: 'Phone', value: 'customerPhone' },
-                { title: 'Product', value: 'productName' },
-                { title: 'Due Amount', value: 'dueAmount' },
-                { title: 'Opening Balance', value: 'openingBalance' },
-                { title: 'Closing Balance', value: 'closingBalance' }
-            ];
-        } else if (reportType === 'outstanding-report') {
-            return [
-                { title: 'Customer', value: 'customerName' },
-                { title: 'Phone', value: 'customerPhone' },
-                { title: 'Product', value: 'productName' },
-                { title: 'Principal Amount', value: 'principalAmount' },
-                { title: 'Outstanding', value: 'outstandingAmount' },
-                { title: 'Future Due', value: 'futureDue' },
-                { title: 'Remaining Installments', value: 'remainingInstallments' }
-            ];
-        } else if (reportType === 'overdue-report') {
-            return [
-                { title: 'Customer', value: 'customerName' },
-                { title: 'Phone', value: 'customerPhone' },
-                { title: 'Product', value: 'productName' },
-                { title: 'Principal Amount', value: 'principalAmount' },
-                { title: 'Overdue Amount', value: 'overdueAmount' },
-                { title: 'Overdue Days', value: 'overdueDays' },
-                { title: 'Last Payment', value: 'lastPaymentDate' }
-            ];
-        }
-        return [];
     };
 
     const handleFilterChange = (key, value) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import GroupAccountList from './GroupAccountList';
-import { ArrowUp, Database, FileText } from 'lucide-react';
+import { ArrowUp, Database } from 'lucide-react';
 
 const GroupsAccounts = ({ groupTransactionInfo, type }) => {
   //console.log(groupTransactionInfo);

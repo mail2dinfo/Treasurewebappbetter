@@ -13,10 +13,9 @@ const formatDate = (dateString) => {
 const GroupAccountWiseDataList = ({ items }) => {
     const { user } = useUserContext();
     const [pdfData, setPdfData] = useState(null);
-    const [previewImageUrl, setPreviewImageUrl] = useState('');
+    const [previewImageUrl] = useState('');
     const userCompany = user?.results?.userCompany;
     const [companyName, setCompanyName] = useState(null);
-    const [previewImage, setPreviewImage] = useState('https://github.com/OlgaKoplik/CodePen/blob/master/profile.jpg?raw=true');
 
     const generateFileName = () => {
         const today = new Date();

@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useDailyCollectionContext } from '../../context/dailyCollection/DailyCollectionContext';
 import { useDcSubscriberContext } from '../../context/dailyCollection/DcSubscriberContext';
-import { useUserContext } from '../../context/user_context';
 import LoanDisbursementForm from '../../components/dailyCollection/LoanDisbursementForm';
 import LoanDetails from '../../components/dailyCollection/LoanDetails';
-import { FiPlus, FiEye, FiDollarSign, FiCalendar, FiUser, FiCheckCircle, FiClock, FiDownload, FiImage, FiX, FiFilter, FiSearch } from 'react-icons/fi';
-import { API_BASE_URL } from '../../utils/apiConfig';
+import { FiPlus, FiEye, FiDollarSign, FiCalendar, FiCheckCircle, FiClock, FiImage, FiX, FiFilter, FiSearch } from 'react-icons/fi';
 
 const LoansPage = () => {
     const { loans, products, isLoading, error, fetchLoans, fetchProducts, clearError } = useDailyCollectionContext();
     const { subscribers: dcSubscribers, fetchSubscribers } = useDcSubscriberContext();
-    const { user } = useUserContext();
 
     const [activeTab, setActiveTab] = useState('ACTIVE');
     const [showLoanForm, setShowLoanForm] = useState(false);

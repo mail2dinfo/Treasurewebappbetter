@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useUserContext } from '../context/user_context';
 import { useLedgerAccountContext } from "../context/ledgerAccount_context";
@@ -18,7 +18,7 @@ function LoginModal({ isOpen, onClose }) {
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [list, setList] = useState([]);
+    const [list] = useState([]);
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
     const [showSuccess, setShowSuccess] = useState(false);
     const [userObjectFromAPI, setUserObjectFromAPI] = useState(null);

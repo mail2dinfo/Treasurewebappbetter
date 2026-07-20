@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDcLedgerContext } from '../../context/dailyCollection/dcLedgerContext';
 import DayBookTab from './DayBookTab';
-import { FiPlus, FiDollarSign, FiTrendingUp, FiTrendingDown, FiCalendar, FiFilter, FiRefreshCw, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiPlus, FiDollarSign, FiTrendingUp, FiCalendar, FiRefreshCw } from 'react-icons/fi';
 
 const DcLedgerPage = () => {
     const {

@@ -20,7 +20,6 @@ const AddAdvanceModal = ({ isOpen, onClose }) => {
         groupSubscribers,
         fetchAllGroups,
         fetchGroupById,
-        isLoading: isLoadingGroups
     } = useCollectorGroups();
 
     const today = new Date().toISOString().split('T')[0];
@@ -179,7 +178,6 @@ const AddAdvanceModal = ({ isOpen, onClose }) => {
 
         // Get collector's userId
         const collectorUserId = user?.userId || user?.id;
-        const collectorFullName = `${user?.firstname || ''} ${user?.lastname || ''}`.trim();
 
         // Create entries array (only subscribers with amount > 0)
         const entries = selectedSubscriberIds

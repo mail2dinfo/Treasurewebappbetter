@@ -130,7 +130,6 @@
 
 
 import React from 'react';
-import styled from 'styled-components';
 import '../style/DashboardAreaWiseAccounts.css';
 import DashboardAreaWiseAccountsList from './DashboardAreaWiseAccountsList'
 import { useDashboardContext } from '../context/dashboard_context';

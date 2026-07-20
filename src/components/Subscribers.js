@@ -167,7 +167,7 @@ const Subscribers = ({
   canAddSubscriber = true,
 }) => {
   const history = useHistory();
-  const { companySubscribers, isLoading, error } = useCompanySubscriberContext();
+  const { companySubscribers, isLoading } = useCompanySubscriberContext();
 
   const { user } = useUserContext();
 

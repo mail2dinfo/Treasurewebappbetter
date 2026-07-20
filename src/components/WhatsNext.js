@@ -20,12 +20,6 @@ const Content = styled.div`
     align-items: center;
 `;
 
-const Image = styled.img`
-    width: 100px; /* Adjust image size as needed */
-    height: auto;
-    margin-right: 20px;
-`;
-
 const Description = styled.div` /* Change from p to div */
     font-size: 16px;
     color: #555;

@@ -1,8 +1,4 @@
 import React from 'react';
-import { FaEdit, FaTrash } from 'react-icons/fa';
-import { Link } from 'react-router-dom'; // Import Link
-
-
 
 const EmployeeRegionWiseDuelist = ({ items, removeItem, editItem, closeItem }) => {
     console.log('Mani- items ');

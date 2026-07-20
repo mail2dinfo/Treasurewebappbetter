@@ -4,11 +4,7 @@ import {
   FaHome,
   FaPlay,
   FaQuestionCircle,
-  FaInfoCircle,
-  FaUser,
-  FaSignOutAlt,
-  FaSignInAlt,
-  FaUserPlus
+  FaInfoCircle
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { links } from '../utils/constants';
@@ -25,7 +21,7 @@ import FinanceHubNavButton from './FinanceHubNavButton';
 
 const Nav = () => {
   const [scrolled, setScrolled] = useState(false);
-  const { isLoggedIn, isSidebarOpen, openSidebar, closeSidebar, userRole } = useUserContext();
+  const { isLoggedIn, openSidebar, userRole } = useUserContext();
   const { subscription, payments, billingPath } = useBilling();
 
   useEffect(() => {

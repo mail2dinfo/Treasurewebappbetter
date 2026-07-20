@@ -6,13 +6,13 @@ import { useUserContext } from "../context/user_context";
 
 const RecevableReceiptList = ({ subscribers, refreshSubscribers }) => {
     const [signedUrls, setSignedUrls] = useState({});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [, setLoading] = useState(true);
+    const [, setError] = useState(null);
 
     const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [list, setList] = useState([]);
-    const { isLoggedIn, user } = useUserContext();
+    const [, setIsLoading] = useState(false);
+    const [list] = useState([]);
+    const { user } = useUserContext();
     const [alert, setAlert] = useState({ show: false, msg: "", type: "" });
     const [selectedSubscriber, setSelectedSubscriber] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState(null);
@@ -24,7 +24,6 @@ const RecevableReceiptList = ({ subscribers, refreshSubscribers }) => {
         const fetchSignedUrls = async () => {
             setLoading(true);
             setError(null);
-            const urls = {};
 
             try {
                 if (Array.isArray(subscribers)) {
@@ -123,10 +122,6 @@ const RecevableReceiptList = ({ subscribers, refreshSubscribers }) => {
 
     const handlePartialAmountChange = (e) => {
         setPartialAmount(e.target.value);
-    };
-
-    const handlePaymentMethodChange = (e) => {
-        setPaymentMethod(e.target.value);
     };
 
     const handlePayment = async (subscriber, e) => {
@@ -246,7 +241,7 @@ const RecevableReceiptList = ({ subscribers, refreshSubscribers }) => {
     return (
         <>
             {subscribers.map((subscriber) => {
-                const { subscriber_id, name, receivable_amount, payment_status, id, user_image, receivableid,outstanding_balance } = subscriber;
+                const { name, payment_status, receivableid, outstanding_balance } = subscriber;
 
                 // Conditionally apply a CSS class based on payment_status
                 const buttonClassName = payment_status === "Success" ? "paid-button" : "due-button"; // Add 'due-button' class for 'Due'

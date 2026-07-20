@@ -7,7 +7,7 @@ import {
 import ReceivableConfirmPanel, { ReceivableLiveBalancePanel } from "../ReceivableConfirmPanel";
 import ReceivableReceitPdf from "../PDF/ReceivableReceitPdf";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck, FiAlertCircle, FiPrinter, FiDownload } from 'react-icons/fi';
+import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiX, FiCheck, FiAlertCircle, FiPrinter, FiDownload } from 'react-icons/fi';
 import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import 'react-toastify/dist/ReactToastify.css';
@@ -162,10 +162,6 @@ const CollectorPaymentModal = ({
         group_name,
         auct_date,
         user_image_from_s3,
-        rbtotal,
-        rbpaid,
-        rbdue,
-        total_wallet_balance
     } = currentReceivable;
 
     const formatCurrency = (amt) => `₹${Number(amt).toLocaleString("en-IN")}`;

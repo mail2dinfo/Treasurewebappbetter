@@ -17,7 +17,6 @@ const EmployeeList = ({ items, removeItem, editItem, toggleList }) => {
         const fetchSignedUrls = async () => {
             setLoading(true);
             setError(null);
-            const urls = {};
 
             try {
                 if (Array.isArray(items)) {
@@ -119,7 +118,7 @@ const EmployeeList = ({ items, removeItem, editItem, toggleList }) => {
             <div className='employer-list'>
 
                 {items?.map((item) => {
-                    const { id, user_image, name, phone, country, country_code, role, roleid } = item;
+                    const { id, user_image, name, phone, role, roleid } = item;
 
                     return (
 

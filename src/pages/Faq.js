@@ -4,7 +4,7 @@ import SingleQuestion from '../components/Question';
 import { FaQuestionCircle, FaSearch } from 'react-icons/fa';
 
 const Faq = () => {
-  const [questions, setQuestions] = useState(data);
+  const [questions] = useState(data);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredQuestions, setFilteredQuestions] = useState(questions);
 

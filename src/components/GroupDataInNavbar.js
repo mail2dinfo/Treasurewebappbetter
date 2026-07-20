@@ -1,6 +1,5 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { useHistory } from 'react-router-dom'; // Import useHistory
-import AppContext from '../pages/MultiStepGroupCreation/Context'
 
 const GroupDataInNavbar = () => {
     // const { groupDetails } = useContext(AppContext);

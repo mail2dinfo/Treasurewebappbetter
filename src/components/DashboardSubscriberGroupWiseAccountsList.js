@@ -224,7 +224,6 @@ import React, { useState, useEffect } from 'react';
 import { FiDownload } from 'react-icons/fi';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import Mypdf from '../components/PDF/Mypdf';
-import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
 import '../style/DashboardSubscriberGroupWiseAccounts.css';
 

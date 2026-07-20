@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useGroupDetailsContext } from '../context/group_context';
 import BidSubscriberList from './BidSubscriberList'
 import Modal from './Modal';
@@ -61,7 +61,6 @@ import "../style/GroupSubscriberDetailsPopup.css";
 const GroupSubscriberDetailsPopup = ({ onClose, onCloseRightSide }) => {
     const { data } = useGroupDetailsContext();
 
-    const groups = data?.results?.groups;
     const people = data?.results?.groupSubcriberResult || [];
 
     const [filteredCount, setFilteredCount] = useState(0);

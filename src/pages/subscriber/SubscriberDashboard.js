@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSubscriberContext } from '../../context/subscriber/SubscriberContext';
 import GroupProgressCards from '../../components/subscriber/dashboard/GroupProgressCards';
 import GroupList from '../../components/subscriber/dashboard/GroupList';
@@ -7,7 +7,6 @@ import RecentTransactions from '../../components/subscriber/dashboard/RecentTran
 
 const SubscriberDashboard = () => {
     const {
-        user,
         groupDashboard,
         transactionDashboard,
         fetchGroupDashboard,

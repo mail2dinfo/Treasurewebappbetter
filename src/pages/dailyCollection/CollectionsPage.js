@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useDailyCollectionContext } from '../../context/dailyCollection/DailyCollectionContext';
 import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
-import { FiFilter, FiMapPin, FiDollarSign, FiCalendar, FiUser, FiSearch, FiRefreshCw, FiCheckCircle, FiClock, FiAlertCircle, FiDownload } from 'react-icons/fi';
+import { FiFilter, FiMapPin, FiUser, FiSearch, FiRefreshCw, FiAlertCircle, FiDownload } from 'react-icons/fi';
 import RouteMapModal from '../../components/RouteMapModal';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import CollectionsReportPDF from '../../components/dailyCollection/PDF/CollectionsReportPDF';
@@ -298,7 +297,6 @@ const CollectionsPage = () => {
                 // Show success message with payment details
                 const paymentType = result.results?.paymentType;
                 const remainingAmount = result.results?.remainingAmount;
-                const nextDueUpdated = result.results?.nextDueUpdated;
 
                 if (paymentType === 'partial' && remainingAmount > 0) {
                     alert(`Partial payment collected! Remaining amount: ₹${remainingAmount.toLocaleString("en-IN")} has been added to the next due amount.`);

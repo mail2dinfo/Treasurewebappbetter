@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useBilling } from '../context/billing_context';
 import { useUserContext } from '../context/user_context';
-import { API_BASE_URL, MANUAL_CRON_ENABLED } from '../utils/apiConfig';
+import { MANUAL_CRON_ENABLED } from '../utils/apiConfig';
 import { getPlanCatalogPrice } from '../utils/billingPlans';
 import {
     formatBillingAmount,
@@ -29,7 +29,6 @@ const MyBillingPage = () => {
         fetchCurrentSubscription,
         fetchPaymentHistory,
         fetchAvailablePlans,
-        changePlan,
         changeBillingCycle,
         recordPayment,
         payCycleBill,
@@ -120,15 +119,6 @@ const MyBillingPage = () => {
         }
 
         return nextDate.toISOString().split('T')[0];
-    };
-
-    // Function to generate overdue cycles (simplified without grace period)
-    const generateOverdueCycles = (subscription, payments) => {
-        if (!subscription || !payments) return [];
-
-        // For now, return empty array - overdue cycles should be created by backend
-        // This function can be enhanced later if needed for frontend-generated cycles
-        return [];
     };
 
     // Function to validate billing cycle dates

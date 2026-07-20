@@ -5,7 +5,7 @@ import Alert from './Alert';
 import "../style/AddAccountModal.css";
 
 const AddAccountModal = ({ onClose, onSuccess }) => {
-  const { user, userRole } = useUserContext();
+  const { user } = useUserContext();
   const { addLedgerAccount } = useLedgerAccountContext();  // Get addLedgerAccount from context
 
   const [accountName, setAccountName] = useState("");

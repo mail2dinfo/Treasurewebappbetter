@@ -6,7 +6,6 @@ const AdvanceModal = ({ isOpen, onClose, advanceData }) => {
     const {
         total_collection_credit = 0,
         total_advance_credit = 0,
-        total_withdrawal_debit = 0,
         total_credit = 0,
         total_debit = 0,
         total_balance = 0,

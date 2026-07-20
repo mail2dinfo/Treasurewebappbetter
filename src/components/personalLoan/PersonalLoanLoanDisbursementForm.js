@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { FiX, FiUser, FiDollarSign, FiCalendar, FiPercent, FiInfo } from 'react-icons/fi';
 import { usePersonalLoanContext } from '../../context/personalLoan/PersonalLoanContext';
-import { useUserContext } from '../../context/user_context';
 
 const PersonalLoanLoanDisbursementForm = ({ onClose, onSuccess }) => {
     const { subscribers, disburseLoan, fetchSubscribers, ledgerAccounts, fetchLedgerAccounts } = usePersonalLoanContext();
-    const { user } = useUserContext();
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState({});
 

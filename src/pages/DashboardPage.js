@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DashboardMasterInfo, DashboardGroups, DashboardAreaWiseGroups } from '../components';
-import { useHistory, useParams } from 'react-router-dom';
+import { DashboardMasterInfo, DashboardAreaWiseGroups } from '../components';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
 import { useDashboardContext } from '../context/dashboard_context';
@@ -17,7 +16,6 @@ const DashboardPage = () => {
 
 
     const [isLoading, setIsLoading] = useState(true); // Define isLoading state
-    const [data, setData] = useState(null); // Define data state
 
     useEffect(() => {
         const fetchDashboardDetails = async () => {

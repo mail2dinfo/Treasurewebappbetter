@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../utils/apiConfig';
-import { MdOutlineAttachMoney, MdLocationOn, MdLink, MdDataObject, MdTimeline, MdTimeToLeave } from "react-icons/md";
+import { MdOutlineAttachMoney, MdLocationOn, MdTimeline, MdTimeToLeave } from "react-icons/md";
 import Modal from "./Modal";
 import { useUserContext } from "../context/user_context";
 import Alert from '../components/Alert';
 import loadingImage from '../images/preloader.gif';
 
 const AreaSubscriberList = ({ people, empRegion, onFilteredCount, refreshDueSubscribers }) => {
-    const [paymentSuccess, setPaymentSuccess] = useState(false);
-    const [list, setList] = useState([]);
+    const [, setPaymentSuccess] = useState(false);
+    const [list] = useState([]);
     const [isPaymentSuccess, setIsPaymentSuccess] = useState(false);
     const [alert, setAlert] = useState({ show: false, msg: "", type: "" });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSubscriber, setSelectedSubscriber] = useState(null);
-    const { isLoggedIn, user } = useUserContext();
+    const { user } = useUserContext();
     const [signedUrls, setSignedUrls] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -110,13 +110,6 @@ const AreaSubscriberList = ({ people, empRegion, onFilteredCount, refreshDueSubs
     };
     const showAlert = (show = false, type = "", msg = "") => {
         setAlert({ show, type, msg });
-    };
-
-    const handleSubmitPayment = () => {
-        // Logic to handle payment submission (e.g., API call)
-        // You can access selectedSubscriber, paymentType, and partialAmount here
-        // Reset payment-related state variables after handling payment
-        handleCloseModal();
     };
 
     const handleSearchChange = (e) => {
@@ -351,10 +344,6 @@ const AreaSubscriberList = ({ people, empRegion, onFilteredCount, refreshDueSubs
             {filteredPeople.map((person, index) => {
                 const { username, phone, user_image, receivable_amount,
                     received_amount,
-                    group_id,
-                    subsriber_id,
-                    group_subscriber_id,
-                    group_account_id,
                     auct_date, group_name, unique_id, outstanding_balance,
                     advance_balance } = person;
                 return (

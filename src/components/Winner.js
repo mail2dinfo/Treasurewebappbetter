@@ -11,8 +11,7 @@ const Winner = ({ location }) => {
         ? '/chit-fund/manager'
         : '/chit-fund/user';
     const [previewImage, setPreviewImage] = useState('https://github.com/OlgaKoplik/CodePen/blob/master/profile.jpg?raw=true');
-    const [error, setError] = useState(null);
-    const [altText, setAltText] = useState('');
+    const [, setError] = useState(null);
     const [confettiActive, setConfettiActive] = useState(true);
 
     // Get winningSub from location state or use fallback

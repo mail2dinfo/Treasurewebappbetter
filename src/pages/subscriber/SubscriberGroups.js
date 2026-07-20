@@ -5,7 +5,6 @@ import GroupList from '../../components/subscriber/dashboard/GroupList';
 
 const SubscriberGroups = () => {
     const {
-        user,
         groupDashboard,
         fetchGroupDashboard,
         loading

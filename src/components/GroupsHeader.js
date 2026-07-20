@@ -10,7 +10,7 @@ const GroupsHeader = ({ data }) => {
     }
 
     // Destructure data.results
-    const { groupName, groupProgress, amount, auctionMode, commisionType, commissionAmount, type, nextAuctionDate, startTime, endTime
+    const { groupName, amount, commisionType, commissionAmount, type, nextAuctionDate
     } = data.results;
 
     return (

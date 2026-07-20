@@ -51,12 +51,6 @@ const LedgerPage = () => {
     fetchLedgerEntries(filters);
   }, [filters]);
 
-  const handleAddEntry = (newEntry) => {
-    const entryWithAccount = { ...newEntry, account_name: selectedAccount.account_name };
-    setEntries(prev => [...prev, entryWithAccount]);
-    setShowModal(false);
-  };
-
   const handleAddAccount = (newAccount) => {
     setAccounts(prev => [...prev, newAccount]);
     setShowAccountModal(false);

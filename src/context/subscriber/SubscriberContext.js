@@ -184,34 +184,6 @@ export const SubscriberProvider = ({ children }) => {
         }
     };
 
-    const fetchAuctionDetails = async (groupAccountId) => {
-        if (!user?.token) return;
-
-        setLoading(true);
-        try {
-            const response = await fetch(`${API_BASE_URL}/subscribers/auction-details/${groupAccountId}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${user.token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const data = await response.json();
-
-            if (data.error === false) {
-                return data.results;
-            } else {
-                throw new Error(data.message || 'Failed to fetch auction details');
-            }
-        } catch (error) {
-            console.error('Error fetching auction details:', error);
-            throw error;
-        } finally {
-            setLoading(false);
-        }
-    };
-
     // Check authentication on app load
     useEffect(() => {
         const token = localStorage.getItem('subscriber_token');

@@ -1,7 +1,5 @@
 import React from 'react';
-import { FaEdit, FaTrash } from 'react-icons/fa';
-import { Link } from 'react-router-dom';
-import { Calendar, DollarSign, TrendingUp, Award, Users, Hash, Clock, Wallet, Target, Gift } from 'lucide-react';
+import { Calendar, DollarSign, TrendingUp, Award, Hash, Wallet, Gift } from 'lucide-react';
 
 const formatDate = (dateString) => {
     console.log('formatDate');
@@ -55,7 +53,7 @@ const GroupAccountList = ({ items, removeItem, editItem, type }) => {
             </div>
             <div className="bg-white border border-gray-200 rounded-b-lg">
                 {items?.map((item, index) => {
-                    const { grpAccountId, group_id, auctionDate, auctionAmount, commision, profit, customerDue, auctionStatus, prizeMoney, sno } = item;
+                    const { auctionDate, auctionAmount, commision, profit, customerDue, auctionStatus, prizeMoney, sno } = item;
                     const formattedAuctionDate = formatDate(auctionDate);
 
                     return (
@@ -122,8 +120,6 @@ const GroupAccountList = ({ items, removeItem, editItem, type }) => {
                 <div className="bg-white border border-gray-200 rounded-b-lg">
                     {items?.map((item, index) => {
                         const {
-                            grpAccountId,
-                            group_id,
                             auctionDate,
                             auctionAmount,
                             commision,
@@ -185,8 +181,6 @@ const GroupAccountList = ({ items, removeItem, editItem, type }) => {
                 <div className="bg-white border border-gray-200 rounded-b-lg">
                     {items?.map((item, index) => {
                         const {
-                            grpAccountId,
-                            group_id,
                             auctionDate,
                             auctionAmount,
                             commision,

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useSubscriberContext } from '../../context/subscriber/SubscriberContext';
-import { useLanguage } from '../../context/language_context';
 import { useHistory } from 'react-router-dom';
 import { FiUser } from 'react-icons/fi';
 

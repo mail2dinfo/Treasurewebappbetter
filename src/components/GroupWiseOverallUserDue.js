@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { GoRepo } from 'react-icons/go';
 import { FiUsers, FiUserPlus } from 'react-icons/fi';
-import { BrowserRouter as Router, Route, Link, useHistory, useParams } from 'react-router-dom';
+import { useHistory } from 'react-router-dom';
 
 
 
 const GroupWiseOverallUserDue = ({ GroupWiseOverallUserDuedata }) => {
   const history = useHistory();
-  const { groupId } = useParams();
   const [total_supposed_to_pay, setTotal_supposed_to_pay] = useState('');
   const [total_paid_amount, setTotal_paid_amount] = useState('');
   const [total_outstanding_balance, setTotal_outstanding_balance] = useState('');
@@ -50,14 +49,6 @@ const GroupWiseOverallUserDue = ({ GroupWiseOverallUserDuedata }) => {
       }
     }
   }, [GroupWiseOverallUserDuedata]);
-
-  const handleGoBack = () => {
-
-    console.log('Going back');
-    history.goBack();
-    //history.push(`/groups/${groupId}/your-due`);
-
-  };
 
   const items = [
 

@@ -29,7 +29,7 @@ const CartButtons = ({ scrolled }) => {
     const platform = usePlatformAccess();
     const { closeSidebar } = useUserContext();
     const [isTooltipVisible, setIsTooltipVisible] = useState(false);
-    const [image, setImage] = useState('');
+    const [image] = useState('');
     const [previewUrl, setPreviewUrl] = useState('https://i.imgur.com/ndu6pfe.png'); // Default image
     const [isMobile, setIsMobile] = useState(false);
     const [popupPosition, setPopupPosition] = useState('right-0');
@@ -50,20 +50,12 @@ const CartButtons = ({ scrolled }) => {
             pathname: location.pathname,
         }),
         [
-            platform?.activeContext?.roleCode,
-            platform?.isOwner,
+            platform,
             userRole,
             user?.results?.userAccounts,
             location.pathname,
         ]
     );
-
-    const getImageSrc = (userImage) => {
-        if (!userImage) return "default-avatar.png"; // Fallback image
-        return userImage.startsWith("data:image/") || userImage.startsWith("http")
-            ? userImage
-            : `data:image/jpeg;base64,${userImage}`;
-    };
 
     /** ✅ Mobile Detection */
     useEffect(() => {

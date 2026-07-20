@@ -10,7 +10,7 @@ const CustomerDue = () => {
 
     const history = useHistory();
     const { groupId } = useParams();
-    const { isLoggedIn, user, isLoading, setIsLoading } = useUserContext();
+    const { user, isLoading, setIsLoading } = useUserContext();
     const [data, setData] = useState([]);
 
     const [GroupWiseOverallDuedata, setGroupWiseOverallDue] = useState({

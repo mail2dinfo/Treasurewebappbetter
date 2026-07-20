@@ -1,7 +1,7 @@
 import React from 'react'
 import { useParams } from 'react-router-dom';
 import {
-  EmployeeProfilecard, EPC
+  EmployeeProfilecard
 } from '../components'
 import styled from 'styled-components'
 

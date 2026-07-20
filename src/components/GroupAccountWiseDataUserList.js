@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../utils/apiConfig';
+import React, { useEffect } from 'react';
 import { useUserContext } from '../context/user_context';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import AuctionWinnerReceiptPdf from '../components/PDF/AuctionWinnerReceiptPdf';
@@ -15,10 +14,6 @@ const GroupAccountWiseDataUserList = ({ items }) => {
   const { user } = useUserContext();
   const userCompany = user?.results?.userCompany;
  
-  const [signedUrls, setSignedUrls] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
   const { state } = useGroupDetailsContext();
   const groupData = state?.data;
  
@@ -45,7 +40,6 @@ const GroupAccountWiseDataUserList = ({ items }) => {
         const {
           auct_date,
           id,
-          user_image,
           user_image_from_s3,
           user_image_base64format,
           name,

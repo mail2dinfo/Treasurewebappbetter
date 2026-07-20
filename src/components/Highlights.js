@@ -4,9 +4,8 @@ import { useLedgerAccountContext } from "../context/ledgerAccount_context";
 import { useCompanySubscriberContext } from '../context/companysubscriber_context';
 import { usePayablesContext } from '../context/payables_context';
 import { useHistory, Link } from 'react-router-dom';
-import { FaArrowRight } from 'react-icons/fa';
 import { useReceivablesContext } from '../context/receivables_context';
-import { Users, UserPlus, DollarSign, ArrowRight, Plus, Calendar, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { Users, UserPlus, ArrowRight, Plus, Calendar, Wallet, TrendingUp, TrendingDown } from 'lucide-react';
 
 const Highlights = ({ groups, premium }) => {
   const history = useHistory();

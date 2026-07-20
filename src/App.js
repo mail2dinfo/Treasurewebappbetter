@@ -21,14 +21,12 @@ import ChitFundCollectorLayout from './components/chitFund/ChitFundCollectorLayo
 import DailyCollectionAdminLayout from './components/dailyCollection/DailyCollectionAdminLayout';
 import DailyCollectionCustomerLayout from './components/dailyCollection/DailyCollectionCustomerLayout';
 import DailyCollectionCollectorLayout from './components/dailyCollection/DailyCollectionCollectorLayout';
-import TwoWheelerFinanceLayout from './components/twoWheelerFinance/TwoWheelerFinanceLayout';
 import PersonalLoanAdminLayout from './components/personalLoan/PersonalLoanAdminLayout';
 import VehicleFinanceAdminLayout from './components/vehicleFinance/VehicleFinanceAdminLayout';
 import VehicleFinanceManagerLayout from './components/vehicleFinance/VehicleFinanceManagerLayout';
 import VehicleFinanceCollectorLayout from './components/vehicleFinance/VehicleFinanceCollectorLayout';
 
 // Legacy layouts for backward compatibility (can be removed later)
-import SubscriberLayout from './components/subscriber/layout/SubscriberLayout';
 import CollectorLayout from './components/collector/CollectorLayout';
 import DailyCollectionLayout from './components/dailyCollection/DailyCollectionLayout';
 

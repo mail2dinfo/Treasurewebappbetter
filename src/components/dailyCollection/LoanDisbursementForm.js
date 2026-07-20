@@ -1,14 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { useDailyCollectionContext } from '../../context/dailyCollection/DailyCollectionContext';
 import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
-import { FiX, FiSearch, FiUser, FiDollarSign, FiCalendar, FiChevronRight, FiChevronLeft, FiCheck, FiDownload, FiPrinter, FiPhone, FiMail, FiTrendingUp, FiClock, FiPercent, FiShare2, FiUpload, FiFile } from 'react-icons/fi';
+import { FiX, FiSearch, FiDollarSign, FiChevronRight, FiChevronLeft, FiCheck, FiDownload, FiPrinter, FiPhone, FiMail, FiTrendingUp, FiClock, FiPercent, FiShare2, FiUpload, FiFile } from 'react-icons/fi';
 import LoanAgreementPDF from './PDF/LoanAgreementPDF';
 import { uploadImage } from '../../utils/uploadImage';
 
 const LoanDisbursementForm = ({ products, subscribers, onClose }) => {
-    const { disburseLoan } = useDailyCollectionContext();
     const { user } = useUserContext();
     const [currentStep, setCurrentStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);

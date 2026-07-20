@@ -45,7 +45,7 @@ const AddNewPopup = ({ groupId, onClose, onRefresh }) => {
     const [selectedCountry, setSelectedCountry] = useState('India');
     const [countryCode, setCountryCode] = useState('+91');
     const [mobile, setMobile] = useState('');
-    const { isLoggedIn, user } = useUserContext();
+    const { user } = useUserContext();
     useEffect(() => {
         // Update the country code when the selected country changes
         const selectedCountryData = countries.find((country) => country.name === selectedCountry);

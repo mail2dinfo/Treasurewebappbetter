@@ -20,10 +20,10 @@ const ProfileCardComponent = () => {
                             <p className="title">Web developer &amp; <br /> Competitive programmer</p>
                         </div>
                         <div id="icons">
-                            <a href="#" className="ico"><img width="48" height="48" src="https://img.icons8.com/color/48/gmail-new.png" alt="gmail-new" /></a>
-                            <a href="#" className="ico"><img width="48" height="48" src="https://img.icons8.com/fluency/48/github.png" alt="github" /></a>
-                            <a href="#" className="ico"><img width="48" height="48" src="https://img.icons8.com/color/48/linkedin.png" alt="linkedin" /></a>
-                            <a href="#" className="ico"><img width="48" height="48" src="https://img.icons8.com/color/48/facebook-new.png" alt="facebook-new" /></a>
+                            <button type="button" className="ico"><img width="48" height="48" src="https://img.icons8.com/color/48/gmail-new.png" alt="gmail-new" /></button>
+                            <button type="button" className="ico"><img width="48" height="48" src="https://img.icons8.com/fluency/48/github.png" alt="github" /></button>
+                            <button type="button" className="ico"><img width="48" height="48" src="https://img.icons8.com/color/48/linkedin.png" alt="linkedin" /></button>
+                            <button type="button" className="ico"><img width="48" height="48" src="https://img.icons8.com/color/48/facebook-new.png" alt="facebook-new" /></button>
                         </div>
                         <div id="btn">
                             <button className="msg">Subscribe</button>

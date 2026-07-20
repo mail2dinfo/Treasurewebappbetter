@@ -31,7 +31,7 @@ const BidSubscriberList = ({ people, onBidClick, onFilteredCount }) => {
             {filteredPeople.map((person) => {
                 // Debug: Log the person object to see available fields
                 console.log("BidSubscriberList - person object:", person);
-                const { group_subscriber_id, subscriber_id, id, name, phone, user_image, user_image_from_s3 } = person;
+                const { group_subscriber_id, subscriber_id, id, name, phone, user_image_from_s3 } = person;
                 // Use subscriber_user_id if available, otherwise fall back to id
                 const subscriberId = subscriber_id || id;
                 console.log("BidSubscriberList - subscriberId:", subscriberId, "from subscriber_user_id:", subscriber_id, "or id:", id);
@@ -45,6 +45,7 @@ const BidSubscriberList = ({ people, onBidClick, onFilteredCount }) => {
                     >
                         <img
                             src={user_image_from_s3}
+                            alt={name || 'Subscriber'}
                             onError={(e) => (e.target.src = "default-image.jpg")}
                         />
                         <div>

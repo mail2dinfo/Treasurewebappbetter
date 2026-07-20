@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../utils/apiConfig';
-import { MdOutlineAttachMoney, MdLocationOn, MdLink, MdDataObject, MdTimeline, MdTimeToLeave } from "react-icons/md";
-import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck, FiAlertCircle } from 'react-icons/fi';
+import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck } from 'react-icons/fi';
 import Modal from "./Modal";
 import { useUserContext } from "../context/user_context";
 import Alert from '../components/Alert';
@@ -11,14 +10,14 @@ import loadingImage from '../images/preloader.gif';
 const ReceivablesList = ({ receivables, region, onFilteredCount, refreshReceivables }) => {
 
 
-    const [list, setList] = useState([]);
+    const [list] = useState([]);
     const [alert, setAlert] = useState({ show: false, msg: "", type: "" });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSubscriber, setSelectedSubscriber] = useState(null);
-    const { isLoggedIn, user } = useUserContext();
+    const { user } = useUserContext();
 
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+
     // filter variables
     const [searchText, setSearchText] = useState('');
     const [searchLocation, setSearchLocation] = useState('');
@@ -27,36 +26,6 @@ const ReceivablesList = ({ receivables, region, onFilteredCount, refreshReceivab
     const [paymentType, setPaymentType] = useState(""); // State to track payment type (partial or full)
     const [partialAmount, setPartialAmount] = useState(""); // State to store partial payment amount
     const [paymentMethod, setPaymentMethod] = useState("");
-
-    // to show pop upon mouse over on the maount
-    const [popupData, setPopupData] = useState(null);
-    const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
-
-
-    const handleMouseEnter = (event, payments) => {
-        const rect = event.target.getBoundingClientRect();
-        setPopupData(payments);
-
-        setPopupPosition({
-            top: rect.top + window.scrollY,
-            left: rect.left + window.scrollX + rect.width
-        });
-
-    };
-
-    const handleMouseLeave = () => {
-        setPopupData(null);
-    };
-
-
-
-    // to show pop upon mouse over on the maount
-
-    // useEffect(() => {
-    //     console.log("useEffect triggered! Receivables:", receivables);
-
-
-
 
     useEffect(() => {
 
@@ -284,9 +253,6 @@ const ReceivablesList = ({ receivables, region, onFilteredCount, refreshReceivab
             </>
         );
     }
-    if (error) {
-        return <p>Error: {error}</p>;
-    }
 
     return (
         <div className="space-y-6">
@@ -328,18 +294,10 @@ const ReceivablesList = ({ receivables, region, onFilteredCount, refreshReceivab
 
             {/* Receivables List */}
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredPeople.map((person, index) => {
+                {filteredPeople.map((person) => {
                     const { name, phone, user_image_from_s3, rbtotal,
-                        id,
                         rbpaid,
-                        receipts,
-                        payments,
-                        group_id,
-                        subscriber_id,
-                        group_subscriber_id,
-                        group_account_id,
-                        auct_date, group_name, unique_id, rbdue,
-                        pbdue } = person;
+                        auct_date, group_name, unique_id, rbdue } = person;
 
                     return (
                         <div key={unique_id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
@@ -420,21 +378,6 @@ const ReceivablesList = ({ receivables, region, onFilteredCount, refreshReceivab
                     );
                 })}
             </div>
-
-            {/* Payment Popup */}
-            {popupData && (
-                <div className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-xl p-4 max-w-sm" style={{ top: popupPosition.top, left: popupPosition.left }}>
-                    <h4 className="font-semibold text-gray-800 mb-2">Payment History</h4>
-                    <ul className="space-y-2">
-                        {popupData.map((receipt) => (
-                            <li key={receipt.id} className="text-sm text-gray-600 border-b border-gray-100 pb-2 last:border-b-0">
-                                <div className="font-medium">{new Date(receipt.created_at).toLocaleDateString()}</div>
-                                <div>Amount: ₹{receipt.payment_amount} ({receipt.payment_method})</div>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
 
             {/* Payment Modal */}
             <Modal isOpen={isModalOpen} onClose={handleCloseModal}>

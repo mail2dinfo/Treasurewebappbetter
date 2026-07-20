@@ -1,22 +1,17 @@
 import React, { useState, useEffect } from "react";
-// import { SubContext } from '../context/subscribecontext';
-import styled from "styled-components";
-import { MdBusiness, MdLocationOn, MdLink, MdDataObject, MdTimeline, MdTimeToLeave, MdCalendarToday, MdSchedule, MdTimer } from "react-icons/md";
-import { FontAwesomeIcon } from "react-icons/fa";
+import { MdLocationOn, MdDataObject, MdCalendarToday, MdSchedule, MdTimer } from "react-icons/md";
 import { useHistory, useLocation, useParams } from "react-router-dom";
-import List from "../components/List";
 import Alert from "../components/Alert";
 import { API_BASE_URL } from "../utils/apiConfig";
 import { useUserContext } from "../context/user_context";
 import { usePlatformAccess } from "../context/platformAccess_context";
-import SendReminderModal from "../components/SendReminderModal";
 import { Gavel } from "lucide-react";
 
-const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, startTime, endTime, commisionType, is_commision_taken, commision, emi, isGroupProgress, groupType, groupSubcriberResult }) => {
+const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, startTime, endTime, commisionType, is_commision_taken, commision, emi, isGroupProgress, groupType }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { user } = useUserContext();
     const platform = usePlatformAccess();
-    const [list, setList] = useState([]);
+    const [list] = useState([]);
     // const { subscriber } = React.useContext(SubContext);
     const history = useHistory();
     const locationDetails = useLocation();
@@ -39,7 +34,7 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
         setLocalCommision(commision);
     }, [commision]);
 
-    const [isLoading, setIsLoading] = useState(false);
+    const [, setIsLoading] = useState(false);
     const [alert, setAlert] = useState({ show: false, msg: "", type: "" });
     const [auctDate, setAuctDate] = useState(() => {
         // Format nextAuctionDate to "YYYY-MM-DD" if it exists
@@ -54,10 +49,6 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
     });
     const showAlert = (show = false, type = "", msg = "") => {
         setAlert({ show, type, msg });
-    };
-    const clearList = () => {
-        showAlert(true, "danger", "empty list");
-        // setList([]);
     };
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -122,18 +113,7 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
         history.push(`${basePath}/groups/${groupId}/auctions/date/nextAuctionDate=${nextAuctionDate}`);
     };
 
-    const subscriber = {
-        avatar_url: "https://picsum.photos/200/200",
-        html_url: "@john_smilga",
-        name: "John Smilga",
-        company: "Creator of Coding Addict",
-        blog: "Coding Addict",
-        bio: "", // You didn't provide a value for bio, so I left it empty.
-        location: "TamilNadu, India",
-        twitter_username: "Mani", // You didn't provide a value for twitter_username, so I left it empty.
-    };
-
-    const { avatar_url, html_url, name, company, blog, bio, location, twitter_username } = subscriber;
+    const location = "TamilNadu, India";
     const openModal = () => {
         setIsModalOpen(true);
     };
