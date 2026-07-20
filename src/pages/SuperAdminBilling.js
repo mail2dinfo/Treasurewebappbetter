@@ -363,7 +363,7 @@ const SuperAdminBilling = () => {
                                                                 : 'Start automatic billing'
                                                     }
                                                 >
-                                                    Start
+                                                    Start Automatic Billing
                                                 </button>
                                                 <button
                                                     type="button"
@@ -373,10 +373,10 @@ const SuperAdminBilling = () => {
                                                     title={
                                                         app.status !== 'active'
                                                             ? 'Billing is not running'
-                                                            : 'Stop automatic billing'
+                                                            : 'Stop Automatic Billing'
                                                     }
                                                 >
-                                                    Stop
+                                                    Stop Automatic Billing
                                                 </button>
                                             </div>
                                         </div>
