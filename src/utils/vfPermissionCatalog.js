@@ -45,6 +45,8 @@ export const VF_GRANULAR_FEATURES = [
     // Ledger
     { featureKey: 'vf_ledger_view_account', displayName: 'View Account', category: 'Ledger', defaultRoles: ['USER', 'MANAGER', 'ACCOUNTANT'] },
     { featureKey: 'vf_ledger_view_entry', displayName: 'View Entry', category: 'Ledger', defaultRoles: ['USER', 'MANAGER', 'ACCOUNTANT'] },
+    // Not a Manager default — Owner must explicitly grant in Step 3 / People & Access.
+    { featureKey: 'vf_ledger_view_daybook', displayName: 'View Day Book', category: 'Ledger', defaultRoles: ['USER'] },
     { featureKey: 'vf_ledger_add_account', displayName: 'Add Account', category: 'Ledger', defaultRoles: ['USER'] },
     { featureKey: 'vf_ledger_add_entry', displayName: 'Add Entry', category: 'Ledger', defaultRoles: ['USER', 'MANAGER', 'ACCOUNTANT'] },
 
@@ -77,6 +79,7 @@ export const VF_LEGACY_TO_GRANULAR = {
     vf_ledger: [
         'vf_ledger_view_account',
         'vf_ledger_view_entry',
+        'vf_ledger_view_daybook',
         'vf_ledger_add_account',
         'vf_ledger_add_entry',
     ],

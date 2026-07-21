@@ -27,7 +27,8 @@ const VehicleFinanceLedgerPage = () => {
     const canAddEntry = canAccess('vf_ledger_add_entry') || canAccess('vf_ledger');
     const canViewAccounts = canAccess('vf_ledger_view_account') || canAccess('vf_ledger') || canAddAccount;
     const canViewEntries = canAccess('vf_ledger_view_entry') || canAccess('vf_ledger') || canAddEntry;
-    const canViewDayBook = canAccess('vf_ledger') || canViewAccounts || canViewEntries;
+    // Explicit grant only (Owner bypasses via useVfPermission). Legacy vf_ledger expands to daybook.
+    const canViewDayBook = canAccess('vf_ledger_view_daybook') || canAccess('vf_ledger');
 
     const [activeTab, setActiveTab] = useState('accounts');
     const [showAccountForm, setShowAccountForm] = useState(false);
@@ -49,6 +50,12 @@ const VehicleFinanceLedgerPage = () => {
             setActiveTab('entries');
         }
     }, [canViewAccounts, canViewEntries, activeTab]);
+
+    useEffect(() => {
+        if (!canViewDayBook && activeTab === 'daybook') {
+            setActiveTab(canViewAccounts ? 'accounts' : 'entries');
+        }
+    }, [canViewDayBook, activeTab, canViewAccounts]);
 
     useEffect(() => {
         if (activeTab === 'entries' && canViewEntries) {
