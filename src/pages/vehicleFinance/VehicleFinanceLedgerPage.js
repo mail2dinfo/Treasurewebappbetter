@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
 import { useVehicleFinanceContext } from '../../context/vehicleFinance/VehicleFinanceContext';
 import { FiPlus, FiDollarSign, FiTrendingUp, FiCalendar, FiRefreshCw, FiX } from 'react-icons/fi';
 import VehicleFinanceLedgerAccountForm from '../../components/vehicleFinance/VehicleFinanceLedgerAccountForm';
@@ -7,6 +8,8 @@ import VehicleFinanceDayBookTab from '../../components/vehicleFinance/VehicleFin
 import { useVfPermission } from '../../components/vehicleFinance/useVfPermission';
 
 const VehicleFinanceLedgerPage = () => {
+    const history = useHistory();
+    const location = useLocation();
     const {
         ledgerAccounts,
         ledgerEntries,
@@ -30,7 +33,10 @@ const VehicleFinanceLedgerPage = () => {
     // Explicit grant only (Owner bypasses via useVfPermission). Legacy vf_ledger expands to daybook.
     const canViewDayBook = canAccess('vf_ledger_view_daybook') || canAccess('vf_ledger');
 
-    const [activeTab, setActiveTab] = useState('accounts');
+    const tabFromSearch = new URLSearchParams(location.search || '').get('tab');
+    const [activeTab, setActiveTab] = useState(() => (
+        tabFromSearch === 'daybook' ? 'daybook' : 'accounts'
+    ));
     const [showAccountForm, setShowAccountForm] = useState(false);
     const [showEntryForm, setShowEntryForm] = useState(false);
     const [filters, setFilters] = useState({
@@ -40,6 +46,34 @@ const VehicleFinanceLedgerPage = () => {
         end_date: ''
     });
 
+    const selectTab = useCallback((tab) => {
+        setActiveTab(tab);
+        const params = new URLSearchParams(location.search || '');
+        if (tab === 'daybook') {
+            params.set('tab', 'daybook');
+        } else {
+            params.delete('tab');
+        }
+        const search = params.toString();
+        history.replace({
+            pathname: location.pathname,
+            search: search ? `?${search}` : '',
+        });
+    }, [history, location.pathname, location.search]);
+
+    useEffect(() => {
+        const tab = new URLSearchParams(location.search || '').get('tab');
+        if (tab === 'daybook') {
+            if (canViewDayBook) setActiveTab('daybook');
+            return;
+        }
+        if (activeTab === 'daybook') {
+            setActiveTab(canViewAccounts ? 'accounts' : 'entries');
+        }
+        // Only react to URL / permission changes — not every activeTab change from in-page clicks
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.search, canViewDayBook, canViewAccounts]);
+
     useEffect(() => {
         if (canViewAccounts) fetchLedgerAccounts();
         fetchLedgerSummary();
@@ -47,15 +81,15 @@ const VehicleFinanceLedgerPage = () => {
 
     useEffect(() => {
         if (!canViewAccounts && canViewEntries && activeTab === 'accounts') {
-            setActiveTab('entries');
+            selectTab('entries');
         }
-    }, [canViewAccounts, canViewEntries, activeTab]);
+    }, [canViewAccounts, canViewEntries, activeTab, selectTab]);
 
     useEffect(() => {
         if (!canViewDayBook && activeTab === 'daybook') {
-            setActiveTab(canViewAccounts ? 'accounts' : 'entries');
+            selectTab(canViewAccounts ? 'accounts' : 'entries');
         }
-    }, [canViewDayBook, activeTab, canViewAccounts]);
+    }, [canViewDayBook, activeTab, canViewAccounts, selectTab]);
 
     useEffect(() => {
         if (activeTab === 'entries' && canViewEntries) {
@@ -194,7 +228,7 @@ const VehicleFinanceLedgerPage = () => {
                             <div className="flex gap-4 overflow-x-auto">
                                 {canViewAccounts && (
                                     <button
-                                        onClick={() => setActiveTab('accounts')}
+                                        onClick={() => selectTab('accounts')}
                                         className={`px-4 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'accounts'
                                             ? 'border-red-600 text-red-600'
                                             : 'border-transparent text-gray-600 hover:text-gray-800'
@@ -205,7 +239,7 @@ const VehicleFinanceLedgerPage = () => {
                                 )}
                                 {canViewEntries && (
                                     <button
-                                        onClick={() => setActiveTab('entries')}
+                                        onClick={() => selectTab('entries')}
                                         className={`px-4 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'entries'
                                             ? 'border-red-600 text-red-600'
                                             : 'border-transparent text-gray-600 hover:text-gray-800'
@@ -216,7 +250,7 @@ const VehicleFinanceLedgerPage = () => {
                                 )}
                                 {canViewDayBook && (
                                     <button
-                                        onClick={() => setActiveTab('daybook')}
+                                        onClick={() => selectTab('daybook')}
                                         className={`px-4 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'daybook'
                                             ? 'border-red-600 text-red-600'
                                             : 'border-transparent text-gray-600 hover:text-gray-800'

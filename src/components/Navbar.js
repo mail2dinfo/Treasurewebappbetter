@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   FaBars,
-  FaHome,
-  FaPlay,
   FaQuestionCircle,
   FaInfoCircle
 } from 'react-icons/fa';
@@ -11,39 +9,24 @@ import { links } from '../utils/constants';
 import CartButtons from './CartButtons';
 import { useUserContext } from '../context/user_context';
 import { useBilling } from '../context/billing_context';
-import { hasPermission } from '../rbacPermissionUtils';
 import { getNavBillingBadge } from '../utils/billingPaymentUtils';
 import MyTreasureBrand from './MyTreasureBrand';
 import FinanceHubNavButton from './FinanceHubNavButton';
 
+const NAV_TOP_LINKS = links.filter(
+  (link) => String(link.text || '').toLowerCase() !== 'start group'
+);
 
-
+const navLinkClass =
+  'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium text-white hover:text-red-100 hover:bg-white/10 transition-all duration-300';
 
 const Nav = () => {
-  const [scrolled, setScrolled] = useState(false);
-  const { isLoggedIn, openSidebar, userRole } = useUserContext();
+  const { isLoggedIn, openSidebar } = useUserContext();
   const { subscription, payments, billingPath } = useBilling();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setScrolled(scrollPosition > 80);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-
   const billingBadge = getNavBillingBadge(subscription, payments);
 
-  // Icon mapping for navigation links
   const getIconForLink = (text) => {
     switch (text.toLowerCase()) {
-      case 'start group':
-        return <FaPlay className="w-4 h-4" />;
       case 'help':
         return <FaQuestionCircle className="w-4 h-4" />;
       case 'faq':
@@ -54,51 +37,28 @@ const Nav = () => {
   };
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
-      ? 'bg-gradient-to-r from-red-600 via-red-700 to-red-800 shadow-lg backdrop-blur-sm'
-      : 'bg-white shadow-sm'
-      }`}>
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-red-600 via-red-700 to-red-800 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Brand */}
           <div className="flex-shrink-0">
             <MyTreasureBrand
               to="/chit-fund/user/home"
               subtitle="Chit Fund"
-              inverse={scrolled}
+              inverse
               className="transition-transform duration-300 hover:scale-105"
             />
           </div>
 
-          {/* Desktop Navigation */}
           <div className="hidden lg:block">
             <div className="ml-10 flex items-baseline space-x-8">
               <FinanceHubNavButton
-                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 ${scrolled
-                  ? 'text-white hover:text-red-100 hover:bg-white/10'
-                  : 'text-gray-700 hover:text-red-600 hover:bg-red-50'
-                  }`}
+                className={navLinkClass}
                 iconClassName="w-4 h-4"
               />
-              {isLoggedIn && hasPermission(userRole, 'viewHome') && (
-                <Link
-                  to="/home"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 ${scrolled
-                    ? 'text-white hover:text-red-100 hover:bg-white/10'
-                    : 'text-gray-700 hover:text-red-600 hover:bg-red-50'
-                    }`}
-                >
-                  <FaHome className="w-4 h-4" />
-                  Home
-                </Link>
-              )}
               {isLoggedIn && (
                 <Link
                   to={billingPath || '/chit-fund/user/billing'}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 relative ${scrolled
-                    ? 'text-white hover:text-red-100 hover:bg-white/10'
-                    : 'text-gray-700 hover:text-red-600 hover:bg-red-50'
-                    }`}
+                  className={`${navLinkClass} relative`}
                 >
                   <div className="relative">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -122,16 +82,13 @@ const Nav = () => {
                   )}
                 </Link>
               )}
-              {links.map((link) => {
+              {NAV_TOP_LINKS.map((link) => {
                 const { id, text, url } = link;
                 return (
                   <Link
                     key={id}
                     to={url}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-300 ${scrolled
-                      ? 'text-white hover:text-red-100 hover:bg-white/10'
-                      : 'text-gray-700 hover:text-red-600 hover:bg-red-50'
-                      }`}
+                    className={navLinkClass}
                   >
                     {getIconForLink(text)}
                     {text}
@@ -141,20 +98,15 @@ const Nav = () => {
             </div>
           </div>
 
-          {/* User Actions */}
           <div className="hidden lg:block">
-            <CartButtons scrolled={scrolled} />
+            <CartButtons scrolled />
           </div>
 
-          {/* Mobile menu button */}
           <div className="lg:hidden">
             <button
               type="button"
               onClick={openSidebar}
-              className={`inline-flex items-center justify-center p-2 rounded-md transition-all duration-300 ${scrolled
-                ? 'text-white hover:text-red-100 hover:bg-white/10'
-                : 'text-gray-700 hover:text-red-600 hover:bg-red-50'
-                }`}
+              className="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-red-100 hover:bg-white/10 transition-all duration-300"
               aria-controls="mobile-menu"
               aria-expanded="false"
             >
@@ -164,12 +116,8 @@ const Nav = () => {
           </div>
         </div>
       </div>
-
     </nav>
   );
 };
 
 export default Nav;
-
-
-

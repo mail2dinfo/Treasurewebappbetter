@@ -12,6 +12,11 @@ const formatDisplayName = (value) => String(value || '')
     .trim()
     .replace(/\b[a-z]/g, (letter) => letter.toUpperCase());
 
+const navLinkClass = (active) =>
+    `flex flex-shrink-0 items-center space-x-1.5 px-3 py-2 rounded-md text-sm font-medium ${
+        active ? 'bg-white/20 text-white' : 'text-white hover:bg-white/10'
+    }`;
+
 const ChitFundManagerNavbar = () => {
     const location = useLocation();
     const history = useHistory();
@@ -64,39 +69,36 @@ const ChitFundManagerNavbar = () => {
     };
 
     return (
-        <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <nav className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 shadow-lg sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                     <div className="flex items-center gap-3 min-w-0">
-                        <MyTreasureBrand to={homePath} subtitle="Chit Fund Manager" />
+                        <MyTreasureBrand to={homePath} subtitle="Chit Fund Manager" inverse />
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-2">
                         <FinanceHubNavButton
-                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50"
+                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium text-white hover:bg-white/10"
                             iconClassName="w-4 h-4"
                         />
-                        <div className="hidden md:block text-right px-2 border-l border-gray-200">
-                            <p className="text-sm font-semibold text-gray-800">Hi {managerName}</p>
-                            <p className="text-xs text-gray-500">Logged in as {roleLabel}</p>
+                        <div className="hidden md:block text-right px-2 border-l border-white/30">
+                            <p className="text-sm font-semibold text-white">Hi {managerName}</p>
+                            <p className="text-xs text-red-100">Logged in as {roleLabel}</p>
                         </div>
-                        <button type="button" onClick={handleLogout} className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg" aria-label="Logout">
+                        <button type="button" onClick={handleLogout} className="p-2 text-white hover:bg-white/10 rounded-lg" aria-label="Logout">
                             <FiLogOut className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
 
-                <div className="hidden md:flex items-center flex-wrap gap-1 border-t border-gray-100 py-2">
+                <div className="hidden md:flex items-center flex-wrap gap-1 border-t border-white/20 py-2">
                     {navItems.map((item) => {
                         const Icon = item.icon;
                         return (
                             <Link
                                 key={item.path}
                                 to={item.path}
-                                className={`flex flex-shrink-0 items-center space-x-1.5 px-3 py-2 rounded-md text-sm font-medium ${isActive(item.path)
-                                    ? 'bg-red-100 text-red-700'
-                                    : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
-                                    }`}
+                                className={navLinkClass(isActive(item.path))}
                             >
                                 <Icon className="w-4 h-4" />
                                 <span>{item.label}</span>
@@ -107,8 +109,8 @@ const ChitFundManagerNavbar = () => {
                         <details className="relative group">
                             <summary className={`list-none cursor-pointer flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium ${
                                 location.pathname.startsWith('/chit-fund/manager/reports')
-                                    ? 'bg-red-100 text-red-700'
-                                    : 'text-gray-600 hover:text-red-600 hover:bg-red-50'
+                                    ? 'bg-white/20 text-white'
+                                    : 'text-white hover:bg-white/10'
                             }`}>
                                 <FiFileText className="w-4 h-4" />
                                 <span>Reports</span>
@@ -136,10 +138,10 @@ const ChitFundManagerNavbar = () => {
                     )}
                 </div>
 
-                <details className="md:hidden border-t border-gray-100">
-                    <summary className="list-none cursor-pointer flex items-center justify-between py-3 text-sm font-semibold text-gray-700">
+                <details className="md:hidden border-t border-white/20">
+                    <summary className="list-none cursor-pointer flex items-center justify-between py-3 text-sm font-semibold text-white">
                         <span className="flex items-center gap-2">
-                            <FiMenu className="w-5 h-5 text-red-600" />
+                            <FiMenu className="w-5 h-5" />
                             Menu
                         </span>
                         <FiChevronDown className="w-4 h-4" />
@@ -153,8 +155,8 @@ const ChitFundManagerNavbar = () => {
                                     to={item.path}
                                     className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${
                                         isActive(item.path)
-                                            ? 'bg-red-100 text-red-700'
-                                            : 'bg-gray-50 text-gray-700 hover:bg-red-50 hover:text-red-700'
+                                            ? 'bg-white/20 text-white'
+                                            : 'bg-white/10 text-white hover:bg-white/20'
                                     }`}
                                 >
                                     <Icon className="w-4 h-4" />
@@ -163,16 +165,16 @@ const ChitFundManagerNavbar = () => {
                             );
                         })}
                         {(canViewAreaReport || canViewSubscriberReport) && (
-                            <div className="col-span-2 bg-gray-50 border border-gray-100 rounded-lg overflow-hidden">
-                                <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-800">
-                                    <FiFileText className="w-4 h-4 text-red-600" />
+                            <div className="col-span-2 bg-white/10 border border-white/20 rounded-lg overflow-hidden">
+                                <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-white">
+                                    <FiFileText className="w-4 h-4" />
                                     Reports
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 border-t border-gray-100">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 border-t border-white/20">
                                     {canViewAreaReport && (
                                         <Link
                                             to="/chit-fund/manager/reports/area-wise"
-                                            className="px-4 py-2.5 text-sm text-gray-600 hover:bg-red-50 hover:text-red-700"
+                                            className="px-4 py-2.5 text-sm text-white hover:bg-white/10"
                                         >
                                             Area-wise Reports
                                         </Link>
@@ -180,7 +182,7 @@ const ChitFundManagerNavbar = () => {
                                     {canViewSubscriberReport && (
                                         <Link
                                             to="/chit-fund/manager/reports/subscriber-outstanding"
-                                            className={`px-4 py-2.5 text-sm text-gray-600 hover:bg-red-50 hover:text-red-700 ${canViewAreaReport ? 'border-t sm:border-t-0 sm:border-l border-gray-100' : ''}`}
+                                            className={`px-4 py-2.5 text-sm text-white hover:bg-white/10 ${canViewAreaReport ? 'border-t sm:border-t-0 sm:border-l border-white/20' : ''}`}
                                         >
                                             Subscriber Outstanding
                                         </Link>

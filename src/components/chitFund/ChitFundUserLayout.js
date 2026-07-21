@@ -23,6 +23,8 @@ import BillingAppGuards from '../BillingAppGuards';
 // Chit Fund User Components
 import Navbar from '../Navbar';
 import Sidebar from '../Sidebar';
+import ChitFundAppMenuBar from './ChitFundAppMenuBar';
+import { CHIT_BASE_PATH } from './chitFundMenuItems';
 
 // Chit Fund User Pages (Full access)
 import HomePage from '../../pages/HomePage';
@@ -71,13 +73,16 @@ const ChitFundUserLayout = () => {
                                                                 <BillingAppGuards>
                                                                 <div className="min-h-screen bg-gray-50">
                                                                     <Navbar />
+                                                                    {/* Spacer for fixed top navbar (h-20) */}
+                                                                    <div className="h-20" aria-hidden="true" />
+                                                                    <ChitFundAppMenuBar basePath={CHIT_BASE_PATH} />
                                                                     <Sidebar />
                                                                     <main className="main-content" style={{
-                                                                        paddingTop: '80px',
-                                                                        minHeight: 'calc(100vh - 80px)',
-                                                                        paddingLeft: '20px',
-                                                                        paddingRight: '20px',
-                                                                        paddingBottom: '20px'
+                                                                        paddingTop: '0',
+                                                                        minHeight: 'calc(100vh - 130px)',
+                                                                        paddingLeft: '0',
+                                                                        paddingRight: '0',
+                                                                        paddingBottom: '0'
                                                                     }}>
                                                                         <Switch>
                                                                             {/* Chit Fund User Routes (Full Business Owner Access) */}
@@ -93,7 +98,18 @@ const ChitFundUserLayout = () => {
                                                                             <Route path="/chit-fund/user/groups/:groupId/your-due" component={UserDue} />
                                                                             <Route path="/chit-fund/user/groups/:groupId/customer-due" component={CustomerDue} />
                                                                             <Route path="/chit-fund/user/groups/:groupId" component={GroupsPage} />
-                                                                            <Route path="/chit-fund/user/groups" component={GroupsPage} />
+                                                                            <Route
+                                                                                exact
+                                                                                path="/chit-fund/user/groups"
+                                                                                render={() => (
+                                                                                    <HomePage
+                                                                                        basePath="/chit-fund/user"
+                                                                                        groupsOnly
+                                                                                        alwaysShowCreateGroup
+                                                                                        canCreateGroup
+                                                                                    />
+                                                                                )}
+                                                                            />
                                                                             <Route path="/chit-fund/user/addcompanymultisubscriber/:membershipId" component={SubscriberStepForm} />
                                                                             <Route path="/chit-fund/user/employees" component={SingleEmployeePage} />
                                                                             <Route path="/chit-fund/user/aob" component={AddAob} />

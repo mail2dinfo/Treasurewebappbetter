@@ -112,3 +112,41 @@ export const getVehicleFinanceMenuItemsWithBilling = (basePath, { includeBilling
     }
     return items;
 };
+
+/** Module bar under the navbar: Home + core modules (Company/Billing stay elsewhere). */
+export const VF_APP_MENU_IDS = [
+    'subscribers',
+    'loans',
+    'ledger',
+    'daybook',
+    'collections',
+    'reports',
+    'employees',
+];
+
+export const getVehicleFinanceAppMenuItems = (basePath) => {
+    const homeItem = {
+        id: 'home',
+        requiredAny: VF_DASHBOARD_ANY,
+        label: 'Home',
+        path: `${basePath}/dashboard`,
+        description: 'Dashboard overview',
+    };
+    const moduleItems = getVehicleFinanceMenuItems(basePath)
+        .filter((item) => VF_APP_MENU_IDS.includes(item.id))
+        .flatMap((item) => {
+            if (item.id !== 'ledger') return [item];
+            return [
+                { ...item, label: 'Ledgers' },
+                {
+                    id: 'daybook',
+                    moduleGate: 'ledger',
+                    requiredAny: ['vf_ledger_view_daybook', 'vf_ledger'],
+                    label: 'Day Book',
+                    path: `${basePath}/ledger?tab=daybook`,
+                    description: 'Daily opening, receipts, payments, closing',
+                },
+            ];
+        });
+    return [homeItem, ...moduleItems];
+};

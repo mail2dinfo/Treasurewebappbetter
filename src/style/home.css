@@ -141,6 +141,13 @@
 .home-page {
   background-color: #f8f9fa;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 0.5rem 0.5rem 2rem;
+}
+
+@media (min-width: 768px) {
+  .home-page {
+    padding: 1rem 1rem 2rem;
+  }
 }
 
 /* Style for My Groups heading */

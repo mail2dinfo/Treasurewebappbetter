@@ -2,8 +2,6 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import {
   FaTimes,
-  FaHome,
-  FaPlay,
   FaQuestionCircle,
   FaInfoCircle
 } from 'react-icons/fa'
@@ -11,22 +9,22 @@ import { links } from '../utils/constants'
 import CartButtons from './CartButtons'
 import { useUserContext } from '../context/user_context'
 import { useBilling } from '../context/billing_context'
-import { hasPermission } from '../rbacPermissionUtils'
 import { getNavBillingBadge } from '../utils/billingPaymentUtils'
 import MyTreasureBrand from './MyTreasureBrand'
 import FinanceHubNavButton from './FinanceHubNavButton'
 
+const SIDEBAR_TOP_LINKS = links.filter(
+  (link) => String(link.text || '').toLowerCase() !== 'start group'
+);
+
 const Sidebar = () => {
-  const { isLoggedIn, isSidebarOpen, closeSidebar, userRole } = useUserContext();
+  const { isLoggedIn, isSidebarOpen, closeSidebar } = useUserContext();
   const { subscription, payments, billingPath } = useBilling();
 
   const billingBadge = getNavBillingBadge(subscription, payments);
 
-  // Icon mapping for navigation links
   const getIconForLink = (text) => {
     switch (text.toLowerCase()) {
-      case 'start group':
-        return <FaPlay className="w-5 h-5" />;
       case 'help':
         return <FaQuestionCircle className="w-5 h-5" />;
       case 'faq':
@@ -38,19 +36,15 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Mobile Sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${isSidebarOpen ? 'block' : 'hidden'}`}>
-        {/* Backdrop */}
         <div
           className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
           onClick={closeSidebar}
         />
 
-        {/* Sidebar */}
         <div className={`fixed inset-y-0 left-0 w-80 bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}>
           <div className="flex flex-col h-full">
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <MyTreasureBrand
                 to="/chit-fund/user/home"
@@ -66,7 +60,6 @@ const Sidebar = () => {
               </button>
             </div>
 
-            {/* Navigation Links */}
             <nav className="flex-1 px-6 py-6">
               <ul className="space-y-2">
                 <li>
@@ -76,18 +69,6 @@ const Sidebar = () => {
                     iconClassName="w-5 h-5"
                   />
                 </li>
-                {isLoggedIn && hasPermission(userRole, 'viewHome') && (
-                  <li>
-                    <Link
-                      to="/home"
-                      onClick={closeSidebar}
-                      className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 group"
-                    >
-                      <FaHome className="w-5 h-5" />
-                      Home
-                    </Link>
-                  </li>
-                )}
                 {isLoggedIn && (
                   <li>
                     <Link
@@ -118,7 +99,7 @@ const Sidebar = () => {
                     </Link>
                   </li>
                 )}
-                {links.map((link) => {
+                {SIDEBAR_TOP_LINKS.map((link) => {
                   const { id, text, url } = link;
                   return (
                     <li key={id}>
@@ -136,14 +117,12 @@ const Sidebar = () => {
               </ul>
             </nav>
 
-            {/* User Actions */}
             <div className="p-6 border-t border-gray-200">
               <CartButtons />
             </div>
           </div>
         </div>
       </div>
-
     </>
   );
 }

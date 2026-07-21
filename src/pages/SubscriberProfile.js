@@ -876,7 +876,6 @@ const SubscriberProfile = () => {
   return (
     <div className="subscriber-profile-container">
       <div className="subscriber-profile-sidebar">
-        {/* Upload Image & Download PDF */}
         <section className="sidebar-top">
           <AvatarUploader handleSetImage={handleSetImage} currentImage={currentImage} />
 
@@ -906,7 +905,6 @@ const SubscriberProfile = () => {
           </PDFDownloadLink>
         </section>
 
-        {/* Sidebar Menu */}
         <h2 className="sidebar-title">Sections</h2>
         <ul className="sidebar-nav">
           <li
@@ -975,68 +973,90 @@ const SubscriberProfile = () => {
       </div>
 
       <div className="profile-content">
+        <div className="subscriber-profile-hero">
+          <div>
+            <h1>
+              {subscriberData?.personalDetails?.name
+                || [subscriberData?.personalDetails?.firstname, subscriberData?.personalDetails?.lastname].filter(Boolean).join(' ')
+                || 'Subscriber profile'}
+            </h1>
+            <div className="hero-meta">
+              {subscriberData?.personalDetails?.phone && (
+                <span>Phone: {subscriberData.personalDetails.phone}</span>
+              )}
+              {subscriberData?.personalDetails?.email && (
+                <span>Email: {subscriberData.personalDetails.email}</span>
+              )}
+              {subscriberData?.personalDetails?.subscriberId && (
+                <span>ID: {String(subscriberData.personalDetails.subscriberId).slice(0, 8)}…</span>
+              )}
+            </div>
+          </div>
+          <div className="hero-actions">
+            <button
+              type="button"
+              className="subscriber-back-btn"
+              onClick={() => {
+                if (location.pathname.includes('/chit-fund/manager')) {
+                  history.push('/chit-fund/manager/subscribers');
+                } else {
+                  history.push('/chit-fund/user/subscribers');
+                }
+              }}
+            >
+              ← Back to subscribers
+            </button>
+          </div>
+        </div>
+
         {visibleSection === 'metrics' && (
           <>
             <div className="metrics">
-              <div className="card yellow" onClick={() => openModal("Running Groups: 3")}>
-                <h3>Inprogress </h3>
-                <p className="big-number">{inprogress}</p>
+              <div className="card yellow metric-inprogress">
+                <h3>In progress</h3>
+                <p className="big-number">{inprogress ?? '—'}</p>
               </div>
-              <div className="card yellow" onClick={() => openModal("Running Groups: 3")}>
-                <h3>Future </h3>
-                <p className="big-number">{future}</p>
+              <div className="card yellow metric-future">
+                <h3>Future</h3>
+                <p className="big-number">{future ?? '—'}</p>
               </div>
-              <div className="card yellow" onClick={() => openModal("Closed Groups: 2")}>
-                <h3>Closed </h3>
-                <p className="big-number">{closed}</p>
+              <div className="card yellow metric-closed">
+                <h3>Closed</h3>
+                <p className="big-number">{closed ?? '—'}</p>
               </div>
-              <div className="card yellow" onClick={() => openModal("Score: 87")}>
+              <div className="card yellow metric-score">
                 <h3>Score</h3>
                 <p className="big-number">87</p>
               </div>
               {subscriberOutstanding && (
                 <>
-                  <div
-                    className="card yellow"
-                    onClick={() => openModal(`Total : ₹${subscriberOutstanding.total}`)}
-                  >
-                    <h3>Total </h3>
+                  <div className="card yellow metric-total">
+                    <h3>Total</h3>
                     <p className="big-number">₹{subscriberOutstanding.total}</p>
                   </div>
-
-                  <div
-                    className="card yellow"
-                    onClick={() => openModal(`Total Paid: ₹${subscriberOutstanding.paid}`)}
-                  >
-                    <h3>Total Paid</h3>
+                  <div className="card yellow metric-paid">
+                    <h3>Total paid</h3>
                     <p className="big-number">₹{subscriberOutstanding.paid}</p>
                   </div>
-
-                  <div
-                    className="card yellow"
-                    onClick={() => openModal(`Total due: ₹${subscriberOutstanding.due}`)}
-                  >
+                  <div className="card yellow metric-due">
                     <h3>Total due</h3>
                     <p className="big-number">₹{subscriberOutstanding.due}</p>
                   </div>
                 </>
               )}
-
-
             </div>
 
-
             <div className="wish-container">
-              <h2>Customer Wishes</h2>
+              <h2>Customer wishes</h2>
               <div className="wish-card">
                 <h3>₹1,00,000 Group</h3>
-                <p><strong>Start Date:</strong> 01-July-2025</p>
+                <p><strong>Start date:</strong> 01-July-2025</p>
                 <p><strong>Interest:</strong> Yes</p>
                 <p><strong>Comment:</strong> Looking for early auction options and lower commission.</p>
               </div>
               <div className="wish-card green-border">
                 <h3>₹2,00,000 Group</h3>
-                <p><strong>Start Date:</strong> 15-July-2025</p>
+                <p><strong>Start date:</strong> 15-July-2025</p>
                 <p><strong>Interest:</strong> Yes</p>
                 <p><strong>Comment:</strong> Prefer weekend bidding and digital participation.</p>
               </div>

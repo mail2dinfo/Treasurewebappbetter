@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { VehicleFinanceProvider } from '../../context/vehicleFinance/VehicleFinanceContext';
 import VehicleFinanceNavbar from './VehicleFinanceNavbar';
+import VehicleFinanceAppMenuBar from './VehicleFinanceAppMenuBar';
 import VehicleFinanceDashboard from '../../pages/vehicleFinance/VehicleFinanceDashboard';
 import VehicleFinanceCompanyManagement from '../../pages/vehicleFinance/VehicleFinanceCompanyManagement';
 import VehicleFinanceSubscribersPage from '../../pages/vehicleFinance/VehicleFinanceSubscribersPage';
@@ -101,8 +102,9 @@ const VehicleFinanceAdminLayout = ({ basePath = '/vehicle-finance/user' }) => {
     const shell = (
         <div className="min-h-screen bg-gray-50">
             <VehicleFinanceNavbar />
+            <VehicleFinanceAppMenuBar basePath={basePath} />
 
-            <div className="min-h-[calc(100vh-56px)]">
+            <div className="min-h-[calc(100vh-112px)]">
                 <Switch>
                     <Route exact path={`${basePath}`} render={() => <Redirect to={firstAllowedPath} />} />
                     <Route

@@ -136,23 +136,22 @@ const GroupsPage = () => {
 
     if (isLoading) {
         return (
-            <>
-                <img src={loadingImage} className="loading-img" alt="loading" />
-                <div className="placeholder" style={{ height: "50vh" }}></div>
-            </>
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
+                <div className="flex items-center justify-center min-h-[40vh]">
+                    <div className="text-center">
+                        <img src={loadingImage} className="w-20 h-20 mx-auto mb-4" alt="loading" />
+                        <p className="text-gray-600 font-medium">Loading group...</p>
+                    </div>
+                </div>
+            </div>
         );
     }
 
     const hasData = data && Object.keys(data).length > 0;
 
     return (
-        <div className="groups-page" style={{
-            padding: '20px',
-            paddingTop: '80px',
-            maxWidth: '1200px',
-            margin: '0 auto',
-            minHeight: 'calc(100vh - 80px)'
-        }}>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
+            <div className="max-w-7xl mx-auto">
             {hasData ? (
                 <>
                     <UserInfo data={data} />
@@ -160,10 +159,11 @@ const GroupsPage = () => {
                     <GroupSubscriber data={data} />
                 </>
             ) : (
-                <div style={{ textAlign: "center", marginTop: "2rem" }}>
+                <div className="text-center mt-8 text-gray-500">
                     No data available.
                 </div>
             )}
+            </div>
         </div>
     );
 };

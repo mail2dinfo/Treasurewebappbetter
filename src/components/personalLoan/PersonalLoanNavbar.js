@@ -13,7 +13,7 @@ import { PL_BASE_PATH } from './personalLoanMenuItems';
 import { getLoggedInRoleLabel } from '../../utils/roleLabels';
 
 const navButtonClass =
-    'flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-custom-red hover:bg-gray-100 rounded-lg transition-colors';
+    'flex items-center px-3 py-1.5 text-sm font-medium text-white hover:text-red-100 hover:bg-white/10 rounded-lg transition-colors';
 
 const capitalizeName = (value) => {
     const name = String(value || '').trim();
@@ -118,10 +118,10 @@ const PersonalLoanNavbar = () => {
     };
 
     return (
-        <header className="bg-white border-b-2 border-custom-red sticky top-0 z-50 shadow-sm">
+        <header className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 sticky top-0 z-50 shadow-lg">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-14">
-                    <MyTreasureBrand to={dashboardPath} subtitle="Personal Loan" />
+                    <MyTreasureBrand to={dashboardPath} subtitle="Personal Loan" inverse />
 
                     <div className="flex items-center space-x-2 sm:space-x-3">
                         <button
@@ -137,11 +137,11 @@ const PersonalLoanNavbar = () => {
 
                         <BillingNavButton billingPath={billingPath} />
 
-                        <div className="hidden sm:block text-right px-2 border-l border-gray-200">
-                            <p className="text-sm font-semibold text-gray-800 truncate max-w-[10rem]">
+                        <div className="hidden sm:block text-right px-2 border-l border-white/30">
+                            <p className="text-sm font-semibold text-white truncate max-w-[10rem]">
                                 Hi {displayName}
                             </p>
-                            <p className="text-xs text-gray-500">Logged in as {roleLabel}</p>
+                            <p className="text-xs text-red-100">Logged in as {roleLabel}</p>
                         </div>
 
                         <div className="relative">
@@ -149,7 +149,7 @@ const PersonalLoanNavbar = () => {
                                 type="button"
                                 onClick={() => setIsTooltipVisible(!isTooltipVisible)}
                                 onBlur={() => setTimeout(() => setIsTooltipVisible(false), 150)}
-                                className="w-10 h-10 rounded-full overflow-hidden border-2 border-gray-300 hover:border-custom-red transition-colors"
+                                className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/50 hover:border-white transition-colors"
                                 aria-label={`${displayName}, ${roleLabel}`}
                             >
                                 <img

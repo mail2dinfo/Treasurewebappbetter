@@ -4,6 +4,11 @@ import { FiHome, FiDollarSign, FiCreditCard, FiBarChart2, FiLogOut } from 'react
 import MyTreasureBrand from '../MyTreasureBrand';
 import FinanceHubNavButton from '../FinanceHubNavButton';
 
+const navLinkClass = (active) =>
+    `flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+        active ? 'bg-white/20 text-white' : 'text-white hover:bg-white/10'
+    }`;
+
 const ChitFundAccountantNavbar = () => {
     const location = useLocation();
 
@@ -20,25 +25,23 @@ const ChitFundAccountantNavbar = () => {
     ];
 
     return (
-        <nav className="bg-white shadow-lg border-b border-gray-200">
+        <nav className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 shadow-lg">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                     <MyTreasureBrand
                         to="/chit-fund/accountant/dashboard"
                         subtitle="Chit Fund Accountant"
+                        inverse
                     />
 
-                    <div className="hidden md:flex items-center space-x-8">
+                    <div className="hidden md:flex items-center space-x-4">
                         {navItems.map((item) => {
                             const Icon = item.icon;
                             return (
                                 <Link
                                     key={item.path}
                                     to={item.path}
-                                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive(item.path)
-                                        ? 'bg-green-100 text-green-700'
-                                        : 'text-gray-600 hover:text-green-600 hover:bg-gray-50'
-                                        }`}
+                                    className={navLinkClass(isActive(item.path))}
                                 >
                                     <Icon className="w-4 h-4" />
                                     <span>{item.label}</span>
@@ -49,10 +52,10 @@ const ChitFundAccountantNavbar = () => {
 
                     <div className="flex items-center space-x-4">
                         <FinanceHubNavButton
-                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50"
+                            className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium text-white hover:bg-white/10"
                             iconClassName="w-4 h-4"
                         />
-                        <button type="button" className="text-gray-600 hover:text-green-600">
+                        <button type="button" className="text-white hover:bg-white/10 p-2 rounded-lg">
                             <FiLogOut className="w-5 h-5" />
                         </button>
                     </div>
@@ -61,7 +64,7 @@ const ChitFundAccountantNavbar = () => {
                 <div className="md:hidden">
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
                         <FinanceHubNavButton
-                            className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-red-600 hover:bg-red-50"
+                            className="flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium text-white hover:bg-white/10"
                             iconClassName="w-4 h-4"
                         />
                         {navItems.map((item) => {
@@ -70,10 +73,11 @@ const ChitFundAccountantNavbar = () => {
                                 <Link
                                     key={item.path}
                                     to={item.path}
-                                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium ${isActive(item.path)
-                                        ? 'bg-green-100 text-green-700'
-                                        : 'text-gray-600 hover:text-green-600 hover:bg-gray-50'
-                                        }`}
+                                    className={`flex items-center space-x-2 px-3 py-2 rounded-md text-base font-medium ${
+                                        isActive(item.path)
+                                            ? 'bg-white/20 text-white'
+                                            : 'text-white hover:bg-white/10'
+                                    }`}
                                 >
                                     <Icon className="w-4 h-4" />
                                     <span>{item.label}</span>

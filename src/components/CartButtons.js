@@ -199,11 +199,11 @@ const CartButtons = ({ scrolled }) => {
             {user ? (
                 <>
                     <div className="flex items-center space-x-3">
-                        <div className={`hidden sm:block text-right ${scrolled ? 'text-white' : 'text-gray-700'}`}>
-                            <p className="text-sm font-semibold truncate max-w-[10rem]">
+                        <div className="hidden sm:block text-right">
+                            <p className="text-sm font-semibold text-white truncate max-w-[10rem]">
                                 Hi {displayName}
                             </p>
-                            <p className={`text-xs ${scrolled ? 'text-red-100' : 'text-gray-500'}`}>
+                            <p className="text-xs text-red-100">
                                 Logged in as {roleLabel}
                             </p>
                         </div>
@@ -357,10 +357,7 @@ const CartButtons = ({ scrolled }) => {
                     <Link
                         to="/login"
                         onClick={closeSidebar}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${scrolled
-                            ? 'text-white hover:text-red-100 hover:bg-white/10'
-                            : 'text-red-600 hover:text-red-700 hover:bg-red-50'
-                            }`}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white hover:text-red-100 hover:bg-white/10 transition-all duration-300"
                     >
                         <FaSignInAlt className="w-4 h-4" />
                         Login
@@ -368,10 +365,7 @@ const CartButtons = ({ scrolled }) => {
                     <Link
                         to="/signup"
                         onClick={closeSidebar}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${scrolled
-                            ? 'bg-white text-red-600 hover:bg-red-50'
-                            : 'bg-red-600 text-white hover:bg-red-700'
-                            }`}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-white text-red-600 hover:bg-red-50 transition-all duration-300"
                     >
                         <FaUserPlus className="w-4 h-4" />
                         Signup

@@ -1,5 +1,15 @@
 export const DC_BASE_PATH = '/daily-collection/user';
 
+/** Primary modules shown in the sticky app menu bar below the navbar (Home is prepended separately). */
+export const DC_APP_MENU_IDS = [
+    'subscribers',
+    'products',
+    'loans',
+    'ledger',
+    'collections',
+    'reports',
+];
+
 export const getDailyCollectionMenuItems = (basePath = DC_BASE_PATH) => [
     {
         id: 'company',
@@ -58,3 +68,16 @@ export const getDailyCollectionMenuItems = (basePath = DC_BASE_PATH) => [
         description: 'App subscription & payments',
     },
 ];
+
+export const getDailyCollectionAppMenuItems = (basePath = DC_BASE_PATH) => {
+    const homeItem = {
+        id: 'home',
+        label: 'Home',
+        path: `${basePath}/dashboard`,
+        description: 'Dashboard overview',
+    };
+    const moduleItems = getDailyCollectionMenuItems(basePath).filter((item) =>
+        DC_APP_MENU_IDS.includes(item.id)
+    );
+    return [homeItem, ...moduleItems];
+};

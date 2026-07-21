@@ -49,7 +49,7 @@ const CollectorHeader = () => {
     };
 
     return (
-        <header className="bg-red-600 text-white shadow-lg fixed w-full top-0 z-50">
+        <header className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white shadow-lg fixed w-full top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-16">
                     <MyTreasureBrand subtitle="Chit Fund Collector" inverse />

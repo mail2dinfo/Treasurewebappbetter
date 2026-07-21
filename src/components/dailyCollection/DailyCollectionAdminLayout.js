@@ -13,6 +13,8 @@ import { BillingProvider } from '../../context/billing_context';
 
 // Daily Collection Admin Components
 import DailyCollectionNavbar from './DailyCollectionNavbar';
+import DailyCollectionAppMenuBar from './DailyCollectionAppMenuBar';
+import { DC_BASE_PATH } from './dailyCollectionMenuItems';
 
 // Daily Collection Admin Pages
 import CompanyManagement from '../../pages/dailyCollection/CompanyManagement';
@@ -42,9 +44,10 @@ const DailyCollectionAdminLayout = () => {
                                 <div className="min-h-screen bg-gray-50">
                                     {/* Daily Collection Admin Navbar */}
                                     <DailyCollectionNavbar />
+                                    <DailyCollectionAppMenuBar basePath={DC_BASE_PATH} />
 
                                     {/* Main Content Area */}
-                                    <div className="min-h-[calc(100vh-56px)]">
+                                    <div className="min-h-[calc(100vh-112px)]">
                                         <Switch>
                                             {/* Daily Collection User Routes */}
                                         <PrivateRoute exact path="/daily-collection/user" component={DashboardPage} />

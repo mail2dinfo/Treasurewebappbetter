@@ -669,7 +669,7 @@ const Receivable = () => {
   const isInitialLoad = isLoading && receivables.length === 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4 pt-24">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
       {isInitialLoad ? (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">

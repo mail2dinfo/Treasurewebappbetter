@@ -193,35 +193,46 @@ const Subscribers = ({
 
   if (isLoading) {
     return (
-      <>
-        <img src={loadingImage} className="loading-img" alt="loading" />
-        <div className="placeholder" style={{ height: '50vh' }}></div>
-      </>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <div className="text-center">
+            <img src={loadingImage} alt="Loading..." className="w-20 h-20 mx-auto mb-4" />
+            <p className="text-gray-600 font-medium">Loading subscribers...</p>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <section className="pb-8 px-4 bg-white min-h-screen">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center flex-wrap gap-4 mb-4">
-          <h2 className="text-3xl font-bold text-gray-800">
-            Company Subscribers ({filteredSubscribers.length})
-          </h2>
-          <div className="flex gap-2">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+              Company Subscribers
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              {filteredSubscribers.length} subscriber{filteredSubscribers.length === 1 ? '' : 's'}
+            </p>
+          </div>
+          <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden bg-white shadow-sm">
             <button
+              type="button"
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg border transition-all duration-300 ${viewMode === 'grid'
-                ? 'bg-custom-red border-custom-red text-white shadow-lg'
-                : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400'
+              className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${viewMode === 'grid'
+                ? 'bg-custom-red text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
             >
               <Grid size={18} />
             </button>
             <button
+              type="button"
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg border transition-all duration-300 ${viewMode === 'list'
-                ? 'bg-custom-red border-custom-red text-white shadow-lg'
-                : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400'
+              className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-l border-gray-300 ${viewMode === 'list'
+                ? 'bg-custom-red text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
             >
               <List size={18} />
@@ -229,26 +240,28 @@ const Subscribers = ({
           </div>
         </div>
 
-        <div className="flex flex-col gap-4 my-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
           <input
             type="text"
             placeholder="Search by name"
             value={nameFilter}
             onChange={(e) => setNameFilter(e.target.value)}
-            className="px-4 py-3 bg-white border border-gray-300 rounded-lg text-base w-full md:flex-1 placeholder-gray-500 focus:border-custom-red focus:ring-1 focus:ring-custom-red transition-all duration-300"
+            className="px-4 py-3 bg-white border border-gray-300 rounded-lg text-base w-full md:flex-1 placeholder-gray-500 focus:border-custom-red focus:ring-1 focus:ring-custom-red transition-all duration-300 shadow-sm"
           />
-          <div className="flex gap-4 flex-wrap">
+          <div className="flex gap-3 flex-wrap">
             {canAddSubscriber && (
               <button
+                type="button"
                 onClick={handleMultiStepSubscriber}
-                className="px-4 py-3 bg-custom-red border border-custom-red rounded-lg text-white font-semibold cursor-pointer transition-all duration-300 hover:bg-red-700 hover:shadow-lg hover:scale-105"
+                className="px-4 py-3 bg-custom-red border border-custom-red rounded-lg text-white font-semibold cursor-pointer transition-all duration-300 hover:bg-red-700 hover:shadow-lg"
               >
                 + Add Subscriber
               </button>
             )}
             <button
+              type="button"
               onClick={handleBackButtonClick}
-              className="px-4 py-3 bg-custom-red border border-custom-red rounded-lg text-white font-semibold cursor-pointer transition-all duration-300 hover:bg-red-700 hover:shadow-lg hover:scale-105"
+              className="px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 font-semibold cursor-pointer transition-all duration-300 hover:bg-gray-50 shadow-sm"
             >
               ← Back
             </button>
@@ -264,7 +277,7 @@ const Subscribers = ({
           ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 };
 

@@ -1309,16 +1309,16 @@ const PlatformEmployeesPage = ({
 
     return (
         <div className={`${embedded ? 'min-h-0' : 'min-h-screen'} bg-[#f8f9fa] antialiased ${textBody}`}>
-            {!embedded && <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+            {!embedded && <header className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 sticky top-0 z-30 shadow-lg">
                 <div className="max-w-7xl mx-auto px-3 sm:px-6 min-h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3 min-w-0">
-                        <MyTreasureBrand to={backPath} subtitle={pageTitle} />
+                        <MyTreasureBrand to={backPath} subtitle={pageTitle} inverse />
                     </div>
                     <div className="flex items-center gap-2">
                         <div className="text-right px-1 sm:px-2 min-w-0">
-                            <p className={`text-sm ${textTitle} truncate max-w-[7rem] sm:max-w-none`}>Hi {userName}</p>
+                            <p className="text-sm font-semibold text-white truncate max-w-[7rem] sm:max-w-none">Hi {userName}</p>
                             {accountLabel ? (
-                                <p className={`hidden sm:block text-xs ${textMuted}`}>Logged in as {accountLabel}</p>
+                                <p className="hidden sm:block text-xs text-red-100">Logged in as {accountLabel}</p>
                             ) : null}
                         </div>
                         <button
@@ -1326,7 +1326,7 @@ const PlatformEmployeesPage = ({
                             onClick={handleLogout}
                             aria-label="Logout"
                             title="Logout"
-                            className="p-2.5 rounded-lg text-[#444] hover:text-[#d62828] hover:bg-red-50"
+                            className="p-2.5 rounded-lg text-white hover:bg-white/10"
                         >
                             <FiLogOut className="w-5 h-5" />
                         </button>
@@ -1543,56 +1543,68 @@ const PlatformEmployeesPage = ({
                                                             }`}
                                                         >
                                                             <div className={viewMode === 'list' ? 'h-1.5 sm:h-auto sm:w-1.5 bg-[#d62828]' : 'h-1.5 bg-[#d62828]'} />
-                                                            <div className={`${viewMode === 'list' ? 'p-4 sm:flex sm:items-center sm:gap-5 sm:flex-1' : 'p-5'}`}>
-                                                                <div className={`flex items-start justify-between gap-3 ${viewMode === 'list' ? 'sm:w-1/4' : ''}`}>
-                                                                    <div>
-                                                                        <h2 className={`text-[1.2rem] leading-tight ${textTitle}`}>
-                                                                            {employeeUser.name || employeeProfile.employee_name || 'Unnamed employee'}
-                                                                        </h2>
-                                                                        <p className={`text-[0.9rem] ${textMuted}`}>
-                                                                            {employeeProfile.employeeCode || employeeProfile.employee_code || 'No employee code'}
-                                                                        </p>
-                                                                    </div>
-                                                                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-[#444]'}`}>
-                                                                        {isActive ? 'Active' : 'Inactive'}
-                                                                    </span>
-                                                                </div>
-                                                                <div className={`mt-4 text-[0.9rem] space-y-1.5 ${viewMode === 'list' ? 'sm:mt-0 sm:w-1/4' : ''}`}>
-                                                                    <p className={textBody}>
-                                                                        <span className={textTitle}>Phone number: </span>
-                                                                        {employeeUser.phone || '—'}
-                                                                    </p>
-                                                                    <p className={`truncate ${textBody}`}>
-                                                                        <span className={textTitle}>Email: </span>
-                                                                        {employeeUser.email || '—'}
-                                                                    </p>
-                                                                    <p className={textBody}>
-                                                                        <span className={textTitle}>Date of joining: </span>
-                                                                        {formatJoinDateDisplay(employeeProfile.dateOfJoining || employeeProfile.date_of_joining)}
-                                                                    </p>
-                                                                    {isCollectorEmployee && appCode === 'VEHICLE_FINANCE' && (() => {
-                                                                        const regions = [...new Set(
-                                                                            (employee.catchmentAreas || employee.areas || [])
-                                                                                .map((area) => (typeof area === 'string' ? area : area?.region))
-                                                                                .map((value) => String(value || '').trim())
-                                                                                .filter(Boolean)
-                                                                        )];
-                                                                        return (
-                                                                            <p className={textBody}>
-                                                                                <span className={textTitle}>Areas: </span>
-                                                                                {regions.length ? regions.join(', ') : '—'}
+                                                            <div className={`${viewMode === 'list' ? 'p-4 flex-1 min-w-0 space-y-3' : 'p-5'}`}>
+                                                                <div className={viewMode === 'list'
+                                                                    ? 'grid gap-3 sm:grid-cols-[minmax(140px,1.1fr)_minmax(160px,1.2fr)_minmax(120px,1fr)] sm:items-start sm:gap-5'
+                                                                    : ''
+                                                                }>
+                                                                    <div className={`flex items-start justify-between gap-3 ${viewMode === 'list' ? '' : ''}`}>
+                                                                        <div className="min-w-0">
+                                                                            <h2 className={`text-[1.2rem] leading-tight ${textTitle} truncate`}>
+                                                                                {employeeUser.name || employeeProfile.employee_name || 'Unnamed employee'}
+                                                                            </h2>
+                                                                            <p className={`text-[0.9rem] ${textMuted} truncate`}>
+                                                                                {employeeProfile.employeeCode || employeeProfile.employee_code || 'No employee code'}
                                                                             </p>
-                                                                        );
-                                                                    })()}
-                                                                </div>
-                                                                <div className={`mt-4 flex flex-wrap gap-2 min-w-0 ${viewMode === 'list' ? 'sm:mt-0 sm:flex-1' : ''}`}>
-                                                                    {employeeEnrollments.map((enrollment, enrollmentIndex) => (
-                                                                        <span key={`${getAppCode(enrollment)}-${getRoleCode(enrollment)}-${enrollmentIndex}`} className={`text-xs font-medium bg-red-50 ${brandRed} border border-red-100 rounded-full px-2.5 py-1`}>
-                                                                            {getAppLabel(getAppCode(enrollment))} · {getRoleCode(enrollment)}
+                                                                        </div>
+                                                                        <span className={`shrink-0 text-xs font-medium px-2.5 py-1 rounded-full ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-[#444]'}`}>
+                                                                            {isActive ? 'Active' : 'Inactive'}
                                                                         </span>
-                                                                    ))}
+                                                                    </div>
+                                                                    <div className={`text-[0.9rem] space-y-1.5 min-w-0 ${viewMode === 'list' ? '' : 'mt-4'}`}>
+                                                                        <p className={`truncate ${textBody}`}>
+                                                                            <span className={textTitle}>Phone number: </span>
+                                                                            {employeeUser.phone || '—'}
+                                                                        </p>
+                                                                        <p className={`truncate ${textBody}`}>
+                                                                            <span className={textTitle}>Email: </span>
+                                                                            {employeeUser.email || '—'}
+                                                                        </p>
+                                                                        <p className={textBody}>
+                                                                            <span className={textTitle}>Date of joining: </span>
+                                                                            {formatJoinDateDisplay(employeeProfile.dateOfJoining || employeeProfile.date_of_joining)}
+                                                                        </p>
+                                                                        {isCollectorEmployee && appCode === 'VEHICLE_FINANCE' && (() => {
+                                                                            const regions = [...new Set(
+                                                                                (employee.catchmentAreas || employee.areas || [])
+                                                                                    .map((area) => (typeof area === 'string' ? area : area?.region))
+                                                                                    .map((value) => String(value || '').trim())
+                                                                                    .filter(Boolean)
+                                                                            )];
+                                                                            return (
+                                                                                <p className={`break-words ${textBody}`}>
+                                                                                    <span className={textTitle}>Areas: </span>
+                                                                                    {regions.length ? regions.join(', ') : '—'}
+                                                                                </p>
+                                                                            );
+                                                                        })()}
+                                                                    </div>
+                                                                    <div className={`flex flex-wrap content-start gap-2 min-w-0 ${viewMode === 'list' ? '' : 'mt-4'}`}>
+                                                                        {employeeEnrollments.map((enrollment, enrollmentIndex) => (
+                                                                            <span
+                                                                                key={`${getAppCode(enrollment)}-${getRoleCode(enrollment)}-${enrollmentIndex}`}
+                                                                                className={`text-xs font-medium bg-red-50 ${brandRed} border border-red-100 rounded-full px-2.5 py-1 max-w-full truncate`}
+                                                                                title={`${getAppLabel(getAppCode(enrollment))} · ${getRoleCode(enrollment)}`}
+                                                                            >
+                                                                                {getAppLabel(getAppCode(enrollment))} · {getRoleCode(enrollment)}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
                                                                 </div>
-                                                                <div className={`mt-5 pt-4 border-t border-gray-100 flex flex-wrap gap-2 ${viewMode === 'list' ? 'sm:mt-0 sm:pt-0 sm:border-t-0 sm:border-l sm:pl-5' : ''}`}>
+                                                                <div className={`flex flex-wrap gap-2 ${viewMode === 'list'
+                                                                    ? 'pt-3 border-t border-gray-100'
+                                                                    : 'mt-5 pt-4 border-t border-gray-100'
+                                                                }`}>
                                                                     {(isOwner || canViewCollectors || canViewManagers) && (
                                                                         <button
                                                                             type="button"
@@ -1786,6 +1798,16 @@ const PlatformEmployeesPage = ({
                                                 {name === 'employeeCode' && (
                                                     <span className="block mt-1 text-xs text-gray-500">
                                                         Optional internal reference for HR, payroll, or an existing employee register. It is not used for login.
+                                                    </span>
+                                                )}
+                                                {name === 'loginPassword' && !editingEmployee && (
+                                                    <span className="block mt-1 text-xs text-gray-500">
+                                                        Optional. If left blank, the default password is the first 4 digits of the phone number.
+                                                    </span>
+                                                )}
+                                                {name === 'loginPassword' && editingEmployee && (
+                                                    <span className="block mt-1 text-xs text-gray-500">
+                                                        Leave blank to keep the current password. If set, this becomes the new login password.
                                                     </span>
                                                 )}
                                             </label>

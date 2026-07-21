@@ -1,350 +1,494 @@
-/* ---------- Container ---------- */
+/* Subscriber Profile — modern Chit Fund shell */
+
 .subscriber-profile-container {
-    display: flex;
-    flex-direction: row;
-    min-height: 100vh;
-    background: #f9f9f9;
-    font-family: Arial, sans-serif;
-    max-width: 1400px;
-    /* Increased container width */
-    margin: 0 auto;
-    /* Center the entire container */
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    /* Ensure full width usage */
+  display: flex;
+  flex-direction: row;
+  gap: 1.25rem;
+  min-height: calc(100vh - 160px);
+  max-width: 1280px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0.25rem 0 1.5rem;
+  background: transparent;
+  font-family: inherit;
+  color: #1f2937;
+  box-shadow: none;
 }
 
 /* ---------- Sidebar ---------- */
-/* ---------- Sidebar Container ---------- */
 .subscriber-profile-sidebar {
-    width: 240px;
-    background: #cd3240;
-    color: #fff;
-    padding: 1.5rem;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  color: #111827;
+  align-self: flex-start;
+  position: sticky;
+  top: 9rem;
+  max-height: calc(100vh - 10rem);
+  overflow-y: auto;
 }
 
-/* ---------- Top Section (Image + Buttons) ---------- */
 .sidebar-top {
-    text-align: center;
-    margin-bottom: 2rem;
+  text-align: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.sidebar-top .avatar-uploader,
+.sidebar-top > div {
+  margin: 0 auto;
 }
 
 .sidebar-upload-button,
 .sidebar-download-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    margin-top: 0.75rem;
-    padding: 10px 14px;
-    font-weight: bold;
-    font-size: 0.95rem;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 0.65rem;
+  padding: 0.65rem 0.9rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.65rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .sidebar-upload-button {
-    background-color: #007bff;
-    color: #fff;
+  background-color: #111827;
+  color: #fff;
 }
 
 .sidebar-upload-button:hover {
-    background-color: #0056b3;
+  background-color: #000;
 }
 
 .sidebar-download-button {
-    background-color: #28a745;
-    color: #fff;
+  background-color: #fff;
+  color: #b91c1c;
+  border-color: #fecaca;
 }
 
 .sidebar-download-button:hover {
-    background-color: #1e7e34;
+  background-color: #fef2f2;
+  border-color: #f87171;
 }
 
-/* ---------- Section Title ---------- */
 .sidebar-title {
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-    font-weight: bold;
-    border-bottom: 2px solid #fff;
-    padding-bottom: 6px;
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+  border: none;
+  padding: 0;
 }
 
-/* ---------- Sidebar Navigation ---------- */
 .sidebar-nav {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
 .sidebar-nav li {
-    padding: 10px 14px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.25s ease;
-    font-size: 0.95rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.65rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .sidebar-nav li:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    transform: translateX(4px);
-    transition: all 0.2s ease;
+  background-color: #f9fafb;
+  color: #111827;
+  transform: none;
 }
 
 .sidebar-nav li.active {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-left: 3px solid #fff;
-    font-weight: bold;
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+  font-weight: 600;
 }
 
-/* ---------- Profile Content ---------- */
+.change-password-link {
+  background-color: #fff !important;
+  color: #047857 !important;
+  border: 1px solid #a7f3d0 !important;
+  margin-top: 0.5rem !important;
+  font-weight: 600 !important;
+}
+
+.change-password-link:hover {
+  background-color: #ecfdf5 !important;
+  border-color: #34d399 !important;
+}
+
+/* ---------- Main content ---------- */
 .profile-content {
-    flex: 1;
-    padding: 2rem;
-    overflow-y: auto;
-    min-width: 0;
-    /* Prevent flex item from shrinking below content size */
-    width: calc(100% - 240px);
-    /* Ensure content takes remaining width */
-    max-width: calc(1400px - 240px);
-    /* Match container width minus sidebar */
-    min-height: calc(100vh - 4rem);
-    /* Ensure minimum height for content area */
-    background-color: #f9f9f9;
-    /* Match container background */
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  max-width: none;
+  min-height: auto;
+  padding: 0;
+  background: transparent;
 }
 
-/* ---------- Section ---------- */
+.subscriber-profile-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 1.25rem 1.35rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.subscriber-profile-hero h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+}
+
+.subscriber-profile-hero .hero-meta {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.subscriber-profile-hero .hero-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.subscriber-profile-hero .hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.subscriber-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.65rem;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.subscriber-back-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+/* ---------- Sections ---------- */
 .sections {
-    position: relative;
-    background-color: #fff;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    border: 1px solid #ddd;
-    width: 100%;
-    /* Ensure sections take full width */
-    box-sizing: border-box;
-    /* Include padding and border in width calculation */
+  position: relative;
+  background-color: #fff;
+  border-radius: 1rem;
+  padding: 1.35rem 1.5rem 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e5e7eb;
+  width: 100%;
+  box-sizing: border-box;
 }
 
+.sections > h2,
 .section-title {
-    font-size: 1.1rem;
-    font-weight: bold;
-    margin-bottom: 1rem;
-    color: #333;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 1.1rem;
+  color: #111827;
+  letter-spacing: -0.01em;
+  padding-right: 5.5rem;
 }
 
-/* ---------- Edit Button ---------- */
 .edit-button {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    background: #007bff;
-    color: #fff;
-    border: none;
-    padding: 6px 12px;
-    font-size: 0.85rem;
-    border-radius: 4px;
-    cursor: pointer;
+  position: absolute;
+  top: 1.15rem;
+  right: 1.15rem;
+  background: #fff;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .edit-button:hover {
-    background: #0056b3;
+  background: #fef2f2;
+  border-color: #f87171;
 }
 
 .section-content {
-    padding: 2rem;
-    background-color: #ffffff;
-    border-radius: 8px;
-    margin: 1rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  margin: 0;
+  box-shadow: none;
 }
 
-/* ---------- Metrics Cards ---------- */
+/* ---------- Metrics ---------- */
 .metrics {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    width: 100%;
-    /* Ensure metrics container takes full width */
-    box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
 }
 
 .card {
-    flex: 1 1 200px;
-    background: #fff;
-    padding: 1rem;
-    border-left: 6px solid;
-    border-radius: 8px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    cursor: pointer;
+  background: #fff;
+  padding: 1rem 1.1rem;
+  border-radius: 0.9rem;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #9ca3af;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: default;
+  text-align: left;
 }
 
 .card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
 
-.blue {
-    border-color: #3b82f6;
+.card h3 {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
 }
 
-.green {
-    border-color: #10b981;
+.card .big-number {
+  margin: 0.45rem 0 0;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  word-break: break-word;
 }
 
-.gray {
-    border-color: #6b7280;
-}
+.card.blue { border-left-color: #3b82f6; }
+.card.green { border-left-color: #10b981; }
+.card.gray { border-left-color: #6b7280; }
+.card.red { border-left-color: #ef4444; }
+.card.orange { border-left-color: #f97316; }
+.card.purple { border-left-color: #8b5cf6; }
 
-.red {
-    border-color: #ef4444;
-}
-
-.orange {
-    border-color: #f97316;
-}
-
-.purple {
-    border-color: #8b5cf6;
-}
-
-
+/* Legacy yellow metrics → neutral metric style */
 .card.yellow {
-    background-color: #fdb913;
-    /* Wolves yellow */
-    border: 2px solid #000;
-
-    padding: 1.2rem;
-    color: #111;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-    transition: transform 0.2s ease;
-    text-align: center;
-    cursor: pointer;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #dc2626;
+  padding: 1rem 1.1rem;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  text-align: left;
+  cursor: default;
 }
 
 .card.yellow:hover {
-    transform: translateY(-4px);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
 }
 
 .card.yellow h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
 }
 
 .card.yellow .big-number {
-    font-size: 2.8rem;
-    font-weight: bold;
-    margin-top: 0.5rem;
-    color: #111;
+  font-size: 1.55rem;
+  font-weight: 700;
+  margin-top: 0.45rem;
+  color: #111827;
 }
 
+.card.metric-inprogress { border-left-color: #2563eb; }
+.card.metric-future { border-left-color: #7c3aed; }
+.card.metric-closed { border-left-color: #6b7280; }
+.card.metric-score { border-left-color: #059669; }
+.card.metric-total { border-left-color: #111827; }
+.card.metric-paid { border-left-color: #059669; }
+.card.metric-due { border-left-color: #dc2626; }
 
-/* ---------- Wish Container ---------- */
+/* ---------- Wishes ---------- */
 .wish-container {
-    margin: 2rem 0;
+  margin: 0;
+  padding: 1.25rem 1.35rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.wish-container > h2 {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
 }
 
 .wish-card {
-    background: #fff;
-    border-left: 4px solid #3b82f6;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 6px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #2563eb;
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.75rem;
+}
+
+.wish-card:last-child {
+  margin-bottom: 0;
+}
+
+.wish-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.wish-card p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #4b5563;
 }
 
 .green-border {
-    border-left-color: #10b981;
+  border-left-color: #059669;
 }
 
-/* ---------- Responsive Design ---------- */
-@media (max-width: 768px) {
-    .subscriber-profile-container {
-        flex-direction: column;
-        /* Stack sidebar on top */
-        max-width: 100%;
-        margin: 0;
-        box-shadow: none;
-    }
-
-    .subscriber-profile-sidebar {
-        width: 100%;
-        /* Full screen width */
-        padding: 1rem;
-        position: relative;
-        flex-shrink: 0;
-    }
-
-    .profile-content {
-        width: 100%;
-        max-width: 100%;
-        padding: 1rem;
-        min-width: auto;
-    }
-
-    .sidebar-title,
-    .subscriber-profile-sidebar ul li {
-        text-align: center;
-        font-size: 1rem;
-    }
-
-    .metrics {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .card {
-        flex: 1 1 auto;
-        min-width: auto;
-    }
-}
-
-/* ---------- Form Input Fields ---------- */
-/* ---------- Form Input Fields ---------- */
+/* ---------- Form fields ---------- */
 .sections input,
 .sections select,
 .sections textarea {
-    display: block;
-    width: 100%;
-    margin-bottom: 1rem;
-    padding: 10px 14px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 1rem;
-    background-color: #f9f9f9;
-    box-sizing: border-box;
-    transition: border 0.2s ease;
+  display: block;
+  width: 100%;
+  margin-bottom: 0.85rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.65rem;
+  font-size: 0.95rem;
+  background-color: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .sections input:focus,
 .sections select:focus,
 .sections textarea:focus {
-    outline: none;
-    border-color: #007bff;
-    background-color: #fff;
+  outline: none;
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+  background-color: #fff;
 }
 
-/* ---------- Change Password Link ---------- */
-.change-password-link {
-    background-color: #28a745 !important;
-    color: #fff !important;
-    font-weight: bold;
-    border: 2px solid #28a745;
-    margin-top: 10px;
+.sections p {
+  margin: 0.35rem 0 0.85rem;
+  color: #374151;
+  font-size: 0.95rem;
+  line-height: 1.45;
 }
 
-.change-password-link:hover {
-    background-color: #218838 !important;
-    border-color: #218838;
+/* Soften dense EditableField stacks when present */
+.sections .editable-field,
+.sections label {
+  display: block;
+  margin-bottom: 0.85rem;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 900px) {
+  .subscriber-profile-container {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .subscriber-profile-sidebar {
+    width: 100%;
+    position: static;
+    max-height: none;
+    top: auto;
+  }
+
+  .sidebar-nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.4rem;
+  }
+
+  .sidebar-nav li {
+    text-align: center;
+    font-size: 0.85rem;
+  }
+
+  .change-password-link {
+    grid-column: 1 / -1;
+  }
+
+  .profile-content {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .subscriber-profile-hero h1 {
+    font-size: 1.25rem;
+  }
 }

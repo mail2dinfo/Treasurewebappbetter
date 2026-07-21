@@ -414,15 +414,20 @@ const HomePage = ({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <img src={loadingImage} className="loading-img" alt="" style={{ marginTop: 0 }} />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
+        <div className="flex items-center justify-center min-h-[40vh] w-full">
+          <div className="text-center">
+            <img src={loadingImage} className="loading-img w-20 h-20 mx-auto mb-4" alt="" style={{ marginTop: 0 }} />
+            {groupsOnly && <p className="text-gray-600 font-medium">Loading groups...</p>}
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="home-page">
-      <div className="list-container">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
+      <div className={groupsOnly ? 'max-w-7xl mx-auto' : 'list-container max-w-7xl mx-auto'}>
         {!groupsOnly && localStorage.getItem('unauthenticatedGroup') && <GroupDataInNavbar />}
 
         {!groupsOnly && <UserDetails groups={groups} premium={premium} />}
