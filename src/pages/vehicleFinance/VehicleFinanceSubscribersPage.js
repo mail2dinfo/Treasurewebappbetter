@@ -95,7 +95,10 @@ const VehicleFinanceSubscribersPage = () => {
             }
 
             if (result.success) {
-                toast.success(`Subscriber ${editingSubscriber ? 'updated' : 'created'} successfully`);
+                toast.success(
+                    result.message
+                    || `Subscriber ${editingSubscriber ? 'updated' : 'created'} successfully`
+                );
                 setShowForm(false);
                 setEditingSubscriber(null);
                 fetchSubscribers(); // Refresh list

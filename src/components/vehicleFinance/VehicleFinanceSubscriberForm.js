@@ -83,12 +83,14 @@ const VehicleFinanceSubscriberForm = ({ subscriber, onSave, onCancel, isLoading 
             newErrors.vf_cust_name = 'Subscriber name is required';
         }
 
-        if (formData.vf_cust_age && (isNaN(formData.vf_cust_age) || formData.vf_cust_age < 0)) {
-            newErrors.vf_cust_age = 'Age must be a valid number';
+        if (!formData.vf_cust_phone.trim()) {
+            newErrors.vf_cust_phone = 'Subscriber mobile is required';
+        } else if (!/^[0-9]{10}$/.test(formData.vf_cust_phone.replace(/\s/g, ''))) {
+            newErrors.vf_cust_phone = 'Subscriber mobile must be 10 digits';
         }
 
-        if (formData.vf_cust_phone && !/^[0-9]{10}$/.test(formData.vf_cust_phone.replace(/\s/g, ''))) {
-            newErrors.vf_cust_phone = 'Subscriber mobile must be 10 digits';
+        if (formData.vf_cust_age && (isNaN(formData.vf_cust_age) || formData.vf_cust_age < 0)) {
+            newErrors.vf_cust_age = 'Age must be a valid number';
         }
 
         if (formData.vf_nominee_phone && !/^[0-9]{10}$/.test(formData.vf_nominee_phone.replace(/\s/g, ''))) {
@@ -347,7 +349,7 @@ const VehicleFinanceSubscriberForm = ({ subscriber, onSave, onCancel, isLoading 
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Subscriber Mobile Number
+                                    Subscriber Mobile Number <span className="text-red-500">*</span>
                                 </label>
                                 <input
                                     type="text"

@@ -11,18 +11,21 @@ const APP_ROUTES = {
         MANAGER: '/chit-fund/manager/home',
         COLLECTOR: '/chit-fund/collector/receivables',
         ACCOUNTANT: '/chit-fund/accountant/dashboard',
+        SUBSCRIBER: '/chit-fund/subscriber',
     },
     VEHICLE_FINANCE: {
         USER: '/vehicle-finance/user/dashboard',
         MANAGER: '/vehicle-finance/manager/dashboard',
         COLLECTOR: '/vehicle-finance/collector/dashboard',
         ACCOUNTANT: '/vehicle-finance/manager/dashboard',
+        SUBSCRIBER: '/vehicle-finance/customer/dashboard',
     },
     DAILY_COLLECTION: {
         USER: '/daily-collection/user/dashboard',
         MANAGER: '/daily-collection/user/dashboard',
         COLLECTOR: '/daily-collection/collector/dashboard',
         ACCOUNTANT: '/daily-collection/user/dashboard',
+        SUBSCRIBER: '/daily-collection/customer/dashboard',
     },
     PERSONAL_LOAN: {
         USER: '/personal-loan/user/dashboard',
@@ -30,6 +33,13 @@ const APP_ROUTES = {
         COLLECTOR: '/personal-loan/user/dashboard',
         ACCOUNTANT: '/personal-loan/user/dashboard',
     },
+};
+
+const CUSTOMER_APP_PATHS = {
+    CHIT_FUND: '/chit-fund/subscriber',
+    DAILY_COLLECTION: '/daily-collection/customer/dashboard',
+    VEHICLE_FINANCE: '/vehicle-finance/customer/dashboard',
+    PERSONAL_LOAN: '/personal-loan/customer/dashboard',
 };
 
 const PLATFORM_ACCOUNT_ROLE = {
@@ -258,16 +268,64 @@ const AppSelectionPage = () => {
         return buildChoicesFromMembership(app);
     };
 
+    const customerApps = useMemo(() => {
+        const list = user?.results?.customerApps || [];
+        return list.map((item, index) => {
+            const knownApp = allApps.find((app) => app.appCode === item.appCode);
+            const path = item.path || CUSTOMER_APP_PATHS[item.appCode] || knownApp?.path || '#';
+            const baseName = item.displayName || knownApp?.name || item.appCode;
+            const companyLabel = item.companyName ? ` · ${item.companyName}` : '';
+            return {
+                ...(knownApp || {
+                    id: item.appCode,
+                    icon: <FiShield className="w-full h-full" />,
+                    isActive: true,
+                }),
+                id: `customer-${item.appCode}-${item.parentMembershipId}-${index}`,
+                appCode: item.appCode,
+                name: `${baseName} · Subscriber${companyLabel}`,
+                description: item.companyName
+                    ? `Open subscriber portal for ${item.companyName}`
+                    : 'Open your subscriber / customer portal',
+                path,
+                parentMembershipId: item.parentMembershipId,
+                accountLabel: 'Subscriber',
+                accountKind: 'subscriber',
+                isCustomerApp: true,
+                isActive: true,
+                roles: [{
+                    roleCode: 'SUBSCRIBER',
+                    accountName: 'Subscriber',
+                    parentMembershipId: item.parentMembershipId,
+                    enrollmentId: null,
+                    permissions: [],
+                    permissionDetails: [],
+                }],
+            };
+        });
+    }, [user?.results?.customerApps, allApps]);
+
     const apps = useMemo(() => {
         const peopleAccessApp = {
             id: 'people-access',
             appCode: 'PEOPLE_ACCESS',
-            name: 'Employee & Access',
+            name: 'Employee & Access · Owner',
             description: 'Manage employees, app roles and feature permissions',
             path: '/platform/employees',
             isActive: true,
+            accountLabel: 'Owner',
+            accountKind: 'staff',
             icon: <FiUsers className="w-full h-full" />,
+            roles: [{
+                roleCode: 'OWNER',
+                accountName: roleCodeToAccountName('USER', membershipAccounts),
+                enrollmentId: null,
+                permissions: [],
+                permissionDetails: [],
+            }],
         };
+
+        let staffApps = [];
 
         if (platform?.isAvailable && platform.organizations?.length) {
             const sessionApps = platform.organizations.flatMap((organization) => (
@@ -289,7 +347,6 @@ const AppSelectionPage = () => {
                 })
             ));
 
-            // Deduplicate by appCode + parentMembershipId, keep first
             const seen = new Set();
             const uniqueApps = sessionApps.filter((app) => {
                 const key = `${app.parentMembershipId}:${app.appCode}`;
@@ -298,31 +355,105 @@ const AppSelectionPage = () => {
                 return true;
             });
 
-            // Staff only see apps they are enrolled in (roles from platform session).
-            const enrolledApps = isOwner
+            staffApps = isOwner
                 ? uniqueApps
                 : uniqueApps.filter((app) => Array.isArray(app.roles) && app.roles.length > 0);
-
-            if (isOwner) {
-                return [...enrolledApps, peopleAccessApp];
-            }
-
-            if (enrolledApps.length > 0) {
-                return enrolledApps;
-            }
+        } else if (isOwner) {
+            staffApps = allApps.map((app) => ({
+                ...app,
+                roles: [{
+                    roleCode: 'USER',
+                    accountName: 'User',
+                    enrollmentId: null,
+                    permissions: ['*'],
+                    permissionDetails: [],
+                    parentMembershipId: membershipAccounts[0]?.parent_membership_id,
+                }],
+            }));
+        } else if (membershipAccounts.length) {
+            staffApps = allApps
+                .map((app) => {
+                    const choices = buildChoicesFromMembership(app);
+                    if (!choices.length) return null;
+                    return {
+                        ...app,
+                        roles: choices,
+                        parentMembershipId: choices[0]?.parentMembershipId
+                            ?? membershipAccounts[0]?.parent_membership_id,
+                    };
+                })
+                .filter(Boolean);
         }
+
+        // One card per staff role (Manager, Collector, Accountant, User) so dual-role
+        // users can pick Manager vs Subscriber as separate accounts.
+        const staffAccountCards = staffApps.flatMap((app) => {
+            const baseName = app.displayName || app.name || app.appCode;
+            const roles = Array.isArray(app.roles) ? app.roles : [];
+            const staffRoles = roles.filter((role) => {
+                const code = String(role.roleCode || '').toUpperCase();
+                return ['USER', 'OWNER', 'MANAGER', 'COLLECTOR', 'ACCOUNTANT'].includes(code);
+            });
+
+            if (!staffRoles.length) {
+                if (!isOwner) return [];
+                return [{
+                    ...app,
+                    id: `staff-${app.appCode}-${app.parentMembershipId || 'org'}-USER`,
+                    name: `${baseName} · Owner`,
+                    description: 'Open as company owner / admin',
+                    accountLabel: 'Owner',
+                    accountKind: 'staff',
+                    isCustomerApp: false,
+                    isStaffAccount: true,
+                    singleRole: {
+                        roleCode: 'USER',
+                        accountName: 'User',
+                        enrollmentId: null,
+                        permissions: ['*'],
+                        permissionDetails: [],
+                    },
+                }];
+            }
+
+            return staffRoles.map((role) => {
+                const roleCode = String(role.roleCode || '').toUpperCase();
+                const roleLabel = formatAccountLabel(
+                    role.accountName || roleCodeToAccountName(roleCode, membershipAccounts) || roleCode
+                );
+                return {
+                    ...app,
+                    id: `staff-${app.appCode}-${app.parentMembershipId || 'org'}-${roleCode}`,
+                    name: `${baseName} · ${roleLabel}`,
+                    description: `Open as ${roleLabel}`,
+                    accountLabel: roleLabel,
+                    accountKind: 'staff',
+                    isCustomerApp: false,
+                    isStaffAccount: true,
+                    singleRole: {
+                        ...role,
+                        roleCode,
+                        accountName: role.accountName || roleLabel,
+                    },
+                    roles: [role],
+                };
+            });
+        });
 
         if (isOwner) {
-            return [...allApps, peopleAccessApp];
+            staffAccountCards.push(peopleAccessApp);
         }
 
-        // Legacy / empty-session staff: show known apps that match membership roles.
-        if (membershipAccounts.length) {
-            return allApps.filter((app) => buildChoicesFromMembership(app).length > 0);
-        }
-
-        return [];
-    }, [isOwner, membershipAccounts, platform?.isAvailable, platform?.organizations, allApps]);
+        // Always show every subscriber portal alongside staff accounts.
+        return [...staffAccountCards, ...customerApps];
+    }, [
+        isOwner,
+        membershipAccounts,
+        platform?.isAvailable,
+        platform?.organizations,
+        allApps,
+        customerApps,
+    ]);
 
     const openWithAccount = (app, choice) => {
         const parentMembershipId = app.parentMembershipId
@@ -339,6 +470,29 @@ const AppSelectionPage = () => {
 
     const handleAppSelection = (app) => {
         if (!app.isActive || app.path === '#') return;
+
+        // Subscriber / customer portal (e.g. Chit Fund subscriber, DC customer)
+        if (app.isCustomerApp) {
+            if (app.appCode === 'CHIT_FUND' && user?.results?.token) {
+                localStorage.setItem('subscriber_token', user.results.token);
+                localStorage.setItem('subscriber_user', JSON.stringify(user.results));
+            }
+            updateUserRole('Subscriber');
+            history.push(app.path);
+            return;
+        }
+
+        // Staff account already flattened to one role per card
+        if (app.isStaffAccount && app.singleRole) {
+            openWithAccount(app, app.singleRole);
+            return;
+        }
+
+        if (app.appCode === 'PEOPLE_ACCESS') {
+            const choices = getAccountChoices(app);
+            openWithAccount(app, choices[0] || app.roles?.[0] || { roleCode: 'OWNER', accountName: 'User' });
+            return;
+        }
 
         const choices = getAccountChoices(app);
         if (choices.length === 0) {
@@ -374,7 +528,7 @@ const AppSelectionPage = () => {
             <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
-                        <MyTreasureBrand subtitle="Finance Hub · Select Your Application" />
+                        <MyTreasureBrand subtitle="Select which app to open" />
 
                         <div className="flex items-center space-x-4">
                             <div className="hidden sm:flex items-center space-x-3">
@@ -426,13 +580,12 @@ const AppSelectionPage = () => {
             <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
                 <div className="text-center mb-8 sm:mb-12">
                     <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">
-                        Welcome Back!
+                        Choose your app
                     </h2>
-                    <p className="text-sm sm:text-base text-gray-500">
-                        Select an application to get started
-                        {apps.length > 1
-                            ? ' — you have access to more than one app'
-                            : ''}
+                    <p className="text-sm sm:text-base text-gray-500 max-w-2xl mx-auto">
+                        {customerApps.length && apps.some((app) => app.accountKind === 'staff')
+                            ? 'You have employee and subscriber access. Pick Manager / Collector for staff apps, or Subscriber for your customer portal.'
+                            : 'Select an application to get started'}
                     </p>
                 </div>
 
@@ -447,7 +600,7 @@ const AppSelectionPage = () => {
                     ) : null}
                     {apps.map((app, index) => (
                         <div
-                            key={`${app.parentMembershipId || 'app'}-${app.appCode || app.id}`}
+                            key={app.id || `${app.parentMembershipId || 'app'}-${app.appCode}-${app.accountLabel || index}`}
                             onClick={() => handleAppSelection(app)}
                             className={`
                 group relative bg-white border-2 rounded-xl p-5 sm:p-6
@@ -469,6 +622,16 @@ const AppSelectionPage = () => {
                 group-hover:scale-x-100
                 ${app.isActive ? 'bg-custom-red' : 'bg-gray-400'}
               `} />
+
+                            {app.accountLabel ? (
+                                <span className={`absolute top-3 right-3 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                    app.accountKind === 'subscriber'
+                                        ? 'bg-blue-50 text-blue-700'
+                                        : 'bg-red-50 text-red-700'
+                                }`}>
+                                    {app.accountLabel}
+                                </span>
+                            ) : null}
 
                             <div className={`
                 w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center

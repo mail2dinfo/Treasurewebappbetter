@@ -445,12 +445,18 @@ export function VehicleFinanceProvider({ children }) {
             }
 
             dispatch({ type: 'ADD_SUBSCRIBER', payload: result.results });
-            return { success: true, data: result.results };
+            return {
+                success: true,
+                data: result.results,
+                message: result.message || 'Subscriber created successfully',
+            };
         } catch (error) {
             const errorMessage = error.message || "Unknown error occurred";
             dispatch({ type: 'SET_ERROR', payload: errorMessage });
             console.error('Error creating subscriber:', error);
             return { success: false, error: errorMessage };
+        } finally {
+            dispatch({ type: 'SET_LOADING', payload: false });
         }
     };
 

@@ -25,6 +25,7 @@ import PersonalLoanAdminLayout from './components/personalLoan/PersonalLoanAdmin
 import VehicleFinanceAdminLayout from './components/vehicleFinance/VehicleFinanceAdminLayout';
 import VehicleFinanceManagerLayout from './components/vehicleFinance/VehicleFinanceManagerLayout';
 import VehicleFinanceCollectorLayout from './components/vehicleFinance/VehicleFinanceCollectorLayout';
+import VehicleFinanceCustomerLayout from './components/vehicleFinance/VehicleFinanceCustomerLayout';
 
 // Legacy layouts for backward compatibility (can be removed later)
 import CollectorLayout from './components/collector/CollectorLayout';
@@ -78,6 +79,7 @@ function App() {
                             render={() => <Redirect to="/login" />}
                         />
                         <Route path="/vehicle-finance/collector" component={VehicleFinanceCollectorLayout} />
+                        <Route path="/vehicle-finance/customer" component={VehicleFinanceCustomerLayout} />
                         <Route path="/vehicle-finance/user" component={VehicleFinanceAdminLayout} />
                         <Route path="/vehicle-finance/manager" component={VehicleFinanceManagerLayout} />
 

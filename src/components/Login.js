@@ -59,10 +59,13 @@ function Login() {
         platform?.clearActiveContext?.();
 
         const userAccounts = data?.results?.userAccounts || [];
+        const customerApps = data?.results?.customerApps || [];
         const accountNames = userAccounts.map(
           (account) => String(account.accountName || '').toUpperCase()
         );
         const hasCollectorRole = accountNames.some((name) => name.includes('COLLECTOR'));
+        const hasSubscriberRole = accountNames.some((name) => name.includes('SUBSCRIBER'))
+          || customerApps.length > 0;
         const hasPlatformRole = accountNames.some((name) => (
           name.includes('USER')
           || name.includes('MANAGER')
@@ -79,11 +82,16 @@ function Login() {
           localStorage.setItem('vf_collector_user', JSON.stringify(data.results));
         }
 
-        // User / Manager / Collector / Accountant all land on Finance Hub so
-        // multi-app enrollments (e.g. Chit + VF) appear together for selection.
-        if (hasPlatformRole || userAccounts.length > 1) {
+        // Customer portal uses subscriber_* storage for Chit Fund subscriber APIs.
+        if (hasSubscriberRole && data?.results?.token) {
+          localStorage.setItem('subscriber_token', data.results.token);
+          localStorage.setItem('subscriber_user', JSON.stringify(data.results));
+        }
+
+        // Staff and customers land on Finance Hub to pick an app they belong to.
+        if (hasPlatformRole || hasSubscriberRole || userAccounts.length > 1) {
           await platform?.loadSession(data?.results?.token);
-          updateUserRole(userAccounts[0]?.accountName || accountNames[0] || 'Employee');
+          updateUserRole(userAccounts[0]?.accountName || accountNames[0] || 'Subscriber');
           history.push('/app-selection');
           return;
         }
