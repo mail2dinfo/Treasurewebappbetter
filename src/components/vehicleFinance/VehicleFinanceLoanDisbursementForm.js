@@ -633,19 +633,27 @@ const VehicleFinanceLoanDisbursementForm = ({ onClose, onSuccess }) => {
                                             onChange={(e) => setField('loanFirstDueDate', e.target.value)}
                                         />
                                     </Field>
-                                    <Field label="Disbursement account" required error={errors.paymentMethod}>
+                                    <Field label="Payment Method" required error={errors.paymentMethod}>
                                         <select
                                             className={inputClass('paymentMethod')}
                                             value={form.paymentMethod}
                                             onChange={(e) => setField('paymentMethod', e.target.value)}
                                         >
-                                            <option value="">Select ledger account</option>
+                                            <option value="">Select Payment Method</option>
                                             {ledgerAccounts.map((a) => (
                                                 <option key={a.id} value={a.account_name}>
                                                     {a.account_name}
+                                                    {a.current_balance != null
+                                                        ? ` (Balance: ₹${Number(a.current_balance || 0).toLocaleString('en-IN')})`
+                                                        : ''}
                                                 </option>
                                             ))}
                                         </select>
+                                        {ledgerAccounts.length === 0 && (
+                                            <p className="mt-1 text-xs text-amber-600">
+                                                No ledger accounts found. Create an account under Ledger first.
+                                            </p>
+                                        )}
                                     </Field>
                                 </div>
                                 {form.repaymentMode === 'DAILY' && (

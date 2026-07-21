@@ -3,6 +3,7 @@ import { useVehicleFinanceContext } from '../../context/vehicleFinance/VehicleFi
 import { FiPlus, FiDollarSign, FiTrendingUp, FiCalendar, FiRefreshCw, FiX } from 'react-icons/fi';
 import VehicleFinanceLedgerAccountForm from '../../components/vehicleFinance/VehicleFinanceLedgerAccountForm';
 import VehicleFinanceLedgerEntryForm from '../../components/vehicleFinance/VehicleFinanceLedgerEntryForm';
+import VehicleFinanceDayBookTab from '../../components/vehicleFinance/VehicleFinanceDayBookTab';
 import { useVfPermission } from '../../components/vehicleFinance/useVfPermission';
 
 const VehicleFinanceLedgerPage = () => {
@@ -10,6 +11,7 @@ const VehicleFinanceLedgerPage = () => {
         ledgerAccounts,
         ledgerEntries,
         ledgerSummary,
+        dayBook,
         isLoading,
         error,
         fetchLedgerAccounts,
@@ -17,6 +19,7 @@ const VehicleFinanceLedgerPage = () => {
         fetchLedgerEntries,
         createLedgerEntry,
         fetchLedgerSummary,
+        fetchDayBook,
         clearError
     } = useVehicleFinanceContext();
     const { canAccess } = useVfPermission();
@@ -24,6 +27,7 @@ const VehicleFinanceLedgerPage = () => {
     const canAddEntry = canAccess('vf_ledger_add_entry') || canAccess('vf_ledger');
     const canViewAccounts = canAccess('vf_ledger_view_account') || canAccess('vf_ledger') || canAddAccount;
     const canViewEntries = canAccess('vf_ledger_view_entry') || canAccess('vf_ledger') || canAddEntry;
+    const canViewDayBook = canAccess('vf_ledger') || canViewAccounts || canViewEntries;
 
     const [activeTab, setActiveTab] = useState('accounts');
     const [showAccountForm, setShowAccountForm] = useState(false);
@@ -58,6 +62,9 @@ const VehicleFinanceLedgerPage = () => {
             setShowAccountForm(false);
             fetchLedgerAccounts();
             fetchLedgerSummary();
+            if (activeTab === 'daybook') {
+                fetchDayBook(dayBook?.date || undefined, true);
+            }
         }
     };
 
@@ -68,6 +75,10 @@ const VehicleFinanceLedgerPage = () => {
             fetchLedgerEntries(filters);
             fetchLedgerSummary();
             fetchLedgerAccounts(); // Refresh to update balances
+            if (activeTab === 'daybook') {
+                const entryDate = entryData.payment_date || dayBook?.date;
+                fetchDayBook(entryDate || undefined, true);
+            }
         }
     };
 
@@ -91,8 +102,8 @@ const VehicleFinanceLedgerPage = () => {
                 {/* Header */}
                 <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Personal Loan Ledger</h1>
-                        <p className="text-sm text-gray-600 mt-1">Track accounts, entries, and financial transactions</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Vehicle Finance Ledger</h1>
+                        <p className="text-sm text-gray-600 mt-1">Track accounts, entries, and day book</p>
                     </div>
                     <div className="flex gap-2">
                         {canAddAccount && (
@@ -173,11 +184,11 @@ const VehicleFinanceLedgerPage = () => {
                 <div className="mb-6">
                     <div className="bg-white rounded-xl shadow-sm">
                         <div className="border-b border-gray-200">
-                            <div className="flex gap-4">
+                            <div className="flex gap-4 overflow-x-auto">
                                 {canViewAccounts && (
                                     <button
                                         onClick={() => setActiveTab('accounts')}
-                                        className={`px-4 py-3 font-medium border-b-2 transition-colors ${activeTab === 'accounts'
+                                        className={`px-4 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'accounts'
                                             ? 'border-red-600 text-red-600'
                                             : 'border-transparent text-gray-600 hover:text-gray-800'
                                             }`}
@@ -188,7 +199,7 @@ const VehicleFinanceLedgerPage = () => {
                                 {canViewEntries && (
                                     <button
                                         onClick={() => setActiveTab('entries')}
-                                        className={`px-4 py-3 font-medium border-b-2 transition-colors ${activeTab === 'entries'
+                                        className={`px-4 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'entries'
                                             ? 'border-red-600 text-red-600'
                                             : 'border-transparent text-gray-600 hover:text-gray-800'
                                             }`}
@@ -196,13 +207,24 @@ const VehicleFinanceLedgerPage = () => {
                                         Ledger Entries
                                     </button>
                                 )}
+                                {canViewDayBook && (
+                                    <button
+                                        onClick={() => setActiveTab('daybook')}
+                                        className={`px-4 py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'daybook'
+                                            ? 'border-red-600 text-red-600'
+                                            : 'border-transparent text-gray-600 hover:text-gray-800'
+                                            }`}
+                                    >
+                                        Day Book
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Loading State */}
-                {isLoading && (
+                {/* Loading State — day book tab has its own loader */}
+                {isLoading && activeTab !== 'daybook' && (
                     <div className="flex justify-center items-center py-20">
                         <div className="text-center">
                             <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -356,46 +378,53 @@ const VehicleFinanceLedgerPage = () => {
                                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Account</th>
                                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
                                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Subcategory</th>
-                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Amount</th>
+                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">CR</th>
+                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">DB</th>
                                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Description</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
-                                            {ledgerEntries.map((entry) => (
-                                                <tr key={entry.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                        {formatDate(entry.payment_date)}
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="text-sm font-medium text-gray-900">
-                                                            {entry.account?.account_name || 'N/A'}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                                            {entry.category}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="text-sm text-gray-600">
-                                                            {entry.subcategory || '-'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className={`text-sm font-semibold ${parseFloat(entry.amount) >= 0
-                                                            ? 'text-green-600'
-                                                            : 'text-red-600'
-                                                            }`}>
-                                                            {formatCurrency(entry.amount)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="text-sm text-gray-600 max-w-xs truncate">
-                                                            {entry.description || '-'}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {ledgerEntries.map((entry) => {
+                                                const amount = parseFloat(entry.amount) || 0;
+                                                const isCredit = amount >= 0;
+                                                return (
+                                                    <tr key={entry.id} className="hover:bg-gray-50">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                            {formatDate(entry.payment_date)}
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm font-medium text-gray-900">
+                                                                {entry.account?.account_name || 'N/A'}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                                                {entry.category}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <span className="text-sm text-gray-600">
+                                                                {entry.subcategory || '-'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="text-sm font-semibold text-green-600">
+                                                                {isCredit ? formatCurrency(Math.abs(amount)) : '—'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="text-sm font-semibold text-red-600">
+                                                                {!isCredit ? formatCurrency(Math.abs(amount)) : '—'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm text-gray-600 max-w-xs truncate">
+                                                                {entry.description || '-'}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
@@ -421,6 +450,15 @@ const VehicleFinanceLedgerPage = () => {
                             </div>
                         )}
                     </>
+                )}
+
+                {/* Day Book Tab */}
+                {activeTab === 'daybook' && canViewDayBook && (
+                    <VehicleFinanceDayBookTab
+                        dayBook={dayBook}
+                        fetchDayBook={fetchDayBook}
+                        isLoading={isLoading}
+                    />
                 )}
 
                 {/* Modals */}

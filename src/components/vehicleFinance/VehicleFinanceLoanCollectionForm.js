@@ -548,6 +548,11 @@ const VehicleFinanceLoanCollectionForm = ({ loan, onClose, onSuccess }) => {
                                         </option>
                                     ))}
                                 </select>
+                                {ledgerAccounts.length === 0 && (
+                                    <p className="mt-1 text-xs text-amber-600">
+                                        No ledger accounts found. Create an account under Ledger first.
+                                    </p>
+                                )}
                                 {errors.paymentMethod && (
                                     <p className="mt-1 text-sm text-red-600">{errors.paymentMethod}</p>
                                 )}

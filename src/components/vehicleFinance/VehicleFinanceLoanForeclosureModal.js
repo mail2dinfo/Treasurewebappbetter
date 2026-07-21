@@ -206,7 +206,7 @@ const VehicleFinanceLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             <FiCreditCard className="inline w-4 h-4 mr-1" />
-                            Payment Method (Ledger Account) *
+                            Payment Method *
                         </label>
                         <select
                             name="paymentMode"
@@ -216,7 +216,7 @@ const VehicleFinanceLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                                 errors.paymentMode ? 'border-red-500' : 'border-gray-300'
                             }`}
                         >
-                            <option value="">Select Payment Method (Ledger Account)</option>
+                            <option value="">Select Payment Method</option>
                             {ledgerAccounts.map(account => (
                                 <option key={account.id} value={account.id}>
                                     {account.account_name} (Balance: ₹{parseFloat(account.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
@@ -226,9 +226,11 @@ const VehicleFinanceLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                         {errors.paymentMode && (
                             <p className="mt-1 text-sm text-red-600">{errors.paymentMode}</p>
                         )}
-                        <p className="mt-1 text-xs text-gray-500">
-                            Select the ledger account where the foreclosure payment will be deposited. Only accounts created by you are shown.
-                        </p>
+                        {ledgerAccounts.length === 0 && (
+                            <p className="mt-1 text-xs text-amber-600">
+                                No ledger accounts found. Create an account under Ledger first.
+                            </p>
+                        )}
                     </div>
 
                     {/* Summary */}

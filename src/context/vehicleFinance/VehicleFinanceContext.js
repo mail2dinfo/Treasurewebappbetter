@@ -59,6 +59,7 @@ const initialState = {
     ledgerAccounts: [],
     ledgerEntries: [],
     ledgerSummary: null,
+    dayBook: null,
     isLoading: false,
     error: null,
 };
@@ -163,6 +164,8 @@ function vehicleFinanceReducer(state, action) {
             };
         case 'SET_LEDGER_SUMMARY':
             return { ...state, ledgerSummary: action.payload, isLoading: false };
+        case 'SET_DAY_BOOK':
+            return { ...state, dayBook: action.payload, isLoading: false };
         case 'SET_LOADING':
             return { ...state, isLoading: action.payload };
         case 'SET_ERROR':
@@ -1107,6 +1110,51 @@ export function VehicleFinanceProvider({ children }) {
         }
     }, [user]);
 
+    // Fetch Day Book for a specific date (account-wise opening / receipts / payments / closing)
+    const fetchDayBook = useCallback(async (date = null, forceRecalculate = false) => {
+        if (!user?.results?.token) {
+            return { success: false, error: "User not authenticated" };
+        }
+
+        const membershipId = getMembershipId(user);
+        if (!membershipId) {
+            return { success: false, error: 'Membership ID not found' };
+        }
+
+        dispatch({ type: 'SET_LOADING', payload: true });
+
+        try {
+            const queryParams = new URLSearchParams({
+                parent_membership_id: membershipId,
+                ...(date ? { date } : {}),
+                ...(forceRecalculate ? { force_recalculate: 'true' } : {}),
+            });
+
+            const url = `${API_BASE_URL}/vf/ledger/day-book?${queryParams.toString()}`;
+            const res = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${user.results.token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || "Failed to fetch day book");
+            }
+
+            const data = await res.json();
+            dispatch({ type: 'SET_DAY_BOOK', payload: data.results || null });
+            dispatch({ type: 'CLEAR_ERROR' });
+            return { success: true };
+        } catch (error) {
+            const errorMessage = error.message || "Unknown error occurred";
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    }, [user]);
+
     const clearError = () => {
         dispatch({ type: 'CLEAR_ERROR' });
     };
@@ -1134,6 +1182,7 @@ export function VehicleFinanceProvider({ children }) {
         fetchLedgerEntries,
         createLedgerEntry,
         fetchLedgerSummary,
+        fetchDayBook,
         clearError,
     };
 
