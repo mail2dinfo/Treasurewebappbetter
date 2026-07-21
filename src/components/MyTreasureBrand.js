@@ -12,7 +12,7 @@ const MyTreasureBrand = ({
     const content = (
         <>
             <span
-                className="relative block h-9 w-9 flex-shrink-0 overflow-hidden rounded-lg bg-red-600 shadow-sm sm:h-10 sm:w-10"
+                className="relative block h-12 w-12 flex-shrink-0 overflow-hidden sm:h-14 sm:w-14"
                 aria-hidden="true"
             >
                 <img
@@ -20,10 +20,10 @@ const MyTreasureBrand = ({
                     alt=""
                     className="pointer-events-none absolute max-w-none select-none"
                     style={{
-                        height: '8rem',
-                        width: '22.5rem',
-                        left: '-0.8rem',
-                        top: '-1rem',
+                        height: '7.5rem',
+                        width: '21rem',
+                        left: '-0.55rem',
+                        top: '0.35rem',
                     }}
                 />
             </span>
