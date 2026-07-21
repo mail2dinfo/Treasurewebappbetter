@@ -220,13 +220,14 @@ export function VehicleFinanceProvider({ children }) {
             console.log('✅ API Response:', data);
 
             dispatch({ type: 'SET_COMPANIES', payload: data.results || [] });
-            dispatch({ type: 'CLEAR_ERROR' });
+            dispatch({ type: 'SET_LOADING', payload: false });
             console.log('=== FETCH PL COMPANIES END ===');
             return { success: true };
         } catch (error) {
             const errorMessage = error.message || 'Unknown error occurred';
             console.error('❌ Error fetching companies:', error);
-            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            dispatch({ type: 'SET_LOADING', payload: false });
+            // Do not set global page error — companies are optional on Loans page
             return { success: false, error: errorMessage };
         }
     }, [user]);
@@ -548,6 +549,7 @@ export function VehicleFinanceProvider({ children }) {
         }
 
         dispatch({ type: 'SET_LOADING', payload: true });
+        dispatch({ type: 'CLEAR_ERROR' });
 
         try {
             let url = `${API_BASE_URL}/vf/loans?parent_membership_id=${membershipId}`;
@@ -564,7 +566,7 @@ export function VehicleFinanceProvider({ children }) {
             });
 
             if (!res.ok) {
-                const errorData = await res.json();
+                const errorData = await res.json().catch(() => ({}));
                 throw new Error(errorData.message || "Failed to fetch loans");
             }
 
@@ -577,7 +579,10 @@ export function VehicleFinanceProvider({ children }) {
             dispatch({ type: 'SET_LOADING', payload: false });
             return { success: true };
         } catch (error) {
-            const errorMessage = error.message || "Unknown error occurred";
+            const errorMessage =
+                error?.message === 'Failed to fetch'
+                    ? `Unable to reach the server (${API_BASE_URL}). Check your connection and try again.`
+                    : (error.message || "Unknown error occurred");
             dispatch({ type: 'SET_ERROR', payload: errorMessage });
             dispatch({ type: 'SET_LOADING', payload: false });
             return { success: false, error: errorMessage };
@@ -725,8 +730,8 @@ export function VehicleFinanceProvider({ children }) {
             const res = await fetch(`${API_BASE_URL}/vf/collections/pay`, {
                 method: 'POST',
                 headers: {
-                    Authorization: `Bearer ${user.results.token}`,
-                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     receivableId: paymentData.receivableId,
@@ -738,20 +743,31 @@ export function VehicleFinanceProvider({ children }) {
                 }),
             });
 
-            const result = await res.json();
-
-            if (!res.ok) {
-                throw new Error(result.message || "Failed to collect payment");
+            let result = {};
+            try {
+                result = await res.json();
+            } catch {
+                result = {};
             }
 
-            // Refresh loans to get updated outstanding amounts
-            await fetchLoans();
-            dispatch({ type: 'SET_LOADING', payload: false });
+            if (!res.ok) {
+                throw new Error(result.message || 'Failed to collect payment');
+            }
+
+            // Refresh loans in background — do not fail the payment if refresh fails
+            try {
+                await fetchLoans();
+            } catch (refreshError) {
+                console.warn('Loan list refresh after payment failed:', refreshError);
+            }
+
             return { success: true, data: result.results };
         } catch (error) {
-            const errorMessage = error.message || "Unknown error occurred";
-            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            const errorMessage = error.message || 'Unknown error occurred';
+            // Do not set global page error — caller/modal shows the message
             return { success: false, error: errorMessage };
+        } finally {
+            dispatch({ type: 'SET_LOADING', payload: false });
         }
     };
 
@@ -825,10 +841,12 @@ export function VehicleFinanceProvider({ children }) {
             }
 
             dispatch({ type: 'SET_RECEIVABLES', payload: result.results || [] });
+            dispatch({ type: 'SET_LOADING', payload: false });
             return { success: true, data: result.results };
         } catch (error) {
             const errorMessage = error.message || "Unknown error occurred";
-            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            dispatch({ type: 'SET_LOADING', payload: false });
+            // Keep this local — do not overwrite Loans page error banner
             return { success: false, error: errorMessage };
         }
     };
@@ -902,11 +920,11 @@ export function VehicleFinanceProvider({ children }) {
 
             const data = await res.json();
             dispatch({ type: 'SET_LEDGER_ACCOUNTS', payload: data.results || [] });
-            dispatch({ type: 'CLEAR_ERROR' });
+            dispatch({ type: 'SET_LOADING', payload: false });
             return { success: true };
         } catch (error) {
             const errorMessage = error.message || "Unknown error occurred";
-            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            dispatch({ type: 'SET_LOADING', payload: false });
             return { success: false, error: errorMessage };
         }
     }, [user]);

@@ -194,6 +194,14 @@ const VehicleFinanceLoanDetails = ({ loanId, initialLoan = null, onClose }) => {
                             </p>
                         </div>
                         <div>
+                            <p className="text-gray-500">Engine No</p>
+                            <p className="font-semibold">{loan.engine_number || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p className="text-gray-500">Chassis No</p>
+                            <p className="font-semibold">{loan.chassis_number || 'N/A'}</p>
+                        </div>
+                        <div>
                             <p className="text-gray-500">Status</p>
                             <p className="font-semibold">{loan.status}</p>
                         </div>
@@ -241,10 +249,17 @@ const VehicleFinanceLoanDetails = ({ loanId, initialLoan = null, onClose }) => {
                 {showDeleteConfirm && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center p-4 rounded-xl">
                         <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Delete Loan</h3>
+                            <h3 className="text-lg font-semibold text-gray-800 mb-2">Delete Loan?</h3>
                             <p className="text-sm text-gray-600 mb-4">This cannot be undone.</p>
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-sm text-red-700">
-                                Deletes the loan, all receivables, receipts, and related ledger entries.
+                            <div className="bg-red-50 border border-red-300 rounded-lg p-4 mb-4">
+                                <p className="text-sm font-bold text-red-800 mb-2">
+                                    ⚠ Alarm: Both Loan and Receivables will be removed
+                                </p>
+                                <ul className="text-sm text-red-700 space-y-1 list-disc list-inside">
+                                    <li>The loan record will be deleted permanently</li>
+                                    <li>All receivables for this loan will be deleted</li>
+                                    <li>Related receipts and ledger entries will also be removed</li>
+                                </ul>
                             </div>
                             <div className="flex gap-3">
                                 <button
@@ -259,7 +274,7 @@ const VehicleFinanceLoanDetails = ({ loanId, initialLoan = null, onClose }) => {
                                     type="button"
                                     onClick={handleDeleteLoan}
                                     disabled={isDeleting}
-                                    className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg disabled:opacity-50"
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg disabled:opacity-50"
                                 >
                                     {isDeleting ? 'Deleting...' : 'Delete Permanently'}
                                 </button>

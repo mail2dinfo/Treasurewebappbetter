@@ -137,6 +137,10 @@ const VehicleFinanceLoanAgreementPDF = ({ loanData, companyData }) => {
                                 <Text style={styles.label}>Chassis Number:</Text>
                                 <Text style={styles.value}>{loan?.chassis_number || 'N/A'}</Text>
                             </View>
+                            <View style={styles.row}>
+                                <Text style={styles.label}>Engine Number:</Text>
+                                <Text style={styles.value}>{loan?.engine_number || 'N/A'}</Text>
+                            </View>
                         </View>
                     </View>
                 </View>

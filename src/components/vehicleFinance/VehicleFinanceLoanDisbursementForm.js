@@ -90,6 +90,7 @@ const VehicleSummaryPanel = ({ form, subscribers, onEdit }) => {
         { label: 'Make / Model', value: [form.vehicleMake, form.vehicleModel].filter(Boolean).join(' ') || '—' },
         { label: 'Vehicle number', value: form.vehicleNumber || '—' },
         { label: 'Chassis', value: form.chassisNumber || '—' },
+        { label: 'Engine', value: form.engineNumber || '—' },
     ];
 
     return (
@@ -171,6 +172,7 @@ const VehicleFinanceLoanDisbursementForm = ({ onClose, onSuccess }) => {
         subscriberId: '',
         vehicleType: 'TWO_WHEELER',
         chassisNumber: '',
+        engineNumber: '',
         vehicleMake: '',
         vehicleModel: '',
         vehicleNumber: '',
@@ -366,6 +368,7 @@ const VehicleFinanceLoanDisbursementForm = ({ onClose, onSuccess }) => {
                 subscriberId: form.subscriberId,
                 vehicleType: form.vehicleType,
                 chassisNumber: form.chassisNumber?.trim() || '',
+                engineNumber: form.engineNumber?.trim().toUpperCase() || '',
                 vehicleMake: form.vehicleMake,
                 vehicleModel: form.vehicleModel,
                 vehicleNumber: form.vehicleNumber?.trim().toUpperCase() || '',
@@ -483,6 +486,14 @@ const VehicleFinanceLoanDisbursementForm = ({ onClose, onSuccess }) => {
                                         placeholder="Optional"
                                         value={form.chassisNumber}
                                         onChange={(e) => setField('chassisNumber', e.target.value.toUpperCase())}
+                                    />
+                                </Field>
+                                <Field label="Engine number">
+                                    <input
+                                        className={inputClass()}
+                                        placeholder="Optional"
+                                        value={form.engineNumber}
+                                        onChange={(e) => setField('engineNumber', e.target.value.toUpperCase())}
                                     />
                                 </Field>
                                 <Field label="Vehicle make">
@@ -621,17 +632,6 @@ const VehicleFinanceLoanDisbursementForm = ({ onClose, onSuccess }) => {
                                             value={form.loanFirstDueDate}
                                             onChange={(e) => setField('loanFirstDueDate', e.target.value)}
                                         />
-                                    </Field>
-                                    <Field label="Payment type">
-                                        <select
-                                            className={inputClass()}
-                                            value={form.paymentType}
-                                            onChange={(e) => setField('paymentType', e.target.value)}
-                                        >
-                                            <option value="EMI">EMI</option>
-                                            <option value="CASH">Cash</option>
-                                            <option value="UPI">UPI</option>
-                                        </select>
                                     </Field>
                                     <Field label="Disbursement account" required error={errors.paymentMethod}>
                                         <select
