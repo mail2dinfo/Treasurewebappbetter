@@ -422,7 +422,7 @@ const AppSelectionPage = () => {
                     ...app,
                     id: `staff-${app.appCode}-${app.parentMembershipId || 'org'}-USER`,
                     name: `${baseName} · Owner`,
-                    description: 'Open as company owner / admin',
+                    description: app.description || '',
                     accountLabel: 'Owner',
                     accountKind: 'staff',
                     isCustomerApp: false,
@@ -446,7 +446,7 @@ const AppSelectionPage = () => {
                     ...app,
                     id: `staff-${app.appCode}-${app.parentMembershipId || 'org'}-${roleCode}`,
                     name: `${baseName} · ${roleLabel}`,
-                    description: `Open as ${roleLabel}`,
+                    description: app.description || '',
                     accountLabel: roleLabel,
                     accountKind: 'staff',
                     isCustomerApp: false,
@@ -546,10 +546,10 @@ const AppSelectionPage = () => {
 
     return (
         <div className="min-h-screen bg-white">
-            <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+            <header className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 shadow-lg sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
-                        <MyTreasureBrand subtitle="Select which app to open" />
+                        <MyTreasureBrand subtitle="Select which app to open" inverse />
 
                         <div className="flex items-center space-x-4">
                             <div className="hidden sm:flex items-center space-x-3">
@@ -557,18 +557,18 @@ const AppSelectionPage = () => {
                                     <img
                                         src={user?.results?.userDetail?.user_image_s3_image || user?.results?.user_image_s3_image || 'https://i.imgur.com/ndu6pfe.png'}
                                         alt={displayName}
-                                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 shadow-md"
+                                        className="w-10 h-10 rounded-full object-cover border-2 border-white/40 shadow-md"
                                         onError={(e) => {
                                             e.target.src = 'https://i.imgur.com/ndu6pfe.png';
                                         }}
                                     />
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-medium text-gray-900">
+                                    <p className="text-sm font-medium text-white">
                                         Welcome, {displayName}!
                                     </p>
                                     {accountSubtitle ? (
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-red-100">
                                             {accountSubtitle}
                                         </p>
                                     ) : null}
@@ -579,7 +579,7 @@ const AppSelectionPage = () => {
                                 <img
                                     src={user?.results?.userDetail?.user_image_s3_image || user?.results?.user_image_s3_image || 'https://i.imgur.com/ndu6pfe.png'}
                                     alt={displayName}
-                                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 shadow-md"
+                                    className="w-10 h-10 rounded-full object-cover border-2 border-white/40 shadow-md"
                                     onError={(e) => {
                                         e.target.src = 'https://i.imgur.com/ndu6pfe.png';
                                     }}
@@ -588,7 +588,7 @@ const AppSelectionPage = () => {
 
                             <button
                                 onClick={handleLogout}
-                                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg"
+                                className="bg-white/15 hover:bg-white/25 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 border border-white/30"
                             >
                                 <FiLogOut className="w-4 h-4" />
                                 <span>Logout</span>
@@ -610,7 +610,7 @@ const AppSelectionPage = () => {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12 max-w-5xl mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-10 max-w-5xl mx-auto">
                     {apps.length === 0 ? (
                         <div className="col-span-full text-center py-12 px-4 bg-gray-50 rounded-xl border border-gray-200">
                             <p className="text-gray-800 font-medium">No applications available yet</p>
@@ -624,12 +624,12 @@ const AppSelectionPage = () => {
                             key={app.id || `${app.parentMembershipId || 'app'}-${app.appCode}-${app.accountLabel || index}`}
                             onClick={() => handleAppSelection(app)}
                             className={`
-                group relative bg-white border-2 rounded-xl p-5 sm:p-6
+                group relative bg-white border-2 rounded-lg p-3 sm:p-4
                 transition-all duration-300 ease-in-out
-                flex flex-col items-center text-center gap-3 sm:gap-4
-                shadow-sm hover:shadow-lg
+                flex flex-col items-center text-center gap-2 sm:gap-2.5
+                shadow-sm hover:shadow-md
                 ${app.isActive
-                                    ? 'border-custom-red cursor-pointer hover:-translate-y-1 hover:border-custom-red-dark'
+                                    ? 'border-custom-red cursor-pointer hover:-translate-y-0.5 hover:border-custom-red-dark'
                                     : 'border-gray-300 opacity-60 cursor-not-allowed'
                                 }
               `}
@@ -638,14 +638,14 @@ const AppSelectionPage = () => {
                             }}
                         >
                             <div className={`
-                absolute top-0 left-0 w-full h-1 rounded-t-xl
+                absolute top-0 left-0 w-full h-0.5 rounded-t-lg
                 transition-transform duration-300 origin-left scale-x-0
                 group-hover:scale-x-100
                 ${app.isActive ? 'bg-custom-red' : 'bg-gray-400'}
               `} />
 
                             {app.accountLabel ? (
-                                <span className={`absolute top-3 right-3 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                <span className={`absolute top-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                                     app.accountKind === 'subscriber'
                                         ? 'bg-blue-50 text-blue-700'
                                         : 'bg-red-50 text-red-700'
@@ -655,32 +655,32 @@ const AppSelectionPage = () => {
                             ) : null}
 
                             <div className={`
-                w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center
-                transition-all duration-300 shadow-md
+                w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center
+                transition-all duration-300 shadow-sm
                 group-hover:scale-105
                 ${app.isActive ? 'bg-custom-red group-hover:bg-custom-red-dark' : 'bg-gray-400'}
               `}>
-                                <div className="w-7 h-7 sm:w-8 sm:h-8 text-white">
+                                <div className="w-5 h-5 sm:w-6 sm:h-6 text-white">
                                     {app.icon}
                                 </div>
                             </div>
 
-                            <div className="flex-1">
-                                <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-1 sm:mb-2">
+                            <div className="flex-1 min-w-0 w-full">
+                                <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-0.5 leading-snug">
                                     {app.name}
                                 </h3>
-                                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                                <p className="text-[11px] sm:text-xs text-gray-600 leading-snug line-clamp-2">
                                     {app.description}
                                 </p>
                                 {Array.isArray(app.roles) && app.roles.length > 1 ? (
-                                    <p className="text-[11px] text-gray-500 mt-2">
+                                    <p className="text-[10px] text-gray-500 mt-1">
                                         {app.roles.length} accounts available
                                     </p>
                                 ) : null}
                             </div>
 
                             {!app.isActive && (
-                                <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-gray-700 text-white text-[10px] sm:text-xs font-semibold px-2 py-1 rounded uppercase tracking-wide">
+                                <div className="absolute top-2 right-2 bg-gray-700 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide">
                                     Coming Soon
                                 </div>
                             )}
