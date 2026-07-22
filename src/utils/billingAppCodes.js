@@ -3,6 +3,7 @@ export const BILLING_APP_CODES = Object.freeze({
   DAILY_COLLECTION: 'DAILY_COLLECTION',
   VEHICLE_FINANCE: 'VEHICLE_FINANCE',
   PERSONAL_LOAN: 'PERSONAL_LOAN',
+  PERSONAL_FINANCE: 'PERSONAL_FINANCE',
 });
 
 export const DEFAULT_BILLING_APP_CODE = BILLING_APP_CODES.CHIT_FUND;
@@ -12,6 +13,7 @@ export const BILLING_PATHS = Object.freeze({
   DAILY_COLLECTION: '/daily-collection/user/billing',
   VEHICLE_FINANCE: '/vehicle-finance/user/billing',
   PERSONAL_LOAN: '/personal-loan/user/billing',
+  PERSONAL_FINANCE: '/personal-finance/user/billing',
 });
 
 export const getBillingPathForApp = (appCode) =>

@@ -41,6 +41,7 @@ const MyBillingPage = () => {
         DAILY_COLLECTION: 'Daily Collection',
         VEHICLE_FINANCE: 'Vehicle Finance',
         PERSONAL_LOAN: 'Personal Loan',
+        PERSONAL_FINANCE: 'Personal Finance',
     }[appCode] || appCode;
 
     const [activeTab, setActiveTab] = useState('billing');

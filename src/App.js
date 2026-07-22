@@ -22,6 +22,7 @@ import DailyCollectionAdminLayout from './components/dailyCollection/DailyCollec
 import DailyCollectionCustomerLayout from './components/dailyCollection/DailyCollectionCustomerLayout';
 import DailyCollectionCollectorLayout from './components/dailyCollection/DailyCollectionCollectorLayout';
 import PersonalLoanAdminLayout from './components/personalLoan/PersonalLoanAdminLayout';
+import PersonalFinanceLayout from './components/personalFinance/PersonalFinanceLayout';
 import VehicleFinanceAdminLayout from './components/vehicleFinance/VehicleFinanceAdminLayout';
 import VehicleFinanceManagerLayout from './components/vehicleFinance/VehicleFinanceManagerLayout';
 import VehicleFinanceCollectorLayout from './components/vehicleFinance/VehicleFinanceCollectorLayout';
@@ -85,6 +86,9 @@ function App() {
 
                         {/* Personal Loan App Routes */}
                         <Route path="/personal-loan/user" component={PersonalLoanAdminLayout} />
+
+                        {/* Personal Finance App Routes */}
+                        <Route path="/personal-finance" component={PersonalFinanceLayout} />
 
                         {/* Legacy Routes for Backward Compatibility */}
                         <Route path="/customer" render={() => <Redirect to="/chit-fund/subscriber" />} />
