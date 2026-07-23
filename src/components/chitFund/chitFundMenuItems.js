@@ -6,7 +6,7 @@ export const getChitFundAppMenuItems = (basePath = CHIT_BASE_PATH) => [
         id: 'home',
         label: 'Home',
         path: `${basePath}/home`,
-        description: 'Dashboard overview',
+        description: 'Home overview',
     },
     {
         id: 'subscribers',
@@ -49,5 +49,11 @@ export const getChitFundAppMenuItems = (basePath = CHIT_BASE_PATH) => [
         label: 'Products',
         path: `${basePath}/products`,
         description: 'Chit products',
+    },
+    {
+        id: 'dashboard',
+        label: 'Dashboard',
+        path: `${basePath}/dashboard`,
+        description: 'Dashboard analytics',
     },
 ];

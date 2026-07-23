@@ -9,6 +9,7 @@ import {
     FiSettings,
     FiBookOpen,
     FiPackage,
+    FiBarChart2,
 } from 'react-icons/fi';
 import {
     CHIT_BASE_PATH,
@@ -17,6 +18,7 @@ import {
 
 const MENU_ICONS = {
     home: FiHome,
+    dashboard: FiBarChart2,
     subscribers: FiUsers,
     groups: FiLayers,
     receivables: FiDownload,
@@ -41,8 +43,10 @@ const ChitFundAppMenuBar = ({ basePath = CHIT_BASE_PATH }) => {
                 current === basePath
                 || current === `${basePath}/`
                 || current === `${basePath}/home`
-                || current === `${basePath}/dashboard`
             );
+        }
+        if (item.id === 'dashboard') {
+            return current === item.path || current.startsWith(`${item.path}/`);
         }
         if (item.id === 'groups') {
             return current === item.path || current.startsWith(`${item.path}/`);
