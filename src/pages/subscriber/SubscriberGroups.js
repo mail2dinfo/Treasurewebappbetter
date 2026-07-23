@@ -153,8 +153,8 @@ const SubscriberGroups = () => {
                                     ({selectedType?.count})
                                 </span>
                             </h4>
-                            <div className="text-lg font-semibold text-gray-900 sm:text-right">
-                                Total Outstanding :{' '}
+                            <div className="text-base sm:text-lg font-semibold text-gray-900 sm:text-right">
+                                Total Pending :{' '}
                                 <span className="text-red-600 font-bold">
                                     ₹{totalOutstanding.toLocaleString('en-IN')}
                                 </span>

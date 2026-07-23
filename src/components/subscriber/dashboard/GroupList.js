@@ -95,9 +95,9 @@ const GroupCard = ({ group, onGroupClick }) => {
             onClick={handleClick}
         >
             {/* Header Section */}
-            <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-white">
+            <div className="bg-red-100 p-4 border-b border-red-200">
                 <div className="flex items-center justify-between gap-2 mb-2">
-                    <h3 className="text-lg font-bold text-white truncate min-w-0">
+                    <h3 className="text-lg font-bold text-gray-900 truncate min-w-0">
                         {displayName}
                     </h3>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border shrink-0 ${getGroupTypeStyles(groupType)}`}>
@@ -105,17 +105,17 @@ const GroupCard = ({ group, onGroupClick }) => {
                     </span>
                 </div>
 
-                <div className="flex items-center justify-between gap-3">
-                    <p className="text-xl font-extrabold text-white shrink-0">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xl font-extrabold text-gray-900">
                         ₹{groupAmount.toLocaleString('en-IN')}
                     </p>
-                    <span className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-yellow-300 text-red-700 text-xs font-bold whitespace-nowrap shadow-sm ml-auto">
-                        Outstanding due : ₹{dueAmount.toLocaleString('en-IN')}
+                    <span className="inline-flex items-center justify-center px-2.5 py-1.5 rounded-md bg-yellow-300 text-red-700 text-xs font-bold shadow-sm w-full sm:w-auto sm:ml-auto text-center">
+                        Pending due : ₹{dueAmount.toLocaleString('en-IN')}
                     </span>
                 </div>
 
                 {isGovApproved && (
-                    <div className="flex items-center space-x-1 text-green-200 mt-2">
+                    <div className="flex items-center space-x-1 text-green-700 mt-2">
                         <span className="text-xs">✓</span>
                         <span className="text-xs font-medium">Government Approved</span>
                     </div>
