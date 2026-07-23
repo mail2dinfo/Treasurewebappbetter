@@ -199,7 +199,13 @@ const ClosedGroups = ({ groups, basePath = '/chit-fund/user' }) => {
     return nextAuctDateMoment.diff(currentDate, "days");
   };
 
-  const handleViewDetails = (groupId) => {
+  const handleViewDetails = (group) => {
+    const groupId = typeof group === 'object' ? group.id : group;
+    const type = String(typeof group === 'object' ? (group.type || '') : '').toUpperCase();
+    if (type === 'ADAPTIVE') {
+      history.push(`${basePath}/adaptive-groups/${groupId}`);
+      return;
+    }
     history.push(`${basePath}/groups/${groupId}`);
   };
 
@@ -257,7 +263,7 @@ const ClosedGroups = ({ groups, basePath = '/chit-fund/user' }) => {
             <div className="group-actions">
               <button
                 className="group-button"
-                onClick={() => handleViewDetails(group.id)}
+                onClick={() => handleViewDetails(group)}
               >
                 View Details
               </button>

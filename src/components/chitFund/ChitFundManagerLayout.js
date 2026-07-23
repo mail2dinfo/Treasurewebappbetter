@@ -23,6 +23,7 @@ import ChitFundManagerHome from './ChitFundManagerHome';
 
 // Chit Fund Manager Pages (Limited access - no billing, employees, etc.)
 import GroupsPage from '../../pages/GroupsPage';
+import AdaptiveGroupsPage from '../../pages/AdaptiveGroupsPage';
 import DashboardPage from '../../pages/DashboardPage';
 import Subscribers from '../Subscribers';
 import GroupStepForm from '../../pages/MultiStepGroupCreation_New/MultiStepForm';
@@ -41,6 +42,7 @@ import ChitFundManagerReports from '../../pages/chitFund/ChitFundManagerReports'
 import SubscriberProfile from '../../pages/SubscriberProfile';
 import SubscriberPasswordUpdate from '../../pages/SubscriberPasswordUpdate';
 import ProductsPage from '../../pages/ProductsPage';
+import Ledger from '../../pages/Ledger';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import { CHIT_NAV_ANY } from '../../utils/chitPermissionCatalog';
 
@@ -58,6 +60,7 @@ const ChitFundManagerLayout = () => {
         [CHIT_NAV_ANY.subscribers, '/chit-fund/manager/subscribers'],
         [CHIT_NAV_ANY.receivables, '/chit-fund/manager/receivables'],
         [CHIT_NAV_ANY.payables, '/chit-fund/manager/payables'],
+        [CHIT_NAV_ANY.ledger, '/chit-fund/manager/ledger'],
         [CHIT_NAV_ANY.areas, '/chit-fund/manager/areas'],
         [CHIT_NAV_ANY.products, '/chit-fund/manager/products'],
         [CHIT_NAV_ANY.employees, '/chit-fund/manager/employees'],
@@ -107,6 +110,7 @@ const ChitFundManagerLayout = () => {
                                                     )} />
                                                     <Route exact path="/chit-fund/manager/subscriber/:id/update-password" render={(props) => guardedRoute(SubscriberPasswordUpdate, 'chit_subscriber_change_password', props)} />
                                                     <Route exact path="/chit-fund/manager/subscriber/:id" render={(props) => guardedRoute(SubscriberProfile, 'chit_subscriber_view', props)} />
+                                                    <Route exact path="/chit-fund/manager/adaptive-groups/:groupId" render={(props) => guardedRoute(AdaptiveGroupsPage, CHIT_NAV_ANY.groups, props)} />
                                                     <Route exact path="/chit-fund/manager/groups/:groupId/auctions/winner/:reserve/winner" render={(props) => guardedRoute(Winner, 'chit_auction_manage', props)} />
                                                     <Route path="/chit-fund/manager/groups/:groupId/auctions" render={(props) => guardedRoute(AuctionsPage, 'chit_auction_manage', props)} />
                                                     <Route exact path="/chit-fund/manager/groups/:groupId/your-due" render={(props) => guardedRoute(UserDue, CHIT_NAV_ANY.receivables, props)} />
@@ -119,6 +123,7 @@ const ChitFundManagerLayout = () => {
                                                     )} />
                                                     <Route exact path="/chit-fund/manager/receivables" render={(props) => guardedRoute(Receivables, CHIT_NAV_ANY.receivables, props)} />
                                                     <Route exact path="/chit-fund/manager/payables" render={(props) => guardedRoute(Payables, CHIT_NAV_ANY.payables, props)} />
+                                                    <Route exact path="/chit-fund/manager/ledger" render={(props) => guardedRoute(Ledger, CHIT_NAV_ANY.ledger, props)} />
                                                     <Route exact path="/chit-fund/manager/areas" render={(props) => guardedRoute(AddAob, CHIT_NAV_ANY.areas, props)} />
                                                     <Route exact path="/chit-fund/manager/products" render={(props) => guardedRoute(ProductsPage, CHIT_NAV_ANY.products, props)} />
                                                     <Route exact path="/chit-fund/manager/employees" render={() => (

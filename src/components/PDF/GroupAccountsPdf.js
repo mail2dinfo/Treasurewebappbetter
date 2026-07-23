@@ -114,11 +114,12 @@ const GroupAccountsPdf = ({ data = {}, companyData = {} }) => {
 
     // Table Headers
     const renderTableHeaders = () => {
-        if (type === 'FIXED') {
+        const t = String(type || '').toUpperCase();
+        if (t === 'FIXED' || t === 'ADAPTIVE') {
             return ['S.No', 'Date', 'Due', 'Profit', 'Comm', 'Prize', 'AucAmt'];
-        } else if (type === 'DEDUCTIVE') {
+        } else if (t === 'DEDUCTIVE') {
             return ['S.No', 'Date', 'AucAmt', 'Comm', 'Profit', 'Due'];
-        } else if (type === 'ACCUMULATIVE') {
+        } else if (t === 'ACCUMULATIVE') {
             return ['S.No', 'Date', 'AucAmt', 'Comm', 'Reserve', 'Due'];
         }
         return ['S.No', 'Date', 'AucAmt', 'Due'];
@@ -130,8 +131,9 @@ const GroupAccountsPdf = ({ data = {}, companyData = {} }) => {
             auctionDate, auctionAmount, commision, profit,
             customerDue, prizeMoney, reserve, sno
         } = item;
+        const t = String(type || '').toUpperCase();
 
-        if (type === 'FIXED') {
+        if (t === 'FIXED' || t === 'ADAPTIVE') {
             return [
                 sno ?? index + 1,
                 formatDate(auctionDate),
@@ -141,7 +143,7 @@ const GroupAccountsPdf = ({ data = {}, companyData = {} }) => {
                 prizeMoney ?? 0,
                 auctionAmount ?? 0
             ];
-        } else if (type === 'DEDUCTIVE') {
+        } else if (t === 'DEDUCTIVE') {
             return [
                 sno ?? index + 1,
                 formatDate(auctionDate),
@@ -150,7 +152,7 @@ const GroupAccountsPdf = ({ data = {}, companyData = {} }) => {
                 profit ?? 0,
                 customerDue ?? 0
             ];
-        } else if (type === 'ACCUMULATIVE') {
+        } else if (t === 'ACCUMULATIVE') {
             return [
                 sno ?? index + 1,
                 formatDate(auctionDate),

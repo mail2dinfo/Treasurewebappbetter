@@ -83,7 +83,11 @@ export default function GroupDetails() {
       updateContext.groupType !== "Fixed" &&
       !updateContext.groupNoOfSub
     ) {
-      toast.error("Please enter No of Subscribers");
+      toast.error(
+        updateContext.groupType === "Adaptive"
+          ? "Please enter No of Shares"
+          : "Please enter No of Subscribers"
+      );
     } else {
       updateContext.setStep(updateContext.currentPage + 1);
     }
@@ -130,11 +134,15 @@ export default function GroupDetails() {
             />
           ) : (
             <InputWithHelp
-              placeholder="No of Subscribers"
+              placeholder={updateContext.groupType === "Adaptive" ? "No of Shares" : "No of Subscribers"}
               value={updateContext.groupNoOfSub}
               onChange={(e) => updateContext.setNoOfSub(e.target.value)}
               required
-              helpText="Total subscribers in group"
+              helpText={
+                updateContext.groupType === "Adaptive"
+                  ? "Number of 100% shares (can later split a share across subscribers)"
+                  : "Total subscribers in group"
+              }
             />
           )}
 

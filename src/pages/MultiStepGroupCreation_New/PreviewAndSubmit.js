@@ -232,7 +232,11 @@ export default function PreviewAndSubmit() {
           </div>
           <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
             <span className="font-semibold text-gray-700">
-              {groupDetails.groupType === "Fixed" ? "No of Months:" : "No of Subscribers:"}
+              {groupDetails.groupType === "Fixed"
+                ? "No of Months:"
+                : groupDetails.groupType === "Adaptive"
+                  ? "No of Shares:"
+                  : "No of Subscribers:"}
             </span>
             <span className="ml-2 text-gray-900">
               {groupDetails.groupType === "Fixed" ? groupDetails.groupNoOfMonths : groupDetails.groupNoOfSub}

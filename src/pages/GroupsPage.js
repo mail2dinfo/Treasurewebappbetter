@@ -119,13 +119,15 @@
 
 // pages/GroupsPage.js
 import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useHistory, useLocation } from "react-router-dom";
 import { UserInfo, Groups, GroupSubscriber } from "../components";
 import loadingImage from "../images/preloader.gif";
 import { useGroupDetailsContext } from "../context/group_context";
 
 const GroupsPage = () => {
     const { groupId } = useParams();
+    const history = useHistory();
+    const location = useLocation();
     const { data, isLoading, fetchGroups } = useGroupDetailsContext();
 
     useEffect(() => {
@@ -133,6 +135,17 @@ const GroupsPage = () => {
             fetchGroups(groupId);
         }
     }, [groupId]); // Remove fetchGroups from dependencies to prevent infinite loop
+
+    // Adaptive groups use a separate page — do not render auction group UI for them
+    useEffect(() => {
+        const type = String(data?.results?.type || '').toUpperCase();
+        if (!isLoading && type === 'ADAPTIVE') {
+            const base = location.pathname.includes('/manager/')
+                ? '/chit-fund/manager'
+                : '/chit-fund/user';
+            history.replace(`${base}/adaptive-groups/${groupId}`);
+        }
+    }, [data, isLoading, groupId, history, location.pathname]);
 
     if (isLoading) {
         return (
@@ -148,6 +161,10 @@ const GroupsPage = () => {
     }
 
     const hasData = data && Object.keys(data).length > 0;
+    const type = String(data?.results?.type || '').toUpperCase();
+    if (type === 'ADAPTIVE') {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">

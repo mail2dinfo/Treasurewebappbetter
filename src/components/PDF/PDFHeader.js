@@ -56,7 +56,9 @@ const PDFHeader = ({ companyData, base64Logo }) => {
     phone,
   } = companyData || {};
 
-  const address = `${street_address}, ${city}, ${state} - ${zipcode}, ${country}`;
+  const address = [street_address, city, [state, zipcode].filter(Boolean).join(' - '), country]
+    .filter((part) => part != null && String(part).trim() !== '')
+    .join(', ');
 
   return (
     
@@ -64,9 +66,21 @@ const PDFHeader = ({ companyData, base64Logo }) => {
       {logo_base64format && <Image style={styles.logo} src={logo_base64format} />}
       <View style={styles.companyInfo}>
         <Text style={styles.companyName}>{name}</Text>
-        <Text style={styles.companyAddress}>{address}</Text>
-        <Text style={styles.registration}>Reg No: {registration_no} | Since: {company_since}</Text>
-        <Text style={styles.companyAddress}>Email: {email} | Phone: {phone}</Text>
+        {address ? <Text style={styles.companyAddress}>{address}</Text> : null}
+        {(registration_no || company_since) ? (
+          <Text style={styles.registration}>
+            {[registration_no ? `Reg No: ${registration_no}` : null, company_since ? `Since: ${company_since}` : null]
+              .filter(Boolean)
+              .join(' | ')}
+          </Text>
+        ) : null}
+        {(email || phone) ? (
+          <Text style={styles.companyAddress}>
+            {[email ? `Email: ${email}` : null, phone ? `Phone: ${phone}` : null]
+              .filter(Boolean)
+              .join(' | ')}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

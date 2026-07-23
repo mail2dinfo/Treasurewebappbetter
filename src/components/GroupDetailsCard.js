@@ -216,9 +216,9 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
                     </div>
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* Action Buttons — Adaptive has no live auction */}
                     <div className="space-y-3">
-                    {isGroupProgress !== "CLOSED" && (
+                    {isGroupProgress !== "CLOSED" && String(groupType || '').toUpperCase() !== 'ADAPTIVE' && (
                         <button
                             onClick={handleGoToAuctions}
                             className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2"

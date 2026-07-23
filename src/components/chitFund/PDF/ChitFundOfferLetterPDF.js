@@ -1,5 +1,6 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import PDFHeader from '../../PDF/PDFHeader';
 
 const styles = StyleSheet.create({
     page: { padding: 36, fontSize: 10, fontFamily: 'Helvetica', lineHeight: 1.5 },
@@ -8,14 +9,8 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         textAlign: 'center',
         color: '#dc2626',
-        marginBottom: 8,
+        marginBottom: 18,
         textTransform: 'uppercase',
-    },
-    company: {
-        marginBottom: 14,
-        textAlign: 'center',
-        color: '#6b7280',
-        fontSize: 11,
     },
     intro: { marginBottom: 8 },
     sectionTitle: {
@@ -72,6 +67,47 @@ const resolveDesignation = (letterData = {}) => {
     return fromRoles || 'Employee';
 };
 
+const prepareCompanyData = (company) => {
+    if (!company) {
+        return {
+            name: 'MyTreasure Chit Fund',
+            logo_base64format: '',
+            phone: '',
+            street_address: '',
+            city: '',
+            state: '',
+            zipcode: '',
+            country: '',
+            email: '',
+            registration_no: '',
+            company_since: '',
+        };
+    }
+
+    const logo =
+        company.logo_base64format ||
+        company.logo_s3_image ||
+        company.company_logo_base64format ||
+        company.company_logo_s3_image ||
+        company.company_logo ||
+        company.logo ||
+        '';
+
+    return {
+        name: company.company_name || company.name || 'MyTreasure Chit Fund',
+        logo_base64format: logo,
+        phone: company.phone || company.contact_no || '',
+        street_address: company.street_address || company.address || '',
+        city: company.city || '',
+        state: company.state || '',
+        zipcode: company.zipcode || '',
+        country: company.country || '',
+        email: company.email || '',
+        registration_no: company.registration_no || '',
+        company_since: company.company_since || '',
+    };
+};
+
 const ChitFundOfferLetterPDF = ({ letterData }) => {
     const {
         employee = {},
@@ -81,7 +117,8 @@ const ChitFundOfferLetterPDF = ({ letterData }) => {
         joinDate = '',
         salaryText = '',
     } = letterData || {};
-    const companyName = company.company_name || 'MyTreasure Chit Fund';
+    const companyData = prepareCompanyData(company);
+    const companyName = companyData.name;
     const displayRole = resolveDesignation(letterData);
     const dutyList = responsibilities.length
         ? responsibilities
@@ -90,8 +127,8 @@ const ChitFundOfferLetterPDF = ({ letterData }) => {
     return (
         <Document>
             <Page size="A4" style={styles.page}>
+                <PDFHeader companyData={companyData} />
                 <Text style={styles.title}>Offer Letter</Text>
-                <Text style={styles.company}>{companyName}</Text>
                 <View style={styles.detailRow}>
                     <Text style={styles.detailLabel}>Date</Text>
                     <Text style={styles.detailValue}>{issueDate}</Text>
@@ -99,8 +136,8 @@ const ChitFundOfferLetterPDF = ({ letterData }) => {
                 <Text style={{ marginVertical: 10 }}>Dear {employee.name || 'Employee'},</Text>
                 <Text style={styles.intro}>
                     We are pleased to offer you the position of{' '}
-                    <Text style={{ fontWeight: 'bold' }}>{displayRole}</Text> in our Chit Fund division.
-                    Your appointment and duties are detailed below.
+                    <Text style={{ fontWeight: 'bold' }}>{displayRole}</Text> in our Chit Fund division
+                    at {companyName}. Your appointment and duties are detailed below.
                 </Text>
 
                 <Text style={styles.sectionTitle}>Appointment Details</Text>
@@ -161,7 +198,7 @@ const ChitFundOfferLetterPDF = ({ letterData }) => {
                     </View>
                 </View>
                 <Text style={styles.footerNote}>
-                    This is a system-generated offer letter from MyTreasure Chit Fund.
+                    This is a system-generated offer letter from {companyName}.
                 </Text>
             </Page>
         </Document>

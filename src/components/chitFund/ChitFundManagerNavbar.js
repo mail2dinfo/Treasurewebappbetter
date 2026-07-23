@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useHistory, useLocation } from 'react-router-dom';
-import { FiChevronDown, FiFileText, FiHome, FiUsers, FiLayers, FiLogOut, FiMapPin, FiMenu, FiPackage, FiTrendingDown, FiTrendingUp, FiUserPlus } from 'react-icons/fi';
+import { FiChevronDown, FiCreditCard, FiFileText, FiHome, FiUsers, FiLayers, FiLogOut, FiMapPin, FiMenu, FiPackage, FiTrendingDown, FiTrendingUp, FiUserPlus } from 'react-icons/fi';
 import { useUserContext } from '../../context/user_context';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import { CHIT_NAV_ANY } from '../../utils/chitPermissionCatalog';
@@ -47,6 +47,7 @@ const ChitFundManagerNavbar = () => {
         { path: '/chit-fund/manager/subscribers', label: 'Subscribers', icon: FiUsers, requiredFeatures: CHIT_NAV_ANY.subscribers },
         { path: '/chit-fund/manager/receivables', label: 'Receivables', icon: FiTrendingUp, requiredFeatures: CHIT_NAV_ANY.receivables },
         { path: '/chit-fund/manager/payables', label: 'Payables', icon: FiTrendingDown, requiredFeatures: CHIT_NAV_ANY.payables },
+        { path: '/chit-fund/manager/ledger', label: 'Ledger', icon: FiCreditCard, requiredFeatures: CHIT_NAV_ANY.ledger },
         { path: '/chit-fund/manager/areas', label: 'Area', icon: FiMapPin, requiredFeatures: CHIT_NAV_ANY.areas },
         { path: '/chit-fund/manager/products', label: 'Products', icon: FiPackage, requiredFeatures: CHIT_NAV_ANY.products },
         { path: '/chit-fund/manager/employees', label: 'Employee', icon: FiUserPlus, requiredFeatures: CHIT_NAV_ANY.employees },

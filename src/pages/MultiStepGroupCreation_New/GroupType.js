@@ -22,6 +22,7 @@ export default function GroupType() {
     Accumulative: "https://example.com/accumulative-video",
     Deductive: "https://example.com/deductive-video",
     Fixed: "https://example.com/fixed-video",
+    Adaptive: "https://example.com/adaptive-video",
   };
 
   // Auto-focus first input when component mounts
@@ -34,6 +35,25 @@ export default function GroupType() {
       return () => clearTimeout(timer);
     }
   }, [updateContext.focusTrigger]);
+
+  const groupTypeOptions = [
+    {
+      type: "Accumulative",
+      description: "Members contribute increasing amounts over time",
+    },
+    {
+      type: "Deductive",
+      description: "Members contribute decreasing amounts over time",
+    },
+    {
+      type: "Fixed",
+      description: "Members contribute fixed amounts throughout the period",
+    },
+    {
+      type: "Adaptive",
+      description: "Skip live auction — allot winner and settle dues manually each month",
+    },
+  ];
 
   return (
     <div className="max-w-4xl mx-auto my-6 bg-white rounded-3xl shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden border border-gray-100">
@@ -50,7 +70,7 @@ export default function GroupType() {
       <div className="p-8">
         <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
           <div className="space-y-4">
-            {["Accumulative", "Deductive", "Fixed"].map((type, index) => (
+            {groupTypeOptions.map(({ type, description }, index) => (
               <label key={type} className="relative cursor-pointer block">
                 <input
                   ref={index === 0 ? firstInputRef : null}
@@ -80,9 +100,7 @@ export default function GroupType() {
                           {type}
                         </h3>
                         <p className="text-sm text-gray-600">
-                          {type === 'Accumulative' && 'Members contribute increasing amounts over time'}
-                          {type === 'Deductive' && 'Members contribute decreasing amounts over time'}
-                          {type === 'Fixed' && 'Members contribute fixed amounts throughout the period'}
+                          {description}
                         </p>
                       </div>
                     </div>

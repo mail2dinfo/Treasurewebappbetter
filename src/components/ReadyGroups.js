@@ -199,7 +199,13 @@ const ReadyGroups = ({ groups, selectedTab, basePath = '/chit-fund/user' }) => {
         return nextAuctDateMoment.diff(currentDate, "days");
     };
 
-    const handleStartAuction = (groupId) => {
+    const handleStartAuction = (group) => {
+        const groupId = typeof group === 'object' ? group.id : group;
+        const type = String(typeof group === 'object' ? (group.type || '') : '').toUpperCase();
+        if (type === 'ADAPTIVE') {
+            history.push(`${basePath}/adaptive-groups/${groupId}`);
+            return;
+        }
         history.push(`${basePath}/groups/${groupId}`);
     };
 
@@ -254,7 +260,7 @@ const ReadyGroups = ({ groups, selectedTab, basePath = '/chit-fund/user' }) => {
                                     </div>
                                     <button
                                         className="group-button"
-                                        onClick={() => handleStartAuction(group.id)}
+                                        onClick={() => handleStartAuction(group)}
                                     >
                                         Group Details
                                     </button>
