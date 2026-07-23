@@ -49,23 +49,18 @@ const GroupCard = ({ group, onGroupClick }) => {
         groupProgress,
         groupType,
         groupSubscriberId,
-        groupName,
-        outstandingDue,
+        groupName
     } = group;
 
     const handleClick = () => {
         onGroupClick(groupId, groupSubscriberId);
     };
 
-    const dueAmount = Number(outstandingDue) || 0;
-    const groupAmount = Number(amount) || 0;
-
     const getGroupTypeStyles = (type) => {
         switch (type) {
             case 'FIXED': return 'bg-green-100 text-green-800 border-green-200';
             case 'ACCUMULATIVE': return 'bg-blue-100 text-blue-800 border-blue-200';
             case 'DEDUCTIVE': return 'bg-orange-100 text-orange-800 border-orange-200';
-            case 'ADAPTIVE': return 'bg-purple-100 text-purple-800 border-purple-200';
             default: return 'bg-gray-100 text-gray-800 border-gray-200';
         }
     };
@@ -100,10 +95,7 @@ const GroupCard = ({ group, onGroupClick }) => {
                         <h3 className="text-lg font-bold mb-1 text-white">
                             {group?.group_name || groupName || group?.name || group?.groupName || 'Group'}
                         </h3>
-                        <p className="text-xl font-extrabold text-white">₹{groupAmount.toLocaleString('en-IN')}</p>
-                        <p className="text-sm font-semibold text-red-100 mt-1">
-                            Outstanding: ₹{dueAmount.toLocaleString('en-IN')}
-                        </p>
+                        <p className="text-xl font-extrabold text-white">₹{amount.toLocaleString()}</p>
                     </div>
                     <div className="text-right">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold border ${getGroupTypeStyles(groupType)}`}>
@@ -140,7 +132,7 @@ const GroupCard = ({ group, onGroupClick }) => {
                         <span className="text-xs font-medium text-gray-600">Next Auction</span>
                     </div>
                     <span className="text-xs font-semibold text-gray-900">
-                        {auctionDate ? new Date(auctionDate).toLocaleDateString() : '—'}
+                        {new Date(auctionDate).toLocaleDateString()}
                     </span>
                 </div>
 

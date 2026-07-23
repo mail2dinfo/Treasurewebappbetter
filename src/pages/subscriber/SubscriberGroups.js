@@ -81,20 +81,12 @@ const SubscriberGroups = () => {
                 {/* Groups Content */}
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300">
                     <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-red-50">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <h4 className="text-lg font-semibold text-gray-900">
-                                {progressTypes.find(type => type.key === selectedProgress)?.label}
-                                <span className="text-red-600 ml-2">
-                                    ({progressTypes.find(type => type.key === selectedProgress)?.count})
-                                </span>
-                            </h4>
-                            <div className="inline-flex items-center gap-2 rounded-xl bg-white border border-red-100 px-4 py-2 shadow-sm">
-                                <span className="text-sm font-medium text-gray-600">Total Outstanding:</span>
-                                <span className="text-lg font-bold text-red-600">
-                                    ₹{Number(groupDashboard?.totalOutstanding || 0).toLocaleString('en-IN')}
-                                </span>
-                            </div>
-                        </div>
+                        <h4 className="text-lg font-semibold text-gray-900">
+                            {progressTypes.find(type => type.key === selectedProgress)?.label}
+                            <span className="text-red-600 ml-2">
+                                ({progressTypes.find(type => type.key === selectedProgress)?.count})
+                            </span>
+                        </h4>
                     </div>
                     <div className="p-6">
                         <GroupList
