@@ -3,6 +3,7 @@ import AppContext from "./Context";
 import { API_BASE_URL } from "../../utils/apiConfig";
 import { useHistory } from "react-router-dom";
 import { useUserContext } from "../../context/user_context";
+import { usePlatformAccess } from "../../context/platformAccess_context";
 import { v4 as uuidv4 } from "uuid";
 
 export default function PreviewAndSubmit() {
@@ -12,6 +13,7 @@ export default function PreviewAndSubmit() {
 
   const history = useHistory();
   const { isLoggedIn, user, userRole } = useUserContext();
+  const platform = usePlatformAccess();
 
   const [membershipId, setMembershipId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -19,13 +21,17 @@ export default function PreviewAndSubmit() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
 
-  // Fetch membershipId from user context
+  // Company parent membership — products are owned by the company, not the manager's personal membership
   useEffect(() => {
-    if (user.results?.userAccounts?.length > 0) {
-      const membership = user.results.userAccounts[0];
-      setMembershipId(membership.membershipId);
-    }
-  }, [user]);
+    const userAccounts = user?.results?.userAccounts || [];
+    const resolvedMembershipId =
+      platform?.activeContext?.parentMembershipId
+      ?? userAccounts.find((account) => account?.parent_membership_id)?.parent_membership_id
+      ?? userAccounts[0]?.parent_membership_id
+      ?? userAccounts[0]?.membershipId
+      ?? "";
+    setMembershipId(resolvedMembershipId ? String(resolvedMembershipId) : "");
+  }, [user, platform?.activeContext?.parentMembershipId]);
 
   // Fetch filtered products from database
   const fetchFilteredProducts = async () => {
