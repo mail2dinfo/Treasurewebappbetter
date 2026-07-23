@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSubscriberContext } from '../../context/subscriber/SubscriberContext';
 import { useLanguage } from '../../context/language_context';
 import GroupList from '../../components/subscriber/dashboard/GroupList';
+import { API_BASE_URL } from '../../utils/apiConfig';
+
+const groupDueKey = (group) => `${group.groupId}-${group.groupSubscriberId}`;
 
 const SubscriberGroups = () => {
     const {
+        user,
         groupDashboard,
         fetchGroupDashboard,
         loading
@@ -12,10 +16,74 @@ const SubscriberGroups = () => {
 
     const { t } = useLanguage();
     const [selectedProgress, setSelectedProgress] = useState('INPROGRESS');
+    // Per-card outstanding from existing group-details Due (totalDue) — UI-only
+    const [groupDues, setGroupDues] = useState({});
 
     useEffect(() => {
         fetchGroupDashboard(selectedProgress);
     }, [selectedProgress]);
+
+    const groups = groupDashboard?.groupInfo || [];
+
+    useEffect(() => {
+        let cancelled = false;
+        const groupList = groupDashboard?.groupInfo || [];
+
+        const loadOutstandingDues = async () => {
+            if (!user?.token || !groupList.length) {
+                setGroupDues({});
+                return;
+            }
+
+            const results = await Promise.all(
+                groupList.map(async (group) => {
+                    const key = groupDueKey(group);
+                    try {
+                        const response = await fetch(
+                            `${API_BASE_URL}/subscribers/groups/${group.groupId}/${group.groupSubscriberId}`,
+                            {
+                                method: 'GET',
+                                headers: {
+                                    Authorization: `Bearer ${user.token}`,
+                                    'Content-Type': 'application/json',
+                                },
+                            }
+                        );
+                        const data = await response.json();
+                        // Same value shown in the Due circular on group details
+                        const due = Number(data?.results?.totalDue) || 0;
+                        return [key, due];
+                    } catch (error) {
+                        console.error('Failed to load outstanding due for group', key, error);
+                        return [key, 0];
+                    }
+                })
+            );
+
+            if (!cancelled) {
+                setGroupDues(Object.fromEntries(results));
+            }
+        };
+
+        loadOutstandingDues();
+        return () => {
+            cancelled = true;
+        };
+    }, [groupDashboard?.groupInfo, user?.token]);
+
+    const groupsWithDue = useMemo(
+        () =>
+            groups.map((group) => ({
+                ...group,
+                outstandingDue: groupDues[groupDueKey(group)] ?? 0,
+            })),
+        [groups, groupDues]
+    );
+
+    const totalOutstanding = useMemo(
+        () => groupsWithDue.reduce((sum, group) => sum + (Number(group.outstandingDue) || 0), 0),
+        [groupsWithDue]
+    );
 
     const progressTypes = [
         {
@@ -41,14 +109,11 @@ const SubscriberGroups = () => {
         }
     ];
 
+    const selectedType = progressTypes.find((type) => type.key === selectedProgress);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-red-50 to-gray-100 py-8 transition-all duration-300">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Debug: Log user data */}
-
-                {/* Header Section with Welcome and Logout - Right Aligned */}
-                {/* Header content moved to SubscriberHeader component */}
-
                 {/* My Groups Heading - Matching Home Page Style */}
                 <div className="my-groups-container mb-8">
                     <h3 className="text-2xl font-bold text-red-600">{t('my_groups')} ({groupDashboard?.groupInfo?.length || 0})</h3>
@@ -81,16 +146,24 @@ const SubscriberGroups = () => {
                 {/* Groups Content */}
                 <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300">
                     <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-red-50">
-                        <h4 className="text-lg font-semibold text-gray-900">
-                            {progressTypes.find(type => type.key === selectedProgress)?.label}
-                            <span className="text-red-600 ml-2">
-                                ({progressTypes.find(type => type.key === selectedProgress)?.count})
-                            </span>
-                        </h4>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <h4 className="text-lg font-semibold text-gray-900">
+                                {selectedType?.label}
+                                <span className="text-red-600 ml-2">
+                                    ({selectedType?.count})
+                                </span>
+                            </h4>
+                            <div className="text-lg font-semibold text-gray-900 sm:text-right">
+                                Total Outstanding :{' '}
+                                <span className="text-red-600 font-bold">
+                                    ₹{totalOutstanding.toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                     <div className="p-6">
                         <GroupList
-                            groups={groupDashboard?.groupInfo || []}
+                            groups={groupsWithDue}
                             loading={loading}
                         />
                     </div>
