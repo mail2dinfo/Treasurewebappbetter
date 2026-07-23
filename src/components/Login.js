@@ -7,6 +7,7 @@ import Alert from '../components/Alert';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { isSuperAdminUser } from '../utils/superAdminUtils';
 import { usePlatformAccess } from '../context/platformAccess_context';
+import { clearAllAuthStorage } from '../utils/clearAuthStorage';
 import { FiEye, FiEyeOff, FiUser, FiLock, FiArrowRight } from 'react-icons/fi';
 
 function Login() {
@@ -20,15 +21,13 @@ function Login() {
   const history = useHistory();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  // Access the AuthContext
   const [isLoading, setIsLoading] = useState(false);
-  const [userObjectFromAPI, setUserObjectFromAPI] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e) => {
     const apiUrl = `${API_BASE_URL}/signin`;
     e.preventDefault();
-    setIsLoading(true); // Show loading bar when login starts
+    setIsLoading(true);
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -39,14 +38,12 @@ function Login() {
       });
 
       if (response.ok) {
-        //Clear all the previus data:
+        // Wipe previous user's sessions before writing this user's
+        clearAllAuthStorage();
         resetLedgerAccounts();
-        // Successful sign-in, navigate to home page
-        //userObjectFromAPI = await response.json(); // Capture the user object from the API
+        platform?.clearActiveContext?.();
 
         const data = await response.json();
-        setUserObjectFromAPI(data);
-        // Set the user object in the AuthContext
         login(data);
 
         if (isSuperAdminUser(data)) {
@@ -54,9 +51,6 @@ function Login() {
           history.push('/super-admin');
           return;
         }
-
-        // Fresh login: do not carry a previous user's app/role context.
-        platform?.clearActiveContext?.();
 
         const userAccounts = data?.results?.userAccounts || [];
         const customerApps = data?.results?.customerApps || [];
@@ -66,15 +60,8 @@ function Login() {
         const hasCollectorRole = accountNames.some((name) => name.includes('COLLECTOR'));
         const hasSubscriberRole = accountNames.some((name) => name.includes('SUBSCRIBER'))
           || customerApps.length > 0;
-        const hasPlatformRole = accountNames.some((name) => (
-          name.includes('USER')
-          || name.includes('MANAGER')
-          || name.includes('COLLECTOR')
-          || name.includes('ACCOUNTANT')
-        ));
 
-        // Pre-seed collector tokens so opening a collector app from Finance Hub
-        // does not bounce back to /login before CollectorProvider hydrates.
+        // Pre-seed portal tokens only for the current user (after clear)
         if (hasCollectorRole && data?.results?.token) {
           localStorage.setItem('collector_token', data.results.token);
           localStorage.setItem('collector_user', JSON.stringify(data.results));
@@ -82,71 +69,35 @@ function Login() {
           localStorage.setItem('vf_collector_user', JSON.stringify(data.results));
         }
 
-        // Customer portal uses subscriber_* storage for Chit Fund subscriber APIs.
         if (hasSubscriberRole && data?.results?.token) {
           localStorage.setItem('subscriber_token', data.results.token);
           localStorage.setItem('subscriber_user', JSON.stringify(data.results));
         }
 
-        // Staff and customers land on Finance Hub to pick an app they belong to.
-        if (hasPlatformRole || hasSubscriberRole || userAccounts.length > 1) {
-          await platform?.loadSession(data?.results?.token);
-          updateUserRole(userAccounts[0]?.accountName || accountNames[0] || 'Subscriber');
-          history.push('/app-selection');
+        if (!userAccounts.length && !customerApps.length) {
+          showAlert(true, 'danger', 'No active account found for this user.');
           return;
         }
 
-        if (userAccounts.length === 1) {
-          const selectedRole = userAccounts[0]?.accountName || 'User';
-          updateUserRole(selectedRole);
-          redirectPage(selectedRole);
-        } else {
-          showAlert(true, 'danger', 'No active account found for this user.');
-        }
-
-
-
-
-
+        await platform?.loadSession(data?.results?.token);
+        updateUserRole(userAccounts[0]?.accountName || accountNames[0] || 'Subscriber');
+        // Every login goes to Finance Hub / App Selection
+        history.push('/app-selection');
       } else {
         const eresponseData = await response.json();
-        // Handle sign-in error
         console.error('Sign-in failed');
         showAlert(true, 'danger', eresponseData.message);
       }
     } catch (error) {
       console.error('Error:', error);
     } finally {
-      setIsLoading(false); // Hide loading bar when login is complete
+      setIsLoading(false);
     }
   };
   const showAlert = (show = false, type = '', msg = '') => {
-
     setAlert({ show, type, msg });
   };
-  // Define the condition for button disablement
   const isButtonDisabled = !phone || !password || isLoading;
-
-  const redirectPage = (selectedRole) => {
-
-    console.log(selectedRole);
-    console.log(userObjectFromAPI?.results?.userId);
-
-    if (
-      selectedRole.includes('User')
-      || selectedRole.includes('Manager')
-      || selectedRole.includes('Accountant')
-      || selectedRole.includes('Collector')
-    ) {
-      // Staff/owner always choose an app (supports 1 or many enrollments).
-      history.push('/app-selection');
-    } else if (selectedRole.includes('Subscriber')) {
-      history.push('/chit-fund/subscriber');
-    } else {
-      history.push('/unknown-account-page');
-    }
-  };
-
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-red-50 to-gray-100 flex items-center justify-center p-4">

@@ -47,7 +47,7 @@ const SubscriberHeader = () => {
 
     const handleLogout = () => {
         signOut();
-        history.push('/chit-fund/subscriber/login');
+        history.push('/login');
         setIsMobileMenuOpen(false);
     };
 

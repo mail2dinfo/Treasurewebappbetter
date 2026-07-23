@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { clearAllAuthStorage } from '../../utils/clearAuthStorage';
 
 const VehicleFinanceCollectorContext = createContext(null);
 
@@ -145,10 +146,7 @@ export const VehicleFinanceCollectorProvider = ({ children }) => {
     };
 
     const logout = useCallback(() => {
-        localStorage.removeItem(STORAGE_TOKEN);
-        localStorage.removeItem(STORAGE_USER);
-        localStorage.removeItem('vf_collector_employee');
-        localStorage.removeItem('vf_collector_membership_id');
+        clearAllAuthStorage();
         dispatch({ type: 'LOGOUT' });
         toast.success('Logged out successfully');
     }, []);

@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useReducer, useEffect } from 'react';
 import reducer from '../reducers/user_reducer'
 import { SIDEBAR_CLOSE, SIDEBAR_OPEN } from '../actions'
+import { clearAllAuthStorage } from '../utils/clearAuthStorage'
 const initialState = {
   isSidebarOpen: false,
 }
@@ -36,8 +37,7 @@ export const UserProvider = ({ children }) => {
         console.log('User restored from localStorage:', userData);
       } catch (error) {
         console.error('Error parsing saved user data:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+        clearAllAuthStorage();
       }
     }
   }, []);
@@ -55,11 +55,9 @@ export const UserProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setIsLoggedIn(false);
-    // Clear localStorage
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('platform_active_context');
+    setUserRole(null);
+    // Clear every auth/portal session so the next user cannot inherit this one
+    clearAllAuthStorage();
   };
 
   const updateUserDetails = async (responseData) => {

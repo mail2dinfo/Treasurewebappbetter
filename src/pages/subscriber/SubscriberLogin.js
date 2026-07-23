@@ -34,7 +34,7 @@ const SubscriberLogin = () => {
         const result = await signIn(credentials);
 
         if (result.success) {
-            history.push('/chit-fund/subscriber/groups');
+            history.push('/app-selection');
         } else {
             setError(result.message || 'Login failed');
         }

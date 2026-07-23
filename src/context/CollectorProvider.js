@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { API_BASE_URL } from '../utils/apiConfig';
+import { clearAllAuthStorage } from '../utils/clearAuthStorage';
 
 
 const CollectorContext = createContext();
@@ -182,8 +183,8 @@ export const CollectorProvider = ({ children }) => {
 
     // Logout function
     const logout = () => {
-        localStorage.removeItem('collector_token');
-        localStorage.removeItem('collector_user');
+        // Clear all auth sessions so next login cannot inherit this collector
+        clearAllAuthStorage();
         dispatch({ type: ACTIONS.LOGOUT });
         toast.success('Logged out successfully');
     };

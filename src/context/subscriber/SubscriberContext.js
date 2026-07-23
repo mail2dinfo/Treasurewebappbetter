@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { clearAllAuthStorage } from '../../utils/clearAuthStorage';
 
 const SubscriberContext = createContext();
 
@@ -22,6 +23,9 @@ export const SubscriberProvider = ({ children }) => {
     const signIn = async (credentials) => {
         setLoading(true);
         try {
+            // Never keep previous user's tokens when signing in here
+            clearAllAuthStorage();
+
             const response = await fetch(`${API_BASE_URL}/signin`, {
                 method: 'POST',
                 headers: {
@@ -37,6 +41,9 @@ export const SubscriberProvider = ({ children }) => {
                 setIsAuthenticated(true);
                 localStorage.setItem('subscriber_token', data.results.token);
                 localStorage.setItem('subscriber_user', JSON.stringify(data.results));
+                // Also seed main session so App Selection / Finance Hub works
+                localStorage.setItem('user', JSON.stringify(data));
+                localStorage.setItem('token', data.results.token);
                 return { success: true, data: data.results };
             } else {
                 return { success: false, message: 'Not a subscriber account' };
@@ -55,8 +62,7 @@ export const SubscriberProvider = ({ children }) => {
         setGroupDashboard(null);
         setTransactionDashboard(null);
         setGroupDetails(null);
-        localStorage.removeItem('subscriber_token');
-        localStorage.removeItem('subscriber_user');
+        clearAllAuthStorage();
     }, []);
 
     // Data fetching methods

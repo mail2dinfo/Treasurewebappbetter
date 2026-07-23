@@ -42,7 +42,7 @@ const SubscriberSidebar = () => {
 
     const handleLogout = () => {
         signOut();
-        history.push('/chit-fund/subscriber/login');
+        history.push('/login');
     };
 
     const isActive = (path) => {

@@ -7,6 +7,7 @@ import Alert from './Alert';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { isSuperAdminUser } from '../utils/superAdminUtils';
 import { usePlatformAccess } from '../context/platformAccess_context';
+import { clearAllAuthStorage } from '../utils/clearAuthStorage';
 import { FiEye, FiEyeOff, FiPhone, FiLock, FiArrowRight, FiCheck, FiX } from 'react-icons/fi';
 
 function LoginModal({ isOpen, onClose }) {
@@ -21,7 +22,6 @@ function LoginModal({ isOpen, onClose }) {
     const [list] = useState([]);
     const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
     const [showSuccess, setShowSuccess] = useState(false);
-    const [userObjectFromAPI, setUserObjectFromAPI] = useState(null);
 
     const history = useHistory();
 
@@ -55,13 +55,11 @@ function LoginModal({ isOpen, onClose }) {
             });
 
             if (response.ok) {
-                // Clear all the previous data
+                clearAllAuthStorage();
                 resetLedgerAccounts();
+                platform?.clearActiveContext?.();
 
                 const data = await response.json();
-                setUserObjectFromAPI(data);
-
-                // Set the user object in the AuthContext
                 login(data);
 
                 if (isSuperAdminUser(data)) {
@@ -71,36 +69,36 @@ function LoginModal({ isOpen, onClose }) {
                     return;
                 }
 
-                const accountNames = (data?.results?.userAccounts || []).map(
+                const userAccounts = data?.results?.userAccounts || [];
+                const customerApps = data?.results?.customerApps || [];
+                const accountNames = userAccounts.map(
                     (account) => String(account.accountName || '').toUpperCase()
                 );
-                const hasPlatformRole = accountNames.some((name) => (
-                    name.includes('USER')
-                    || name.includes('MANAGER')
-                    || name.includes('COLLECTOR')
-                    || name.includes('ACCOUNTANT')
-                ));
-                if (hasPlatformRole) {
-                    await platform?.loadSession(data?.results?.token);
-                    updateUserRole(accountNames[0]);
-                    onClose();
-                    history.push('/app-selection');
+                const hasCollectorRole = accountNames.some((name) => name.includes('COLLECTOR'));
+                const hasSubscriberRole = accountNames.some((name) => name.includes('SUBSCRIBER'))
+                    || customerApps.length > 0;
+
+                if (hasCollectorRole && data?.results?.token) {
+                    localStorage.setItem('collector_token', data.results.token);
+                    localStorage.setItem('collector_user', JSON.stringify(data.results));
+                    localStorage.setItem('vf_collector_token', data.results.token);
+                    localStorage.setItem('vf_collector_user', JSON.stringify(data.results));
+                }
+
+                if (hasSubscriberRole && data?.results?.token) {
+                    localStorage.setItem('subscriber_token', data.results.token);
+                    localStorage.setItem('subscriber_user', JSON.stringify(data.results));
+                }
+
+                if (!userAccounts.length && !customerApps.length) {
+                    showAlert(true, 'danger', 'No active account found for this user.');
                     return;
                 }
 
-                if (data?.results?.userAccounts?.length === 1) {
-                    // Redirect to the role choosing page
-                    const selectedRole = data?.results?.userAccounts[0]?.accountName || 'User';
-                    updateUserRole(selectedRole);
-                    onClose(); // Close the login modal
-                    redirectPage(selectedRole);
-                } else if (data?.results?.userAccounts?.length > 1) {
-                    updateUserRole(data.results.userAccounts[0]?.accountName || 'Employee');
-                    onClose();
-                    history.push('/app-selection');
-                } else {
-                    showAlert(true, 'danger', 'No active account found for this user.');
-                }
+                await platform?.loadSession(data?.results?.token);
+                updateUserRole(userAccounts[0]?.accountName || accountNames[0] || 'Subscriber');
+                onClose();
+                history.push('/app-selection');
             } else {
                 const eresponseData = await response.json();
                 console.error('Sign-in failed');
@@ -111,24 +109,6 @@ function LoginModal({ isOpen, onClose }) {
             showAlert(true, 'danger', 'Network error. Please check your connection and try again.');
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    const redirectPage = (selectedRole) => {
-        console.log(selectedRole);
-        console.log(userObjectFromAPI?.results?.userId);
-
-        if (selectedRole.includes('User') || selectedRole.includes('Manager')) {
-            history.push('/app-selection');
-        } else if (selectedRole.includes('Subscriber')) {
-            history.push('/chit-fund/subscriber');
-        } else if (selectedRole.includes('Accountant')) {
-            history.push('/accountant-page');
-        } else if (selectedRole.includes('Collector')) {
-            history.push(`/chit-fund/collector/dashboard`);
-        } else {
-            // Handle unknown account names
-            history.push('/unknown-account-page');
         }
     };
 
