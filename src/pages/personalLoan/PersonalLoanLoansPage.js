@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { FiPlus, FiDollarSign, FiEye, FiX, FiDownload } from 'react-icons/fi';
+import { FiPlus, FiDollarSign, FiEye, FiX, FiDownload, FiUpload, FiFileText, FiFile, FiCheck } from 'react-icons/fi';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { usePersonalLoanContext } from '../../context/personalLoan/PersonalLoanContext';
 import { useUserContext } from '../../context/user_context';
+import { API_BASE_URL } from '../../utils/apiConfig';
+import { uploadImage } from '../../utils/uploadImage';
 import PersonalLoanLoanDisbursementForm from '../../components/personalLoan/PersonalLoanLoanDisbursementForm';
 import PersonalLoanLoanCollectionForm from '../../components/personalLoan/PersonalLoanLoanCollectionForm';
 import PersonalLoanLoanForeclosureModal from '../../components/personalLoan/PersonalLoanLoanForeclosureModal';
 import PersonalLoanListPDF from '../../components/personalLoan/PDF/PersonalLoanListPDF';
 import PersonalLoanDetailsPDF from '../../components/personalLoan/PDF/PersonalLoanDetailsPDF';
+import PersonalLoanAgreementPDF from '../../components/personalLoan/PDF/PersonalLoanAgreementPDF';
+import PersonalLoanRepaymentProgress from '../../components/personalLoan/PersonalLoanRepaymentProgress';
+import { getPlLoanModeLabel } from '../../utils/personalLoanModes';
+import { buildPersonalLoanSchedulePreview } from '../../utils/personalLoanSchedule';
 
 const PersonalLoanLoansPage = () => {
     const location = useLocation();
@@ -21,6 +27,13 @@ const PersonalLoanLoansPage = () => {
     const [selectedLoan, setSelectedLoan] = useState(null);
     const [selectedLoanDetails, setSelectedLoanDetails] = useState(null);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+    const [agreementDownloadLoan, setAgreementDownloadLoan] = useState(null);
+    const [agreementUploadLoan, setAgreementUploadLoan] = useState(null);
+    const [agreementFile, setAgreementFile] = useState(null);
+    const [agreementPreview, setAgreementPreview] = useState(null);
+    const [isUploadingAgreement, setIsUploadingAgreement] = useState(false);
+    const [uploadError, setUploadError] = useState(null);
+    const [uploadSuccess, setUploadSuccess] = useState(false);
     const hasFetchedRef = useRef(false);
 
     // Fetch loans and companies when component mounts
@@ -110,30 +123,48 @@ const PersonalLoanLoansPage = () => {
 
     const displayLoans = activeTab === 'ACTIVE' ? activeLoans : closedLoans;
 
-    // Get company data for PDF
+    // Get company data for PDF (PL company fields + base64 logo for header)
     const getCompanyDataForPDF = () => {
         const plCompany = companies?.[0];
         const chitFundCompany = user?.results?.userCompany?.[0];
 
         if (plCompany) {
+            const logo =
+                plCompany.company_logo_base64format
+                || plCompany.company_logo_s3_image
+                || plCompany.company_logo
+                || null;
             return {
+                company_name: plCompany.company_name || 'Personal Loan Company',
                 name: plCompany.company_name || 'Personal Loan Company',
-                logo_base64format: plCompany.company_logo || null,
-                phone: plCompany.contact_no || 'N/A',
+                company_logo_base64format: logo,
+                logo_base64format: logo,
+                company_logo: logo,
+                contact_no: plCompany.contact_no || '',
+                phone: plCompany.contact_no || '',
+                address: plCompany.address || '',
                 street_address: plCompany.address || '',
-                city: '',
-                state: '',
-                zipcode: '',
-                country: '',
-                email: '',
+                city: plCompany.city || '',
+                state: plCompany.state || '',
+                zipcode: plCompany.zipcode || '',
+                country: plCompany.country || '',
+                email: plCompany.email || '',
                 registration_no: plCompany.registration_no || '',
                 company_since: plCompany.company_since || '',
             };
-        } else if (chitFundCompany) {
+        }
+
+        if (chitFundCompany) {
+            const logo = chitFundCompany.logo_base64format || chitFundCompany.logo || null;
             return {
+                company_name: chitFundCompany.name || 'Company',
                 name: chitFundCompany.name || 'Company',
-                logo_base64format: chitFundCompany.logo_base64format || null,
-                phone: chitFundCompany.phone || 'N/A',
+                company_logo_base64format: logo,
+                logo_base64format: logo,
+                company_logo: logo,
+                contact_no: chitFundCompany.phone || '',
+                phone: chitFundCompany.phone || '',
+                address: chitFundCompany.street_address || '',
                 street_address: chitFundCompany.street_address || '',
                 city: chitFundCompany.city || '',
                 state: chitFundCompany.state || '',
@@ -144,19 +175,88 @@ const PersonalLoanLoansPage = () => {
                 company_since: chitFundCompany.company_since || '',
             };
         }
+
         return {
+            company_name: 'Personal Loan Company',
             name: 'Personal Loan Company',
             logo_base64format: null,
-            phone: 'N/A',
+            phone: '',
+            contact_no: '',
+            address: '',
             street_address: '',
-            city: '',
-            state: '',
-            zipcode: '',
-            country: '',
             email: '',
             registration_no: '',
             company_since: '',
         };
+    };
+
+    const buildAgreementSchedule = (loan) =>
+        buildPersonalLoanSchedulePreview({
+            loanMode: loan?.loan_mode,
+            principal: loan?.principal_amount,
+            interestRate: loan?.interest_rate,
+            tenureMonths: loan?.tenure_months,
+            disbursedDate: loan?.disbursed_date,
+            dueDay: loan?.interest_due_day,
+        });
+
+    const closeUploadDialog = () => {
+        setAgreementUploadLoan(null);
+        setAgreementFile(null);
+        setAgreementPreview(null);
+        setUploadError(null);
+        setUploadSuccess(false);
+    };
+
+    const handleAgreementFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setAgreementFile(file);
+        setUploadError(null);
+        setUploadSuccess(false);
+        if (file.type?.startsWith('image/')) {
+            setAgreementPreview(URL.createObjectURL(file));
+        } else {
+            setAgreementPreview(null);
+        }
+    };
+
+    const handleUploadAgreement = async () => {
+        if (!agreementFile || !agreementUploadLoan?.id) {
+            setUploadError('Please select a file to upload');
+            return;
+        }
+        setIsUploadingAgreement(true);
+        setUploadError(null);
+        try {
+            const imageUrl = await uploadImage(agreementFile, API_BASE_URL);
+            if (!imageUrl) throw new Error('Failed to upload agreement document');
+
+            const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+            const response = await fetch(`${API_BASE_URL}/pl/loans/${agreementUploadLoan.id}/agreement`, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bearer ${user?.results?.token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    loan_agreement_doc: imageUrl,
+                    membershipId,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok || data.error) {
+                throw new Error(data.message || 'Failed to save agreement document');
+            }
+            setUploadSuccess(true);
+            setAgreementFile(null);
+            setAgreementPreview(null);
+            fetchLoans();
+        } catch (error) {
+            setUploadError(error.message || 'Failed to upload agreement');
+        } finally {
+            setIsUploadingAgreement(false);
+        }
     };
 
     return (
@@ -290,6 +390,9 @@ const PersonalLoanLoansPage = () => {
                                             Outstanding
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Progress
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Mode
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -332,8 +435,69 @@ const PersonalLoanLoansPage = () => {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
+                                                {(() => {
+                                                    const s = loan.repayment_summary || {};
+                                                    if (loan.loan_mode === 'INTEREST_ONLY') {
+                                                        const principalPending = Number(
+                                                            s.principal_pending != null
+                                                                ? s.principal_pending
+                                                                : loan.outstanding_principal || 0
+                                                        );
+                                                        const rate = parseFloat(loan.interest_rate) || 0;
+                                                        const monthly = Number(
+                                                            s.monthly_interest != null
+                                                                ? s.monthly_interest
+                                                                : Math.round((principalPending * rate / 100 + Number.EPSILON) * 100) / 100
+                                                        );
+                                                        const pct = Number(s.completed_percent || 0);
+                                                        return (
+                                                            <div className="min-w-[150px]">
+                                                                <div className="text-sm font-semibold text-gray-900">
+                                                                    <span className="text-orange-700">₹{monthly.toLocaleString('en-IN')} / mo</span>
+                                                                </div>
+                                                                <p className="text-[11px] text-gray-500 mt-0.5">
+                                                                    Principal {formatCurrency(principalPending)}
+                                                                </p>
+                                                                <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+                                                                    <div
+                                                                        className="h-full rounded-full bg-green-500"
+                                                                        style={{ width: `${Math.min(100, pct)}%` }}
+                                                                    />
+                                                                </div>
+                                                                <p className="mt-1 text-[11px] text-gray-500">{pct}% repaid</p>
+                                                            </div>
+                                                        );
+                                                    }
+                                                    const paid = Number(s.installments_paid || 0);
+                                                    const pending = Number(s.installments_pending || 0);
+                                                    const total = Number(s.installments_total || (paid + pending));
+                                                    const pct = Number(s.completed_percent || 0);
+                                                    if (!total) {
+                                                        return <span className="text-sm text-gray-400">—</span>;
+                                                    }
+                                                    return (
+                                                        <div className="min-w-[140px]">
+                                                            <div className="text-sm font-semibold text-gray-900">
+                                                                <span className="text-green-700">{paid} Paid</span>
+                                                                <span className="text-gray-400"> / </span>
+                                                                <span className="text-red-600">{pending} Pending</span>
+                                                            </div>
+                                                            <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+                                                                <div
+                                                                    className="h-full rounded-full bg-green-500"
+                                                                    style={{ width: `${Math.min(100, pct)}%` }}
+                                                                />
+                                                            </div>
+                                                            <p className="mt-1 text-[11px] text-gray-500">
+                                                                {pct}% · {total} installment{total === 1 ? '' : 's'}
+                                                            </p>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                                    {loan.loan_mode === 'INTEREST_FREE' ? 'Interest-Free' : 'Interest-Only'}
+                                                    {getPlLoanModeLabel(loan.loan_mode)}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -345,7 +509,7 @@ const PersonalLoanLoansPage = () => {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <div className="flex space-x-2">
+                                                <div className="flex flex-wrap items-center gap-2">
                                                     {loan.status === 'ACTIVE' && (
                                                         <>
                                                             <button
@@ -370,6 +534,26 @@ const PersonalLoanLoansPage = () => {
                                                             </button>
                                                         </>
                                                     )}
+                                                    <button
+                                                        onClick={() => setAgreementDownloadLoan(loan)}
+                                                        className="text-indigo-600 hover:text-indigo-900"
+                                                        title="Download Agreement"
+                                                    >
+                                                        <FiFileText className="w-5 h-5" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setAgreementUploadLoan(loan);
+                                                            setAgreementFile(null);
+                                                            setAgreementPreview(null);
+                                                            setUploadError(null);
+                                                            setUploadSuccess(false);
+                                                        }}
+                                                        className="text-amber-600 hover:text-amber-900"
+                                                        title="Upload Agreement"
+                                                    >
+                                                        <FiUpload className="w-5 h-5" />
+                                                    </button>
                                                     <button
                                                         onClick={() => handleViewDetails(loan)}
                                                         className="text-blue-600 hover:text-blue-900"
@@ -424,6 +608,32 @@ const PersonalLoanLoansPage = () => {
                             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                                 <h2 className="text-2xl font-bold text-gray-900">Loan Details</h2>
                                 <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setAgreementDownloadLoan(selectedLoanDetails);
+                                        }}
+                                        className="flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium"
+                                        title="Download Agreement"
+                                    >
+                                        <FiFileText className="w-4 h-4 mr-1.5" />
+                                        Agreement
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setAgreementUploadLoan(selectedLoanDetails);
+                                            setAgreementFile(null);
+                                            setAgreementPreview(null);
+                                            setUploadError(null);
+                                            setUploadSuccess(false);
+                                        }}
+                                        className="flex items-center px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium"
+                                        title="Upload Agreement"
+                                    >
+                                        <FiUpload className="w-4 h-4 mr-1.5" />
+                                        Upload
+                                    </button>
                                     <PDFDownloadLink
                                         document={
                                             <PersonalLoanDetailsPDF
@@ -461,26 +671,23 @@ const PersonalLoanLoansPage = () => {
                                 </div>
                             ) : (
                             <div className="p-6">
-                                {/* Loan Info */}
                                 <div className="grid grid-cols-2 gap-4 mb-6">
                                     <div>
                                         <p className="text-sm text-gray-500">Subscriber</p>
                                         <p className="text-lg font-semibold">{selectedLoanDetails.subscriber?.pl_cust_name || 'N/A'}</p>
                                     </div>
                                     <div>
+                                        <p className="text-sm text-gray-500">Loan mode</p>
+                                        <p className="text-lg font-semibold">{getPlLoanModeLabel(selectedLoanDetails.loan_mode)}</p>
+                                    </div>
+                                    <div>
                                         <p className="text-sm text-gray-500">Principal Amount</p>
                                         <p className="text-lg font-semibold">{formatCurrency(selectedLoanDetails.principal_amount || 0)}</p>
                                     </div>
                                     <div>
-                                        <p className="text-sm text-gray-500">Outstanding Principal</p>
-                                        <p className="text-lg font-semibold text-red-600">{formatCurrency(selectedLoanDetails.outstanding_principal || 0)}</p>
+                                        <p className="text-sm text-gray-500">Total Outstanding</p>
+                                        <p className="text-lg font-semibold text-red-600">{formatCurrency(selectedLoanDetails.total_outstanding || 0)}</p>
                                     </div>
-                                    {selectedLoanDetails.loan_mode === 'INTEREST_ONLY' && (
-                                        <div>
-                                            <p className="text-sm text-gray-500">Outstanding Interest</p>
-                                            <p className="text-lg font-semibold text-orange-600">{formatCurrency(selectedLoanDetails.outstanding_interest || 0)}</p>
-                                        </div>
-                                    )}
                                     <div>
                                         <p className="text-sm text-gray-500">Loan Status</p>
                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(selectedLoanDetails.status)}`}>
@@ -491,7 +698,24 @@ const PersonalLoanLoansPage = () => {
                                         <p className="text-sm text-gray-500">Disbursed Date</p>
                                         <p className="text-sm font-semibold">{formatDate(selectedLoanDetails.disbursed_date)}</p>
                                     </div>
+                                    {selectedLoanDetails.tenure_months && (
+                                        <div>
+                                            <p className="text-sm text-gray-500">Tenure</p>
+                                            <p className="text-sm font-semibold">{selectedLoanDetails.tenure_months} months</p>
+                                        </div>
+                                    )}
+                                    {selectedLoanDetails.interest_rate != null && (
+                                        <div>
+                                            <p className="text-sm text-gray-500">Interest rate</p>
+                                            <p className="text-sm font-semibold">
+                                                {selectedLoanDetails.interest_rate}%
+                                                {selectedLoanDetails.loan_mode === 'INTEREST_ONLY' ? ' / month' : ' / year'}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
+
+                                <PersonalLoanRepaymentProgress loan={selectedLoanDetails} />
 
                                 {/* Payment History Summary */}
                                 {selectedLoanDetails.receipts && selectedLoanDetails.receipts.length > 0 && (
@@ -698,13 +922,18 @@ const PersonalLoanLoansPage = () => {
                                         {selectedLoanDetails.receivables?.map((receivable) => (
                                             <div key={receivable.id} className="bg-gray-50 p-3 rounded-lg">
                                                 <div className="flex justify-between items-center">
-                                                    <div>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        {receivable.installment_no != null && (
+                                                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-200 text-gray-800">
+                                                                Inst. {receivable.installment_no}
+                                                            </span>
+                                                        )}
                                                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                                             receivable.due_type === 'PRINCIPAL' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
                                                         }`}>
                                                             {receivable.due_type}
                                                         </span>
-                                                        <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                                                             receivable.status === 'PAID' ? 'bg-green-100 text-green-800' :
                                                             receivable.status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-800' :
                                                             'bg-red-100 text-red-800'
@@ -712,7 +941,14 @@ const PersonalLoanLoansPage = () => {
                                                             {receivable.status}
                                                         </span>
                                                     </div>
-                                                    <p className="font-semibold">{formatCurrency(receivable.due_amount)}</p>
+                                                    <div className="text-right">
+                                                        <p className="font-semibold">{formatCurrency(receivable.due_amount)}</p>
+                                                        {receivable.original_amount != null && (
+                                                            <p className="text-xs text-gray-500">
+                                                                of {formatCurrency(receivable.original_amount)}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 {receivable.due_date && (
                                                     <p className="text-xs text-gray-500 mt-1">Due: {formatDate(receivable.due_date)}</p>
@@ -722,6 +958,140 @@ const PersonalLoanLoansPage = () => {
                                     </div>
                                 </div>
                             </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Download Agreement Modal */}
+                {agreementDownloadLoan && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                            <div className="flex items-start justify-between mb-4">
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">Download Loan Agreement</h3>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        {agreementDownloadLoan.subscriber?.pl_cust_name || 'Subscriber'} · Loan {agreementDownloadLoan.id}
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setAgreementDownloadLoan(null)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg"
+                                >
+                                    <FiX className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-4">
+                                PDF includes company header details and the repayment schedule.
+                            </p>
+                            <PDFDownloadLink
+                                document={
+                                    <PersonalLoanAgreementPDF
+                                        loan={agreementDownloadLoan}
+                                        subscriber={agreementDownloadLoan.subscriber}
+                                        companyData={getCompanyDataForPDF()}
+                                        schedule={buildAgreementSchedule(agreementDownloadLoan)}
+                                        modeLabel={getPlLoanModeLabel(agreementDownloadLoan.loan_mode)}
+                                    />
+                                }
+                                fileName={`pl-loan-agreement-${agreementDownloadLoan.id}.pdf`}
+                                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+                            >
+                                {({ loading }) => (
+                                    <>
+                                        <FiDownload className="w-4 h-4" />
+                                        {loading ? 'Preparing PDF…' : 'Download Agreement PDF'}
+                                    </>
+                                )}
+                            </PDFDownloadLink>
+                        </div>
+                    </div>
+                )}
+
+                {/* Upload Agreement Modal */}
+                {agreementUploadLoan && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-11 h-11 bg-amber-100 rounded-full flex items-center justify-center">
+                                        <FiUpload className="w-5 h-5 text-amber-700" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900">Upload Signed Agreement</h3>
+                                        <p className="text-sm text-gray-600">
+                                            {agreementUploadLoan.subscriber?.pl_cust_name || 'Subscriber'} · Loan {agreementUploadLoan.id}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={closeUploadDialog}
+                                    disabled={isUploadingAgreement}
+                                    className="p-2 hover:bg-gray-100 rounded-lg"
+                                >
+                                    <FiX className="w-5 h-5 text-gray-500" />
+                                </button>
+                            </div>
+
+                            {uploadSuccess ? (
+                                <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                                    <div className="flex items-center gap-2 text-green-800 font-semibold mb-2">
+                                        <FiCheck className="w-5 h-5" /> Uploaded successfully
+                                    </div>
+                                    <p className="text-sm text-green-700 mb-3">Signed agreement saved for this loan.</p>
+                                    <button
+                                        type="button"
+                                        onClick={closeUploadDialog}
+                                        className="w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    {uploadError && (
+                                        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                                            {uploadError}
+                                        </div>
+                                    )}
+                                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-8 hover:border-amber-400">
+                                        {agreementPreview ? (
+                                            <>
+                                                <img src={agreementPreview} alt="Preview" className="mb-2 max-h-40 rounded object-contain" />
+                                                <p className="text-sm text-gray-700">{agreementFile?.name}</p>
+                                            </>
+                                        ) : agreementFile ? (
+                                            <>
+                                                <FiFile className="mb-2 h-10 w-10 text-amber-600" />
+                                                <p className="text-sm font-medium text-gray-800">{agreementFile.name}</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FiFile className="mb-2 h-10 w-10 text-gray-400" />
+                                                <p className="text-sm text-gray-600">Click to select PDF / image scan</p>
+                                            </>
+                                        )}
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.png,.jpg,.jpeg"
+                                            className="hidden"
+                                            onChange={handleAgreementFileChange}
+                                            disabled={isUploadingAgreement}
+                                        />
+                                    </label>
+                                    {agreementFile && (
+                                        <button
+                                            type="button"
+                                            onClick={handleUploadAgreement}
+                                            disabled={isUploadingAgreement}
+                                            className="mt-4 w-full rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+                                        >
+                                            {isUploadingAgreement ? 'Uploading…' : 'Upload & Save Agreement'}
+                                        </button>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>

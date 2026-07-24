@@ -1,6 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import PDFHeader from '../../PDF/PDFHeader';
+import PersonalLoanPDFHeader from './PersonalLoanPDFHeader';
+import { getPlLoanModeLabel } from '../../../utils/personalLoanModes';
 
 const styles = StyleSheet.create({
     page: {
@@ -114,7 +115,11 @@ const PersonalLoanListPDF = ({ loans = [], companyData = {} }) => {
     return (
         <Document>
             <Page size="A4" style={styles.page}>
-                <PDFHeader companyData={companyData} />
+                <PersonalLoanPDFHeader
+                    companyData={companyData}
+                    reportTitle="Loans List"
+                    reportDate={new Date().toLocaleDateString('en-IN')}
+                />
                 
                 <Text style={styles.title}>Active Loans Report</Text>
                 <Text style={styles.subtitle}>
@@ -151,7 +156,7 @@ const PersonalLoanListPDF = ({ loans = [], companyData = {} }) => {
                                         {formatCurrency(loan.total_outstanding)}
                                     </Text>
                                     <Text style={styles.tableCell}>
-                                        {loan.loan_mode === 'INTEREST_FREE' ? 'Interest-Free' : 'Interest-Only'}
+                                        {getPlLoanModeLabel(loan.loan_mode)}
                                     </Text>
                                     <Text style={styles.tableCell}>
                                         {formatDate(loan.disbursed_date)}

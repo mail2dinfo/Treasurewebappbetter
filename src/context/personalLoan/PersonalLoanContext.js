@@ -544,8 +544,15 @@ export function PersonalLoanProvider({ children }) {
                 subscriberId: loanData.subscriberId,
                 loanMode: loanData.loanMode,
                 principalAmount: parseFloat(loanData.principalAmount),
-                interestRate: loanData.loanMode === 'INTEREST_ONLY' ? parseFloat(loanData.interestRate) : null,
-                interestDueDay: loanData.loanMode === 'INTEREST_ONLY' ? parseInt(loanData.interestDueDay) : null,
+                interestRate: ['EMI', 'PRINCIPAL_INTEREST', 'INTEREST_ONLY', 'FLAT_INTEREST'].includes(loanData.loanMode)
+                    ? parseFloat(loanData.interestRate)
+                    : null,
+                interestDueDay: ['EMI', 'PRINCIPAL_INTEREST', 'INTEREST_ONLY', 'FLAT_INTEREST'].includes(loanData.loanMode)
+                    ? parseInt(loanData.interestDueDay, 10)
+                    : null,
+                tenureMonths: ['EMI', 'PRINCIPAL_INTEREST', 'FLAT_INTEREST'].includes(loanData.loanMode)
+                    ? parseInt(loanData.tenureMonths, 10)
+                    : null,
                 disbursedDate: loanData.disbursedDate,
                 pl_ledger_accounts_id: loanData.pl_ledger_accounts_id,
                 membershipId: membershipId,
@@ -567,10 +574,12 @@ export function PersonalLoanProvider({ children }) {
             }
 
             dispatch({ type: 'ADD_LOAN', payload: result.results.loan });
+            dispatch({ type: 'SET_LOADING', payload: false });
             return { success: true, data: result.results };
         } catch (error) {
             const errorMessage = error.message || "Unknown error occurred";
             dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            dispatch({ type: 'SET_LOADING', payload: false });
             console.error('Error disbursing loan:', error);
             return { success: false, error: errorMessage };
         }
@@ -671,7 +680,6 @@ export function PersonalLoanProvider({ children }) {
 
             const payload = {
                 loanId: paymentData.loanId,
-                receivableId: paymentData.receivableId,
                 receivedAmount: parseFloat(paymentData.receivedAmount),
                 principalPaid: parseFloat(paymentData.principalPaid || 0),
                 interestPaid: parseFloat(paymentData.interestPaid || 0),
@@ -680,6 +688,14 @@ export function PersonalLoanProvider({ children }) {
                 pl_ledger_accounts_id: paymentData.pl_ledger_accounts_id,
                 membershipId: membershipId,
             };
+
+            if (paymentData.bulletFlexible) {
+                payload.bulletFlexible = true;
+            } else if (paymentData.installmentNo != null && paymentData.installmentNo !== '') {
+                payload.installmentNo = parseInt(paymentData.installmentNo, 10);
+            } else {
+                payload.receivableId = paymentData.receivableId;
+            }
 
             const res = await fetch(`${API_BASE_URL}/pl/receipts/collect`, {
                 method: 'POST',
@@ -696,12 +712,13 @@ export function PersonalLoanProvider({ children }) {
                 throw new Error(result.message || "Failed to collect payment");
             }
 
-            // Refresh loans to get updated outstanding amounts
             await fetchLoans();
+            dispatch({ type: 'SET_LOADING', payload: false });
             return { success: true, data: result.results };
         } catch (error) {
             const errorMessage = error.message || "Unknown error occurred";
             dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            dispatch({ type: 'SET_LOADING', payload: false });
             return { success: false, error: errorMessage };
         }
     };
