@@ -18,7 +18,6 @@ import AddSub from './AddSub'
 import Help from './Help'
 import PrivacyPolicy from './PrivacyPolicy'
 import TermsandConditions from './TermsandConditions'
-import SingleSubscriberPage from './SingleSubscriberPage'
 import SingleEmployeePage from './SingleEmployeePage'
 import DashboardPage from './DashboardPage'
 import Receivables from './Receivables'
@@ -50,7 +49,6 @@ export {
     CustomerDue,
     PrivacyPolicy,
     TermsandConditions,
-    SingleSubscriberPage,
     SingleEmployeePage,
     DashboardPage,
     Receivables,

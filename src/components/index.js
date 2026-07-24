@@ -58,7 +58,6 @@ import PersonalSettings from './PersonalSettings'
 import GroupSubscriberDetailsPopup from './GroupSubscriberDetailsPopup'
 import BidSubscriberList from './BidSubscriberList'
 import ProfileCardComponent from './ProfileCardComponent '
-import ProfileCard from './ProfileCard'
 import AdminSettings from './AdminSettings'
 import AddEmployee from './AddEmployee'
 import ImageUploader from './ImageUploader'
@@ -116,7 +115,6 @@ export {
   GroupSubscriberDetailsPopup,
   BidSubscriberList,
   ProfileCardComponent,
-  ProfileCard,
   AdminSettings, AddEmployee, ImageUploader, EmployeeList, ListView, AddAob, EmployeeProfilecard, EmployeeRegionWiseDue, AreaSubscribersPage, DashboardMasterInfo, DashboardGroups, ReceivablesList, PayablesList, DashboardAreaWiseGroups, EPC, ForgetPassword, AssignGroupAmountPopup, AvatarUploader,
   SendReminderModal, EditableField, AddEntryModal, FilterBar, LedgerTable, LedgerHeader,
   AddAccountModal, ReceivablePayementModal, PayablePaymentModal, YourDue, ScrollToTop, PlansSelection, PlanUpgradeForm
