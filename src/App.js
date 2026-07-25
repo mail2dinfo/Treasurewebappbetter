@@ -27,6 +27,8 @@ import VehicleFinanceAdminLayout from './components/vehicleFinance/VehicleFinanc
 import VehicleFinanceManagerLayout from './components/vehicleFinance/VehicleFinanceManagerLayout';
 import VehicleFinanceCollectorLayout from './components/vehicleFinance/VehicleFinanceCollectorLayout';
 import VehicleFinanceCustomerLayout from './components/vehicleFinance/VehicleFinanceCustomerLayout';
+import RentalManagementAdminLayout from './components/rentalManagement/RentalManagementAdminLayout';
+import RentalManagementCustomerLayout from './components/rentalManagement/RentalManagementCustomerLayout';
 
 // Legacy layouts for backward compatibility (can be removed later)
 import CollectorLayout from './components/collector/CollectorLayout';
@@ -89,6 +91,10 @@ function App() {
 
                         {/* Personal Finance App Routes */}
                         <Route path="/personal-finance" component={PersonalFinanceLayout} />
+
+                        {/* Rental Management App Routes */}
+                        <Route path="/rental-management/user" component={RentalManagementAdminLayout} />
+                        <Route path="/rental-management/customer" component={RentalManagementCustomerLayout} />
 
                         {/* Legacy Routes for Backward Compatibility */}
                         <Route path="/customer" render={() => <Redirect to="/chit-fund/subscriber" />} />
