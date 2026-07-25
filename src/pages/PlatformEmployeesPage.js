@@ -129,6 +129,10 @@ const emptyProfile = {
     dateOfJoining: '',
     salary: '',
     loginPassword: '',
+    bankName: '',
+    bankBranch: '',
+    bankAccountNumber: '',
+    bankIfsc: '',
 };
 
 const APP_DISPLAY_ORDER = [
@@ -885,6 +889,10 @@ const PlatformEmployeesPage = ({
             dateOfJoining: formatDateInput(sourceProfile.dateOfJoining || sourceProfile.date_of_joining),
             salary: sourceProfile.salary ?? '',
             loginPassword: '',
+            bankName: sourceUser.bankName || sourceUser.bank_name || '',
+            bankBranch: sourceUser.bankBranch || sourceUser.bank_branch || '',
+            bankAccountNumber: sourceUser.bankAccountNumber || sourceUser.bank_account_number || '',
+            bankIfsc: sourceUser.bankIfsc || sourceUser.bank_ifsc || '',
         });
         const existingEnrollments = (employee.enrollments || employee.roles || [])
                 .filter((enrollment) => enrollment.isActive !== false && enrollment.is_active !== false)
@@ -1574,6 +1582,18 @@ const PlatformEmployeesPage = ({
                                                                             <span className={textTitle}>Date of joining: </span>
                                                                             {formatJoinDateDisplay(employeeProfile.dateOfJoining || employeeProfile.date_of_joining)}
                                                                         </p>
+                                                                        <p className={`truncate ${textBody}`}>
+                                                                            <span className={textTitle}>Bank: </span>
+                                                                            {employeeUser.bankName || employeeUser.bank_name || '—'}
+                                                                        </p>
+                                                                        <p className={`truncate ${textBody}`}>
+                                                                            <span className={textTitle}>Branch: </span>
+                                                                            {employeeUser.bankBranch || employeeUser.bank_branch || '—'}
+                                                                        </p>
+                                                                        <p className={`truncate ${textBody}`}>
+                                                                            <span className={textTitle}>IFSC: </span>
+                                                                            {employeeUser.bankIfsc || employeeUser.bank_ifsc || '—'}
+                                                                        </p>
                                                                         {isCollectorEmployee && appCode === 'VEHICLE_FINANCE' && (() => {
                                                                             const regions = [...new Set(
                                                                                 (employee.catchmentAreas || employee.areas || [])
@@ -1771,7 +1791,9 @@ const PlatformEmployeesPage = ({
                             {editorStep === 1 && (
                                 <section>
                                     <h3 className="font-semibold text-gray-900 mb-1">Employee details</h3>
-                                    <p className="text-sm text-gray-500 mb-4">Enter the common profile and login details.</p>
+                                    <p className="text-sm text-gray-500 mb-4">
+                                        Enter the common profile, bank, and login details (applies to Manager, Collector, and Accountant).
+                                    </p>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         {[
                                             ['name', 'Name', 'text', true],
@@ -1810,6 +1832,38 @@ const PlatformEmployeesPage = ({
                                                         Leave blank to keep the current password. If set, this becomes the new login password.
                                                     </span>
                                                 )}
+                                            </label>
+                                        ))}
+                                    </div>
+
+                                    <h4 className="font-semibold text-gray-900 mt-6 mb-1">Bank details</h4>
+                                    <p className="text-sm text-gray-500 mb-4">
+                                        Optional — used for salary / payouts. Saved on the employee user profile for every role.
+                                    </p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {[
+                                            ['bankName', 'Bank'],
+                                            ['bankBranch', 'Branch'],
+                                            ['bankAccountNumber', 'Account number'],
+                                            ['bankIfsc', 'IFSC code'],
+                                        ].map(([name, label]) => (
+                                            <label key={name}>
+                                                <span className="block text-sm font-medium text-gray-700 mb-1.5">{label}</span>
+                                                <input
+                                                    name={name}
+                                                    type="text"
+                                                    value={profile[name]}
+                                                    onChange={(event) => {
+                                                        const value = name === 'bankIfsc'
+                                                            ? event.target.value.toUpperCase()
+                                                            : event.target.value;
+                                                        setProfile((current) => ({ ...current, [name]: value }));
+                                                        setEditorError('');
+                                                    }}
+                                                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                                    placeholder={name === 'bankIfsc' ? 'e.g. SBIN0001234' : ''}
+                                                    maxLength={name === 'bankIfsc' ? 20 : name === 'bankAccountNumber' ? 20 : 100}
+                                                />
                                             </label>
                                         ))}
                                     </div>
@@ -2155,6 +2209,10 @@ const PlatformEmployeesPage = ({
                                         <p><span className="font-semibold">Code:</span> {profile.employeeCode || profile.employee_code || '—'}</p>
                                         <p><span className="font-semibold">Join date:</span> {formatDateInput(profile.dateOfJoining || profile.date_of_joining) || '—'}</p>
                                         <p><span className="font-semibold">Salary:</span> {profile.salary ?? '—'}</p>
+                                        <p><span className="font-semibold">Bank:</span> {userInfo.bankName || userInfo.bank_name || '—'}</p>
+                                        <p><span className="font-semibold">Branch:</span> {userInfo.bankBranch || userInfo.bank_branch || '—'}</p>
+                                        <p><span className="font-semibold">Account:</span> {userInfo.bankAccountNumber || userInfo.bank_account_number || '—'}</p>
+                                        <p><span className="font-semibold">IFSC:</span> {userInfo.bankIfsc || userInfo.bank_ifsc || '—'}</p>
                                         <p><span className="font-semibold">Roles:</span> {roles.join(', ') || '—'}</p>
                                         {managerMode && roles.includes('MANAGER') && (
                                             <p className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
