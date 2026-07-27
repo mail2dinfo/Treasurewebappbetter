@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiMapPin, FiUsers, FiLayers } from 'react-icons/fi';
+import { FiMapPin, FiUsers, FiLayers, FiTag } from 'react-icons/fi';
 
 const MENU_ITEMS = [
     {
@@ -19,6 +19,12 @@ const MENU_ITEMS = [
         label: 'Manage Groups',
         description: 'Group administration',
         icon: FiLayers,
+    },
+    {
+        id: 'ledgercategories',
+        label: 'Categories',
+        description: 'Ledger entry categories',
+        icon: FiTag,
     },
 ];
 

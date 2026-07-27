@@ -7,12 +7,14 @@ import AddAccountModal from "../components/AddAccountModal";
 import "../style/ledger.css";
 import { useLedgerAccountContext } from "../context/ledgerAccount_context"; // 👈 context import
 import { useLedgerEntryContext } from "../context/ledgerEntry_context";
+import { useLedgerCategoryContext } from "../context/ledgerCategory_context";
 
 
 
 const LedgerPage = () => {
   const { ledgerAccounts } = useLedgerAccountContext();
   const { ledgerEntries, fetchLedgerEntries } = useLedgerEntryContext();
+  const { categories } = useLedgerCategoryContext();
   console.log("mani in ledgerAccounts");
   console.log(ledgerAccounts);
   console.log("mani in ledgerEntries");
@@ -100,7 +102,7 @@ const LedgerPage = () => {
       <h2>Filter </h2>
 
       <div className="button-group">
-        <FilterBar filters={filters} setFilters={setFilters} />
+        <FilterBar filters={filters} setFilters={setFilters} categories={categories} />
         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
           <button onClick={() => setShowModal(true)} className="add-entry-btn">
             + Add Entry

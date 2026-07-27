@@ -14,6 +14,7 @@ import { ReceivablesProvider } from '../../context/receivables_context';
 import { PayablesProvider } from '../../context/payables_context';
 import { LedgerAccountProvider } from '../../context/ledgerAccount_context';
 import { LedgerEntryProvider } from '../../context/ledgerEntry_context';
+import { LedgerCategoryProvider } from '../../context/ledgerCategory_context';
 import { ProductProvider } from '../../context/product_context';
 import { CollectorAreaProvider } from '../../context/collectorArea_context';
 
@@ -81,6 +82,7 @@ const ChitFundManagerLayout = () => {
                         <DashboardProvider>
                             <LedgerAccountProvider>
                                 <LedgerEntryProvider>
+                                    <LedgerCategoryProvider>
                                     <AobProvider>
                                         <CollectorAreaProvider>
                                             <ReceivablesProvider>
@@ -170,6 +172,7 @@ const ChitFundManagerLayout = () => {
                                             </ReceivablesProvider>
                                         </CollectorAreaProvider>
                                     </AobProvider>
+                                    </LedgerCategoryProvider>
                                 </LedgerEntryProvider>
                             </LedgerAccountProvider>
                         </DashboardProvider>

@@ -1,7 +1,7 @@
 import React from "react";
 import "../style/FilterBar.css";
 
-const FilterBar = ({ filters, setFilters }) => {
+const FilterBar = ({ filters, setFilters, categories = [] }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -42,14 +42,30 @@ const FilterBar = ({ filters, setFilters }) => {
 
       <div className="filter-item">
         <label htmlFor="category">Category:</label>
-        <input
-          id="category"
-          name="category"
-          type="text"
-          placeholder="Category"
-          value={filters.category}
-          onChange={handleChange}
-        />
+        {categories.length > 0 ? (
+          <select
+            id="category"
+            name="category"
+            value={filters.category}
+            onChange={handleChange}
+          >
+            <option value="">All</option>
+            {categories.map((item) => (
+              <option key={item.id || item.category_name} value={item.category_name}>
+                {item.category_name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            id="category"
+            name="category"
+            type="text"
+            placeholder="Category"
+            value={filters.category}
+            onChange={handleChange}
+          />
+        )}
       </div>
 
       <div className="filter-item">

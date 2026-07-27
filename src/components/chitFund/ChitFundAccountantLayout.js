@@ -7,6 +7,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { SubscriberProvider } from '../../context/subscriber/SubscriberContext';
 import { LedgerAccountProvider } from '../../context/ledgerAccount_context';
 import { LedgerEntryProvider } from '../../context/ledgerEntry_context';
+import { LedgerCategoryProvider } from '../../context/ledgerCategory_context';
 import { ReceivablesProvider } from '../../context/receivables_context';
 import { PayablesProvider } from '../../context/payables_context';
 import { DashboardProvider } from '../../context/dashboard_context';
@@ -26,6 +27,7 @@ const ChitFundAccountantLayout = () => {
         <SubscriberProvider>
             <LedgerAccountProvider>
                 <LedgerEntryProvider>
+                    <LedgerCategoryProvider>
                     <ReceivablesProvider>
                         <PayablesProvider>
                             <DashboardProvider>
@@ -59,6 +61,7 @@ const ChitFundAccountantLayout = () => {
                             </DashboardProvider>
                         </PayablesProvider>
                     </ReceivablesProvider>
+                    </LedgerCategoryProvider>
                 </LedgerEntryProvider>
             </LedgerAccountProvider>
         </SubscriberProvider>

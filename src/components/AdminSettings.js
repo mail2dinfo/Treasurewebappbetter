@@ -8,6 +8,7 @@ import UsersPage from './UsersPage';
 import ManageGroups from '../components/ManageGroups';
 import PersonalSettings from '../components/PersonalSettings';
 import PlatformEmployeesPage from '../pages/PlatformEmployeesPage';
+import LedgerCategories from '../components/LedgerCategories';
 
 const SECTION_META = {
     personalsettings: {
@@ -43,6 +44,10 @@ const SECTION_META = {
         title: 'Manage Groups',
         subtitle: 'Administer chit groups',
     },
+    ledgercategories: {
+        title: 'Ledger Categories',
+        subtitle: 'Manage categories used in ledger Add Entry',
+    },
 };
 
 function AdminSettings() {
@@ -77,6 +82,8 @@ function AdminSettings() {
                 return <Company />;
             case 'managegroups':
                 return <ManageGroups />;
+            case 'ledgercategories':
+                return <LedgerCategories />;
             default:
                 return (
                     <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-16 text-center">

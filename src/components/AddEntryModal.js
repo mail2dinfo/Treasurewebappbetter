@@ -1,24 +1,18 @@
 import React, { useState } from "react";
 import { useLedgerEntryContext } from "../context/ledgerEntry_context";
 import { useLedgerAccountContext } from "../context/ledgerAccount_context";
+import { useLedgerCategoryContext } from "../context/ledgerCategory_context";
 import { useUserContext } from "../context/user_context";
 import Alert from '../components/Alert';
 import { useGroupsDetailsContext } from "../context/groups_context";
 
-const categoryOptions = [
-  "Food",
-  "Current Bill",
-  "Water Bill",
-  "Vegetable Expense",
-  "Loan",
-  "Donation",
-  "Groups",
-];
+const GROUPS_CATEGORY_NAME = "Groups";
 
 const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
   const { user } = useUserContext();
   const { addLedgerEntry, fetchLedgerEntries } = useLedgerEntryContext();
   const { fetchLedgerAccounts } = useLedgerAccountContext();
+  const { categories, fetchLedgerCategories } = useLedgerCategoryContext();
   const { state, fetchGroupById } = useGroupsDetailsContext();
   const { groups, selectedGroupDetails } = state;
   const groupSubscribers = selectedGroupDetails?.groupSubcriberResult || [];
@@ -36,6 +30,7 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
 
     // Clear the group context when modal opens
     fetchGroupById(""); // This clears any previous group details
+    fetchLedgerCategories();
   }, []); // Empty dependency array means this runs only when component mounts
 
   // Debug logging to see subscriber data structure
@@ -96,16 +91,18 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
     setIsLoadingSubscribers(false);
 
     // Clear the group context to reset subscribers list
-    if (category === "Groups") {
+    if (category === GROUPS_CATEGORY_NAME) {
       // Reset the group context to clear previous subscribers
       fetchGroupById(""); // This should clear the selected group details
     }
   };
 
+  const categoryOptions = categories.map((item) => item.category_name);
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (formData.category === "Groups") {
+    if (formData.category === GROUPS_CATEGORY_NAME) {
       // For Groups, we'll create multiple entries - only for subscribers with amounts
       const entries = selectedSubscriberIds
         .filter(groupSubscriberId => {
@@ -232,7 +229,7 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
     // Check if all entries have required fields
     return tempData.some(entry => {
       if (!entry.amount || entry.amount <= 0 || !entry.description) return true;
-      if (entry.category === "Groups" && (!entry.groupId || !entry.groupSubscriberId)) return true;  // ✅ Changed to groupSubscriberId
+      if (entry.category === GROUPS_CATEGORY_NAME && (!entry.groupId || !entry.groupSubscriberId)) return true;  // ✅ Changed to groupSubscriberId
       return false;
     });
   };
@@ -354,7 +351,7 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
                     </div>
                   </div>
 
-                  {tempData[0]?.category === "Groups" && (
+                  {tempData[0]?.category === GROUPS_CATEGORY_NAME && (
                     <div className="pt-3 border-t">
                       <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                         <div>
@@ -521,7 +518,7 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
                 </div>
 
                 {/* Groups Section */}
-                {formData.category === "Groups" && (
+                {formData.category === GROUPS_CATEGORY_NAME && (
                   <div className="bg-blue-50 rounded-lg p-4 space-y-4">
                     <h4 className="font-medium text-blue-800">Group Details</h4>
 
@@ -711,7 +708,7 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
                 )}
 
                 {/* Amount and Description - Only show for non-Groups */}
-                {formData.category !== "Groups" && (
+                {formData.category !== GROUPS_CATEGORY_NAME && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
@@ -750,7 +747,7 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
                 )}
 
                 {/* Description for Groups */}
-                {formData.category === "Groups" && (
+                {formData.category === GROUPS_CATEGORY_NAME && (
                   <div>
                     <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
                       Description *

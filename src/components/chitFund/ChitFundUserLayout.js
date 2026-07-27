@@ -14,6 +14,7 @@ import { GroupDetailsProvider } from '../../context/group_context';
 import { CompanySubscriberProvider } from '../../context/companysubscriber_context';
 import { LedgerAccountProvider } from '../../context/ledgerAccount_context';
 import { LedgerEntryProvider } from '../../context/ledgerEntry_context';
+import { LedgerCategoryProvider } from '../../context/ledgerCategory_context';
 import { ReceivablesProvider } from '../../context/receivables_context';
 import { PayablesProvider } from '../../context/payables_context';
 import { ProductProvider } from '../../context/product_context';
@@ -67,6 +68,7 @@ const ChitFundUserLayout = () => {
                                     <CompanySubscriberProvider>
                                         <LedgerAccountProvider>
                                             <LedgerEntryProvider>
+                                                <LedgerCategoryProvider>
                                                 <ReceivablesProvider>
                                                     <PayablesProvider>
                                                         <ProductProvider>
@@ -149,6 +151,7 @@ const ChitFundUserLayout = () => {
                                                         </ProductProvider>
                                                     </PayablesProvider>
                                                 </ReceivablesProvider>
+                                                </LedgerCategoryProvider>
                                             </LedgerEntryProvider>
                                         </LedgerAccountProvider>
                                     </CompanySubscriberProvider>
