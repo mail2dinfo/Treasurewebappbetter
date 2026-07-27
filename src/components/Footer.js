@@ -166,7 +166,7 @@ const Footer = () => {
               {/* WhatsApp Button */}
               <div className="space-y-4">
                 <a
-                  href="https://wa.me/919942393237"
+                  href={`https://api.whatsapp.com/send?phone=919942393237&text=${encodeURIComponent('Hi, I would like to know more about MyTreasure chit fund software.')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
