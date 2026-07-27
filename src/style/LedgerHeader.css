@@ -36,11 +36,81 @@
   .account-grid-header,
   .account-grid-row {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr 1fr minmax(88px, 0.9fr);
     gap: 8px;
     padding: 12px 8px;
     border-bottom: 1px solid #eee;
     align-items: center;
+  }
+
+  .account-grid-header > span:last-child,
+  .account-grid-row > .account-actions-cell,
+  .account-grid-row.total-row > span:last-child {
+    grid-column: 7;
+    justify-self: end;
+  }
+
+  .account-actions-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .account-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .account-action-btn--edit {
+    color: #2563eb;
+  }
+
+  .account-action-btn--edit:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+  }
+
+  .account-action-btn--delete {
+    color: #dc2626;
+  }
+
+  .account-action-btn--delete:hover:not(:disabled) {
+    background: #fef2f2;
+    border-color: #fca5a5;
+  }
+
+  .account-action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .account-action-message {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  .account-action-message--success {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+
+  .account-action-message--error {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
   }
   
   .account-grid-header {
@@ -67,6 +137,12 @@
       padding: 12px;
       background-color: #f9f9f9;
     }
+
+    .account-grid-row > .account-actions-cell,
+    .account-grid-row.total-row > span:last-child {
+      grid-column: auto;
+      justify-self: stretch;
+    }
   
     .account-grid-row span {
       display: flex;
@@ -77,6 +153,15 @@
   
     .account-grid-row span:last-child {
       border-bottom: none;
+      justify-content: flex-end;
+    }
+
+    .account-grid-row span:last-child::before {
+      margin-right: auto;
+    }
+
+    .account-actions-cell {
+      justify-content: flex-end;
     }
   
     .account-grid-row span::before {

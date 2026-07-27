@@ -12,20 +12,17 @@ import { useLedgerCategoryContext } from "../context/ledgerCategory_context";
 
 
 const LedgerPage = () => {
-  const { ledgerAccounts } = useLedgerAccountContext();
+  const { ledgerAccounts, fetchLedgerAccounts, deleteLedgerAccount } = useLedgerAccountContext();
   const { ledgerEntries, fetchLedgerEntries } = useLedgerEntryContext();
   const { categories } = useLedgerCategoryContext();
-  console.log("mani in ledgerAccounts");
-  console.log(ledgerAccounts);
-  console.log("mani in ledgerEntries");
-  console.log(ledgerEntries);
 
-  const [accounts, setAccounts] = useState([]);
-  const [selectedAccount, setSelectedAccount] = useState(null); // default to first account
+  const accounts = Array.isArray(ledgerAccounts) ? ledgerAccounts : [];
+  const [selectedAccount, setSelectedAccount] = useState(null);
   const [entries, setEntries] = useState([]);
 
   const [showModal, setShowModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [editingAccount, setEditingAccount] = useState(null);
 
   const [filters, setFilters] = useState({
     startDate: "",
@@ -35,27 +32,37 @@ const LedgerPage = () => {
   });
 
   useEffect(() => {
-    if (Array.isArray(ledgerAccounts)) {
-      setAccounts(ledgerAccounts);
+    if (Array.isArray(ledgerEntries)) {
+      setEntries(ledgerEntries);
+      return;
     }
-  }, [ledgerAccounts]);
-
-  // On mount, inject mock entries
-  useEffect(() => {
-
-    // Ensure we always set an array
-    const safeEntries = Array.isArray(ledgerEntries) ? ledgerEntries :
-      (ledgerEntries?.results && Array.isArray(ledgerEntries.results)) ? ledgerEntries.results : [];
-    setEntries(safeEntries);
+    if (ledgerEntries?.results && Array.isArray(ledgerEntries.results)) {
+      setEntries(ledgerEntries.results);
+    }
   }, [ledgerEntries]);
 
   useEffect(() => {
     fetchLedgerEntries(filters);
   }, [filters]);
 
-  const handleAddAccount = (newAccount) => {
-    setAccounts(prev => [...prev, newAccount]);
+  const handleAccountModalSuccess = async () => {
+    await fetchLedgerAccounts();
     setShowAccountModal(false);
+    setEditingAccount(null);
+  };
+
+  const handleEditAccount = (account) => {
+    setEditingAccount(account);
+    setShowAccountModal(true);
+  };
+
+  const handleDeleteAccount = async (account) => {
+    return deleteLedgerAccount(account.id);
+  };
+
+  const handleCloseAccountModal = () => {
+    setShowAccountModal(false);
+    setEditingAccount(null);
   };
 
   const handleDownloadCSV = () => {
@@ -96,7 +103,12 @@ const LedgerPage = () => {
         accounts={accounts}
         selectedAccount={selectedAccount}
         onAccountChange={setSelectedAccount}
-        onAddClick={() => setShowAccountModal(true)}
+        onAddClick={() => {
+          setEditingAccount(null);
+          setShowAccountModal(true);
+        }}
+        onEditAccount={handleEditAccount}
+        onDeleteAccount={handleDeleteAccount}
       />
 
       <h2>Filter </h2>
@@ -125,8 +137,9 @@ const LedgerPage = () => {
 
       {showAccountModal && (
         <AddAccountModal
-          onClose={() => setShowAccountModal(false)}
-          onSubmit={handleAddAccount}
+          onClose={handleCloseAccountModal}
+          onSuccess={handleAccountModalSuccess}
+          account={editingAccount}
         />
       )}
     </div>

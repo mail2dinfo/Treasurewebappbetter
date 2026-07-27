@@ -1,6 +1,6 @@
 import React, { createContext, useReducer, useContext, useEffect } from "react";
 import { useUserContext } from "./user_context"; // Your user context hook
-import { API_BASE_URL } from "../utils/apiConfig"; // Your API base URL config
+import { API_BASE_URL, readApiResponse } from "../utils/apiConfig"; // Your API base URL config
 
 const LedgerAccountContext = createContext();
 
@@ -18,6 +18,20 @@ function ledgerAccountReducer(state, action) {
       return { ...state, isLoading: false, ledgerAccounts: action.payload };
     case "FETCH_ERROR":
       return { ...state, isLoading: false, error: action.payload };
+    case "ADD_SUCCESS":
+      return { ...state, ledgerAccounts: [...state.ledgerAccounts, action.payload] };
+    case "UPDATE_SUCCESS":
+      return {
+        ...state,
+        ledgerAccounts: state.ledgerAccounts.map((acc) =>
+          acc.id === action.payload.id ? { ...acc, ...action.payload } : acc
+        ),
+      };
+    case "DELETE_SUCCESS":
+      return {
+        ...state,
+        ledgerAccounts: state.ledgerAccounts.filter((acc) => acc.id !== action.payload),
+      };
     case "RESET_ACCOUNTS":
       return initialState;
     default:
@@ -35,14 +49,14 @@ export const LedgerAccountProvider = ({ children }) => {
 
 
   const fetchLedgerAccounts = async () => {
-    if (!user?.results?.token) return;
-    
+    if (!user?.results?.token) return { success: false };
+
     const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
     if (!membershipId) {
       dispatch({ type: "FETCH_ERROR", payload: "Membership ID not found" });
-      return;
+      return { success: false };
     }
-  
+
     dispatch({ type: "FETCH_START" });
     try {
       const res = await fetch(`${API_BASE_URL}/ledger/accounts/${membershipId}`, {
@@ -50,11 +64,12 @@ export const LedgerAccountProvider = ({ children }) => {
           Authorization: `Bearer ${user.results.token}`,
         },
       });
-      if (!res.ok) throw new Error("Failed to fetch ledger accounts");
-      const data = await res.json();
+      const data = await readApiResponse(res);
       dispatch({ type: "FETCH_SUCCESS", payload: data.results || [] });
+      return { success: true, results: data.results || [] };
     } catch (error) {
       dispatch({ type: "FETCH_ERROR", payload: error.message });
+      return { success: false, message: error.message };
     }
   };
   
@@ -93,20 +108,54 @@ export const LedgerAccountProvider = ({ children }) => {
     }
   };
   
+  const updateLedgerAccount = async (accountId, payload) => {
+    if (!user?.results?.token) {
+      return { success: false, message: "User not authenticated" };
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/ledger/accounts/${accountId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${user.results.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await readApiResponse(res);
+      const updatedAccount = result.results || null;
+      if (updatedAccount?.id) {
+        dispatch({ type: "UPDATE_SUCCESS", payload: updatedAccount });
+      }
+      await fetchLedgerAccounts();
+      return { success: true, message: result.message || "Ledger account updated successfully" };
+    } catch (error) {
+      console.error("Update ledger account error:", error);
+      return { success: false, message: error.message || "Unknown error occurred" };
+    }
+  };
+
   const deleteLedgerAccount = async (accountId) => {
-    if (!user?.results?.token) return;
+    if (!user?.results?.token) {
+      return { success: false, message: "User not authenticated" };
+    }
+
     try {
       const res = await fetch(`${API_BASE_URL}/ledger/accounts/${accountId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${user.results.token}`,
-          "Content-Type": "application/json",
         },
       });
-      if (!res.ok) throw new Error("Failed to delete ledger account");
+
+      const result = await readApiResponse(res);
+      dispatch({ type: "DELETE_SUCCESS", payload: accountId });
       await fetchLedgerAccounts();
+      return { success: true, message: result.message || "Ledger account deleted successfully" };
     } catch (error) {
       console.error("Delete ledger account error:", error);
+      return { success: false, message: error.message || "Unknown error occurred" };
     }
   };
 
@@ -118,6 +167,7 @@ export const LedgerAccountProvider = ({ children }) => {
         error: state.error,
         fetchLedgerAccounts,
         addLedgerAccount,
+        updateLedgerAccount,
         deleteLedgerAccount,
         resetLedgerAccounts,
       }}
