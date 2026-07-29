@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import logo from '../assets/logo.png';
+import TreasureBoxLogo from './TreasureBoxLogo';
 
 const MyTreasureBrand = ({
     to,
@@ -12,19 +12,12 @@ const MyTreasureBrand = ({
     const content = (
         <>
             <span
-                className="relative block h-12 w-12 flex-shrink-0 overflow-hidden sm:h-14 sm:w-14"
+                className="relative flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center"
                 aria-hidden="true"
             >
-                <img
-                    src={logo}
-                    alt=""
-                    className="pointer-events-none absolute max-w-none select-none"
-                    style={{
-                        height: '7.5rem',
-                        width: '21rem',
-                        left: '-0.55rem',
-                        top: '0.35rem',
-                    }}
+                <TreasureBoxLogo
+                    variant={inverse ? 'inverse' : 'brand'}
+                    className="h-full w-full drop-shadow-sm"
                 />
             </span>
             <span className="min-w-0 leading-tight">

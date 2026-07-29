@@ -6,8 +6,8 @@ const FeaturedProducts = () => {
     const financeApps = [
         {
             id: 1,
-            title: "Chit Fund Management",
-            description: "Complete chit fund management with group creation, subscriber management, auction handling, and automated payments.",
+            title: "Chit Fund",
+            description: "Create groups, manage members, run auctions, and collect dues — all in one simple place.",
             icon: (
                 <div className="relative">
                     <svg className="w-32 h-32 mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 134 132" fill="none">
@@ -29,7 +29,7 @@ const FeaturedProducts = () => {
         {
             id: 2,
             title: "Daily Collection",
-            description: "Streamline your daily collection processes with automated tracking, payment reminders, and comprehensive reporting.",
+            description: "See today’s collections, pending amounts, and what each collector brought in — without phone calls.",
             icon: (
                 <div className="relative">
                     <svg className="w-32 h-32 mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 134 119" fill="none">
@@ -50,8 +50,8 @@ const FeaturedProducts = () => {
         },
         {
             id: 3,
-            title: "Two Wheeler Loan",
-            description: "Comprehensive two-wheeler loan management with EMI tracking, payment schedules, and customer management.",
+            title: "Vehicle / Personal Loans",
+            description: "Give a loan, set EMI, collect payments, and know the outstanding balance for every customer.",
             icon: (
                 <div className="relative">
                     <svg className="w-32 h-32 mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 133 116" fill="none">
@@ -78,10 +78,10 @@ const FeaturedProducts = () => {
                 {/* Header */}
                 <div className="text-center mb-16">
                     <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                        Our Finance Management Solutions
+                        Built for real finance businesses
                     </h2>
                     <p className="text-lg text-gray-600 mb-4">
-                        Comprehensive tools for all your financial business needs
+                        Simple tools for the work you do every day — collections, loans, and accounts
                     </p>
                     <div className="w-24 h-1 bg-red-600 mx-auto rounded-full"></div>
                 </div>
@@ -131,7 +131,7 @@ const FeaturedProducts = () => {
                         to="/signup"
                         className="inline-flex items-center px-8 py-4 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
                     >
-                        Join Treasure
+                        Start free today
                         <FaArrowRight className="w-5 h-5 ml-2" />
                     </Link>
                 </div>

@@ -39,6 +39,7 @@ import DailyCollectionLayout from './components/dailyCollection/DailyCollectionL
 
 
 import PrivateRoute from './pages/PrivateRoute';
+import WhatsAppFloatingButton from './components/WhatsAppFloatingButton';
 
 
 function App() {
@@ -146,6 +147,7 @@ function App() {
                             <LandingPage />
                         </Route>
                     </Switch>
+                    <WhatsAppFloatingButton />
                     </Router>
                 </LedgerAccountProvider>
             </PlatformAccessProvider>

@@ -20,6 +20,120 @@
   }
 }
 
+/* Landing hero — call CTA attention (big radiating waves) */
+@keyframes hero-call-ring {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(3.6);
+    opacity: 0;
+  }
+}
+
+@keyframes hero-call-shake {
+  0%, 55%, 100% { transform: rotate(0deg); }
+  60% { transform: rotate(14deg); }
+  65% { transform: rotate(-12deg); }
+  70% { transform: rotate(10deg); }
+  75% { transform: rotate(-8deg); }
+  80% { transform: rotate(4deg); }
+  85% { transform: rotate(0deg); }
+}
+
+.hero-call-cta {
+  overflow: visible;
+}
+
+.hero-call-icon {
+  position: relative;
+  z-index: 1;
+  overflow: visible !important;
+}
+
+.hero-call-icon::before,
+.hero-call-icon::after,
+.hero-call-wave {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 3px solid rgba(255, 255, 255, 0.95);
+  pointer-events: none;
+  z-index: 0;
+  animation: hero-call-ring 1.4s cubic-bezier(0.12, 0.5, 0.2, 1) infinite;
+}
+
+.hero-call-icon::after {
+  animation-delay: 0.45s;
+  border-width: 2.5px;
+  border-color: rgba(254, 226, 226, 0.95);
+}
+
+.hero-call-wave--3 {
+  inset: -4px;
+  animation-delay: 0.9s;
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.hero-call-icon svg {
+  position: relative;
+  z-index: 1;
+  animation: hero-call-shake 2.2s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.hero-call-cta:hover .hero-call-icon::before,
+.hero-call-cta:hover .hero-call-icon::after,
+.hero-call-cta:hover .hero-call-wave {
+  animation-duration: 0.95s;
+}
+
+.hero-call-cta:hover .hero-call-icon svg {
+  animation: none;
+}
+
+/* Landing — apps zoom one after another */
+@keyframes app-orbit-zoom {
+  0%,
+  2% {
+    transform: scale(1);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08);
+  }
+  8% {
+    transform: scale(1.22);
+    box-shadow: 0 14px 28px -6px rgb(220 38 38 / 0.35);
+    z-index: 5;
+  }
+  14% {
+    transform: scale(1);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08);
+  }
+}
+
+.app-orbit-zoom {
+  animation: app-orbit-zoom 7.2s ease-in-out infinite;
+  animation-delay: var(--app-zoom-delay, 0s);
+  transform-origin: center center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-orbit-zoom,
+  .hero-call-icon::before,
+  .hero-call-icon::after,
+  .hero-call-wave,
+  .hero-call-icon svg {
+    animation: none !important;
+  }
+}
+
 /*
 =============== 
 Fonts

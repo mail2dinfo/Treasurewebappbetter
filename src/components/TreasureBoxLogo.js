@@ -1,0 +1,55 @@
+import React from 'react';
+
+/**
+ * MyTreasure treasure-box mark.
+ * variant: "inverse" = white chest (for red headers), "brand" = red chest (for light backgrounds)
+ */
+const TreasureBoxLogo = ({
+    variant = 'brand',
+    className = '',
+    title = 'MyTreasure',
+}) => {
+    const isInverse = variant === 'inverse';
+    const chest = isInverse ? '#FFFFFF' : '#DC2626';
+    const shield = isInverse ? '#DC2626' : '#FFFFFF';
+    const letter = isInverse ? '#FFFFFF' : '#DC2626';
+
+    return (
+        <svg
+            viewBox="0 0 64 64"
+            className={className}
+            role="img"
+            aria-label={title}
+            xmlns="http://www.w3.org/2000/svg"
+        >
+            <title>{title}</title>
+            {/* Lid */}
+            <path
+                fill={chest}
+                d="M14 26c0-10.5 8.1-18 18-18s18 7.5 18 18H14z"
+            />
+            {/* Lid rim */}
+            <rect x="10" y="24" width="44" height="7" rx="3.5" fill={chest} />
+            {/* Body */}
+            <rect x="12" y="30" width="40" height="26" rx="4" fill={chest} />
+            {/* Legs */}
+            <rect x="15" y="54" width="10" height="5" rx="1.5" fill={chest} />
+            <rect x="39" y="54" width="10" height="5" rx="1.5" fill={chest} />
+            {/* Side bars */}
+            <rect x="17" y="40" width="8" height="4" rx="2" fill={shield} />
+            <rect x="39" y="40" width="8" height="4" rx="2" fill={shield} />
+            {/* Center shield */}
+            <path
+                fill={shield}
+                d="M32 34.5l7.5 3.2v6.4c0 4.4-3.1 7.5-7.5 9.4-4.4-1.9-7.5-5-7.5-9.4v-6.4L32 34.5z"
+            />
+            {/* Letter T */}
+            <path
+                fill={letter}
+                d="M27.2 39.2h9.6v2.2h-3.7v8.4h-2.2v-8.4h-3.7z"
+            />
+        </svg>
+    );
+};
+
+export default TreasureBoxLogo;

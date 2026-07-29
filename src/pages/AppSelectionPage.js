@@ -1,9 +1,119 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useUserContext } from '../context/user_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
-import { FiLogOut, FiShield, FiUsers, FiX } from 'react-icons/fi';
+import { FiBookmark, FiLogOut, FiShield, FiUsers, FiX } from 'react-icons/fi';
 import MyTreasureBrand from '../components/MyTreasureBrand';
+
+/** Distinct look per product so cards are easy to tell apart at a glance. */
+const APP_THEMES = {
+    CHIT_FUND: {
+        shortName: 'Chit Fund App',
+        accent: '#DC2626',
+        iconBg: 'bg-red-600',
+        softBg: 'bg-red-50',
+        border: 'border-red-200 hover:border-red-500',
+        bar: 'bg-red-600',
+        ring: 'ring-red-100',
+    },
+    DAILY_COLLECTION: {
+        shortName: 'Daily Collection App',
+        accent: '#0D9488',
+        iconBg: 'bg-teal-600',
+        softBg: 'bg-teal-50',
+        border: 'border-teal-200 hover:border-teal-500',
+        bar: 'bg-teal-600',
+        ring: 'ring-teal-100',
+    },
+    PERSONAL_LOAN: {
+        shortName: 'Personal Loan App',
+        accent: '#D97706',
+        iconBg: 'bg-amber-600',
+        softBg: 'bg-amber-50',
+        border: 'border-amber-200 hover:border-amber-500',
+        bar: 'bg-amber-600',
+        ring: 'ring-amber-100',
+    },
+    VEHICLE_FINANCE: {
+        shortName: 'Vehicle Finance App',
+        accent: '#1D4ED8',
+        iconBg: 'bg-blue-700',
+        softBg: 'bg-blue-50',
+        border: 'border-blue-200 hover:border-blue-500',
+        bar: 'bg-blue-700',
+        ring: 'ring-blue-100',
+    },
+    PERSONAL_FINANCE: {
+        shortName: 'Personal Finance App',
+        accent: '#059669',
+        iconBg: 'bg-emerald-600',
+        softBg: 'bg-emerald-50',
+        border: 'border-emerald-200 hover:border-emerald-500',
+        bar: 'bg-emerald-600',
+        ring: 'ring-emerald-100',
+    },
+    RENTAL_MANAGEMENT: {
+        shortName: 'Rental Agreement App',
+        accent: '#EA580C',
+        iconBg: 'bg-orange-600',
+        softBg: 'bg-orange-50',
+        border: 'border-orange-200 hover:border-orange-500',
+        bar: 'bg-orange-600',
+        ring: 'ring-orange-100',
+    },
+    HOSTEL_MANAGEMENT: {
+        shortName: 'Hostel Management App',
+        accent: '#0E7490',
+        iconBg: 'bg-cyan-700',
+        softBg: 'bg-cyan-50',
+        border: 'border-cyan-200 hover:border-cyan-500',
+        bar: 'bg-cyan-700',
+        ring: 'ring-cyan-100',
+    },
+    PEOPLE_ACCESS: {
+        shortName: 'Employee & Access',
+        accent: '#44403C',
+        iconBg: 'bg-stone-700',
+        softBg: 'bg-stone-100',
+        border: 'border-stone-300 hover:border-stone-500',
+        bar: 'bg-stone-700',
+        ring: 'ring-stone-200',
+    },
+};
+
+const DEFAULT_APP_THEME = {
+    shortName: null,
+    accent: '#6B7280',
+    iconBg: 'bg-gray-500',
+    softBg: 'bg-gray-50',
+    border: 'border-gray-200 hover:border-gray-400',
+    bar: 'bg-gray-500',
+    ring: 'ring-gray-100',
+};
+
+const getAppTheme = (appCode) => APP_THEMES[appCode] || DEFAULT_APP_THEME;
+
+const bookmarkStorageKey = (user) => {
+    const id = user?.results?.userDetail?.user_id
+        || user?.results?.userDetail?.phone
+        || user?.results?.phone
+        || 'guest';
+    return `mt_app_bookmarks_${id}`;
+};
+
+const getAppBookmarkId = (app) => (
+    String(app.id || `${app.appCode}:${app.accountKind || 'staff'}:${app.parentMembershipId || 'org'}:${app.accountLabel || ''}`)
+);
+
+const cleanAppDisplayName = (appCode, rawName) => {
+    const theme = getAppTheme(appCode);
+    if (theme.shortName) return theme.shortName;
+    const cleaned = String(rawName || appCode || '')
+        .replace(/^MyTreasure\s*[-–—:]\s*/i, '')
+        .replace(/\s*App$/i, '')
+        .trim() || String(appCode || '');
+    return cleaned ? `${cleaned} App` : String(appCode || '');
+};
 
 const APP_ROUTES = {
     CHIT_FUND: {
@@ -136,6 +246,34 @@ const AppSelectionPage = () => {
     const { user, logout, userRole, updateUserRole } = useUserContext();
     const platform = usePlatformAccess();
     const [accountChoice, setAccountChoice] = useState(null);
+    const [bookmarkedIds, setBookmarkedIds] = useState([]);
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem(bookmarkStorageKey(user));
+            const parsed = raw ? JSON.parse(raw) : [];
+            setBookmarkedIds(Array.isArray(parsed) ? parsed.map(String) : []);
+        } catch {
+            setBookmarkedIds([]);
+        }
+    }, [user]);
+
+    const toggleBookmark = (event, app) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const id = getAppBookmarkId(app);
+        setBookmarkedIds((prev) => {
+            const next = prev.includes(id)
+                ? prev.filter((item) => item !== id)
+                : [id, ...prev];
+            try {
+                localStorage.setItem(bookmarkStorageKey(user), JSON.stringify(next));
+            } catch {
+                // ignore quota / private mode
+            }
+            return next;
+        });
+    };
 
     const membershipAccounts = useMemo(
         () => uniqueMembershipAccounts(user?.results?.userAccounts || []),
@@ -187,7 +325,7 @@ const AppSelectionPage = () => {
         {
             id: 1,
             appCode: 'CHIT_FUND',
-            name: 'MyTreasure - Chit Fund',
+            name: 'Chit Fund App',
             description: 'Manage chit groups and auctions',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -200,7 +338,7 @@ const AppSelectionPage = () => {
         {
             id: 2,
             appCode: 'DAILY_COLLECTION',
-            name: 'MyTreasure - Daily Collection',
+            name: 'Daily Collection App',
             description: 'Track daily loans and collections',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -215,12 +353,11 @@ const AppSelectionPage = () => {
         {
             id: 3,
             appCode: 'PERSONAL_LOAN',
-            name: 'MyTreasure - Personal Loan',
+            name: 'Personal Loan App',
             description: 'Personal loan lending and collections',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm0 8.25a3 3 0 100 6 3 3 0 000-6z" />
-                    <path d="M12 15.75a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5a.75.75 0 01-.75-.75zm.75-4.5a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5z" />
+                    <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM9.704 9.44c.446-.643.98-.99 1.548-.99.567 0 1.102.347 1.548.99a.75.75 0 001.212-.883C13.201 7.4 12.225 6.7 11.252 6.7c-.973 0-1.95.7-2.76 1.857A.75.75 0 009.704 9.44zM8.25 12a.75.75 0 01.75-.75h6a.75.75 0 010 1.5h-6A.75.75 0 018.25 12zm.75 2.25a.75.75 0 000 1.5h3a.75.75 0 000-1.5h-3z" clipRule="evenodd" />
                 </svg>
             ),
             path: '/personal-loan/user/dashboard',
@@ -229,7 +366,7 @@ const AppSelectionPage = () => {
         {
             id: 4,
             appCode: 'VEHICLE_FINANCE',
-            name: 'MyTreasure - Vehicle Finance App',
+            name: 'Vehicle Finance App',
             description: 'Two wheeler, four wheeler and vehicle loan management',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -244,7 +381,7 @@ const AppSelectionPage = () => {
         {
             id: 5,
             appCode: 'PERSONAL_FINANCE',
-            name: 'MyTreasure - Personal Finance',
+            name: 'Personal Finance App',
             description: 'Categories, accounts, income & expense, and monthly reports',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -259,7 +396,7 @@ const AppSelectionPage = () => {
         {
             id: 6,
             appCode: 'RENTAL_MANAGEMENT',
-            name: 'MyTreasure - Rental Agreement',
+            name: 'Rental Agreement App',
             description: 'Rental agreements, tenant review, monthly rent & collections',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
@@ -273,12 +410,11 @@ const AppSelectionPage = () => {
         {
             id: 7,
             appCode: 'HOSTEL_MANAGEMENT',
-            name: 'MyTreasure - Hostel Management',
+            name: 'Hostel Management App',
             description: 'Hostels, rooms, residents, rent dues, food & ledger',
             icon: (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
-                    <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
+                    <path fillRule="evenodd" d="M3 2.25a.75.75 0 01.75.75v.54l1.838-.46a9.75 9.75 0 016.725.738l.108.054a8.25 8.25 0 005.58.052l3.109-.732a.75.75 0 01.917.78l-.817 14.704a.75.75 0 01-.917.78l-3.109-.732a9.75 9.75 0 00-6.725.738l-.108.054a8.25 8.25 0 01-5.58.052l-1.838-.46V21a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75z" clipRule="evenodd" />
                 </svg>
             ),
             path: '/hostel-management/user/dashboard',
@@ -346,7 +482,7 @@ const AppSelectionPage = () => {
         return list.map((item, index) => {
             const knownApp = allApps.find((app) => app.appCode === item.appCode);
             const path = item.path || CUSTOMER_APP_PATHS[item.appCode] || knownApp?.path || '#';
-            const baseName = item.displayName || knownApp?.name || item.appCode;
+            const baseName = cleanAppDisplayName(item.appCode, item.displayName || knownApp?.name || item.appCode);
             const companyLabel = item.companyName ? ` · ${item.companyName}` : '';
             return {
                 ...(knownApp || {
@@ -356,7 +492,7 @@ const AppSelectionPage = () => {
                 }),
                 id: `customer-${item.appCode}-${item.parentMembershipId}-${index}`,
                 appCode: item.appCode,
-                name: `${baseName} · Subscriber${companyLabel}`,
+                name: `${baseName}${companyLabel}`,
                 description: item.companyName
                     ? `Open subscriber portal for ${item.companyName}`
                     : 'Open your subscriber / customer portal',
@@ -382,7 +518,7 @@ const AppSelectionPage = () => {
         const peopleAccessApp = {
             id: 'people-access',
             appCode: 'PEOPLE_ACCESS',
-            name: 'Employee & Access · Owner',
+            name: 'Employee & Access',
             description: 'Manage employees, app roles and feature permissions',
             path: '/platform/employees',
             isActive: true,
@@ -461,7 +597,7 @@ const AppSelectionPage = () => {
         // One card per staff role (Manager, Collector, Accountant, User) so dual-role
         // users can pick Manager vs Subscriber as separate accounts.
         const staffAccountCards = staffApps.flatMap((app) => {
-            const baseName = app.displayName || app.name || app.appCode;
+            const baseName = cleanAppDisplayName(app.appCode, app.displayName || app.name || app.appCode);
             const roles = Array.isArray(app.roles) ? app.roles : [];
             const staffRoles = roles.filter((role) => {
                 const code = String(role.roleCode || '').toUpperCase();
@@ -473,7 +609,7 @@ const AppSelectionPage = () => {
                 return [{
                     ...app,
                     id: `staff-${app.appCode}-${app.parentMembershipId || 'org'}-USER`,
-                    name: `${baseName} · Owner`,
+                    name: baseName,
                     description: app.description || '',
                     accountLabel: 'Owner',
                     accountKind: 'staff',
@@ -497,7 +633,7 @@ const AppSelectionPage = () => {
                 return {
                     ...app,
                     id: `staff-${app.appCode}-${app.parentMembershipId || 'org'}-${roleCode}`,
-                    name: `${baseName} · ${roleLabel}`,
+                    name: baseName,
                     description: app.description || '',
                     accountLabel: roleLabel,
                     accountKind: 'staff',
@@ -527,6 +663,23 @@ const AppSelectionPage = () => {
         allApps,
         customerApps,
     ]);
+
+    const { bookmarkedApps, otherApps } = useMemo(() => {
+        const bookmarked = [];
+        const others = [];
+        apps.forEach((app) => {
+            if (bookmarkedIds.includes(getAppBookmarkId(app))) {
+                bookmarked.push(app);
+            } else {
+                others.push(app);
+            }
+        });
+        // Keep bookmark order stable from storage (most recently bookmarked first).
+        bookmarked.sort((a, b) => (
+            bookmarkedIds.indexOf(getAppBookmarkId(a)) - bookmarkedIds.indexOf(getAppBookmarkId(b))
+        ));
+        return { bookmarkedApps: bookmarked, otherApps: others };
+    }, [apps, bookmarkedIds]);
 
     const openWithAccount = (app, choice) => {
         const parentMembershipId = app.parentMembershipId
@@ -583,6 +736,104 @@ const AppSelectionPage = () => {
         platform?.clearActiveContext();
         logout();
         history.push('/login');
+    };
+
+    const renderAppCard = (app, index) => {
+        const theme = getAppTheme(app.appCode);
+        const bookmarkId = getAppBookmarkId(app);
+        const isBookmarked = bookmarkedIds.includes(bookmarkId);
+        const title = String(app.name || theme.shortName || app.appCode)
+            .replace(/^MyTreasure\s*[-–—:]\s*/i, '')
+            .trim() || theme.shortName || app.appCode;
+
+        return (
+            <div
+                key={app.id || `${app.parentMembershipId || 'app'}-${app.appCode}-${app.accountLabel || index}`}
+                onClick={() => handleAppSelection(app)}
+                className={`
+                    group relative border-2 rounded-xl p-3 sm:p-4
+                    transition-all duration-300 ease-in-out
+                    flex flex-col items-center text-center gap-2 sm:gap-2.5
+                    shadow-sm hover:shadow-md ring-1 ${theme.ring} ${theme.softBg}
+                    ${app.isActive
+                        ? `${theme.border} cursor-pointer hover:-translate-y-0.5`
+                        : 'border-gray-300 opacity-60 cursor-not-allowed bg-gray-50'
+                    }
+                `}
+                style={{
+                    animation: `fadeIn 0.4s ease-out ${index * 0.05}s backwards`,
+                    borderTopColor: app.isActive ? theme.accent : undefined,
+                    borderTopWidth: app.isActive ? 3 : undefined,
+                }}
+            >
+                <div className={`
+                    absolute top-0 left-0 w-full h-1 rounded-t-[10px]
+                    transition-transform duration-300 origin-left scale-x-0
+                    group-hover:scale-x-100
+                    ${app.isActive ? theme.bar : 'bg-gray-400'}
+                `} />
+
+                <button
+                    type="button"
+                    aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark app'}
+                    title={isBookmarked ? 'Remove bookmark' : 'Bookmark for quick access'}
+                    onClick={(event) => toggleBookmark(event, app)}
+                    className={`
+                        absolute top-2 left-2 z-10 p-1.5 rounded-lg transition-colors
+                        ${isBookmarked
+                            ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
+                            : 'text-gray-400 bg-white/80 hover:text-amber-500 hover:bg-amber-50'
+                        }
+                    `}
+                >
+                    <FiBookmark
+                        className="w-4 h-4"
+                        fill={isBookmarked ? 'currentColor' : 'none'}
+                    />
+                </button>
+
+                {app.accountLabel ? (
+                    <span className={`absolute top-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                        app.accountKind === 'subscriber'
+                            ? 'bg-sky-100 text-sky-800'
+                            : 'bg-white/90 text-gray-700 border border-gray-200'
+                    }`}>
+                        {app.accountLabel}
+                    </span>
+                ) : null}
+
+                <div className={`
+                    w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center
+                    transition-all duration-300 shadow-sm mt-1
+                    group-hover:scale-105
+                    ${app.isActive ? theme.iconBg : 'bg-gray-400'}
+                `}>
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 text-white">
+                        {app.icon}
+                    </div>
+                </div>
+
+                <div className="flex-1 min-w-0 w-full px-1">
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-0.5 leading-snug">
+                        {title}
+                    </h3>
+                    <p className="text-[11px] sm:text-xs text-gray-600 leading-snug line-clamp-2">
+                        {app.description}
+                    </p>
+                    {Array.isArray(app.roles) && app.roles.length > 1 ? (
+                        <p className="text-[10px] text-gray-500 mt-1">
+                            {app.roles.length} accounts available
+                        </p>
+                    ) : null}
+                </div>
+
+                {!app.isActive && (
+                    <div className="absolute bottom-2 right-2 bg-gray-700 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide">
+                        Coming Soon
+                    </div>
+                )}
+            </div>
+        );
     };
 
     if (!platform?.hasLoaded) {
@@ -658,87 +909,47 @@ const AppSelectionPage = () => {
                     <p className="text-sm sm:text-base text-gray-500 max-w-2xl mx-auto">
                         {customerApps.length && apps.some((app) => app.accountKind === 'staff')
                             ? 'You have employee and subscriber access. Pick Manager / Collector for staff apps, or Subscriber for your customer portal.'
-                            : 'Select an application to get started'}
+                            : 'Select an application to get started. Tap the bookmark to pin favorites to the top.'}
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-10 max-w-5xl mx-auto">
-                    {apps.length === 0 ? (
-                        <div className="col-span-full text-center py-12 px-4 bg-gray-50 rounded-xl border border-gray-200">
-                            <p className="text-gray-800 font-medium">No applications available yet</p>
-                            <p className="text-sm text-gray-500 mt-2">
-                                Ask your organization owner to assign you an app role in Employee &amp; Access.
-                            </p>
-                        </div>
-                    ) : null}
-                    {apps.map((app, index) => (
-                        <div
-                            key={app.id || `${app.parentMembershipId || 'app'}-${app.appCode}-${app.accountLabel || index}`}
-                            onClick={() => handleAppSelection(app)}
-                            className={`
-                group relative bg-white border-2 rounded-lg p-3 sm:p-4
-                transition-all duration-300 ease-in-out
-                flex flex-col items-center text-center gap-2 sm:gap-2.5
-                shadow-sm hover:shadow-md
-                ${app.isActive
-                                    ? 'border-custom-red cursor-pointer hover:-translate-y-0.5 hover:border-custom-red-dark'
-                                    : 'border-gray-300 opacity-60 cursor-not-allowed'
-                                }
-              `}
-                            style={{
-                                animation: `fadeIn 0.4s ease-out ${index * 0.05}s backwards`
-                            }}
-                        >
-                            <div className={`
-                absolute top-0 left-0 w-full h-0.5 rounded-t-lg
-                transition-transform duration-300 origin-left scale-x-0
-                group-hover:scale-x-100
-                ${app.isActive ? 'bg-custom-red' : 'bg-gray-400'}
-              `} />
-
-                            {app.accountLabel ? (
-                                <span className={`absolute top-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                                    app.accountKind === 'subscriber'
-                                        ? 'bg-blue-50 text-blue-700'
-                                        : 'bg-red-50 text-red-700'
-                                }`}>
-                                    {app.accountLabel}
-                                </span>
-                            ) : null}
-
-                            <div className={`
-                w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center
-                transition-all duration-300 shadow-sm
-                group-hover:scale-105
-                ${app.isActive ? 'bg-custom-red group-hover:bg-custom-red-dark' : 'bg-gray-400'}
-              `}>
-                                <div className="w-5 h-5 sm:w-6 sm:h-6 text-white">
-                                    {app.icon}
+                {apps.length === 0 ? (
+                    <div className="text-center py-12 px-4 bg-gray-50 rounded-xl border border-gray-200 mb-8 max-w-5xl mx-auto">
+                        <p className="text-gray-800 font-medium">No applications available yet</p>
+                        <p className="text-sm text-gray-500 mt-2">
+                            Ask your organization owner to assign you an app role in Employee &amp; Access.
+                        </p>
+                    </div>
+                ) : (
+                    <div className="max-w-5xl mx-auto space-y-8 mb-8 sm:mb-10">
+                        {bookmarkedApps.length > 0 ? (
+                            <section>
+                                <div className="flex items-center gap-2 mb-3 px-0.5">
+                                    <FiBookmark className="w-4 h-4 text-amber-500" fill="currentColor" />
+                                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                                        Bookmarked
+                                    </h3>
                                 </div>
-                            </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                                    {bookmarkedApps.map((app, index) => renderAppCard(app, index))}
+                                </div>
+                            </section>
+                        ) : null}
 
-                            <div className="flex-1 min-w-0 w-full">
-                                <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-0.5 leading-snug">
-                                    {app.name}
+                        <section>
+                            {bookmarkedApps.length > 0 ? (
+                                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 px-0.5">
+                                    All apps
                                 </h3>
-                                <p className="text-[11px] sm:text-xs text-gray-600 leading-snug line-clamp-2">
-                                    {app.description}
-                                </p>
-                                {Array.isArray(app.roles) && app.roles.length > 1 ? (
-                                    <p className="text-[10px] text-gray-500 mt-1">
-                                        {app.roles.length} accounts available
-                                    </p>
-                                ) : null}
+                            ) : null}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                                {(bookmarkedApps.length ? otherApps : apps).map((app, index) => (
+                                    renderAppCard(app, index + bookmarkedApps.length)
+                                ))}
                             </div>
-
-                            {!app.isActive && (
-                                <div className="absolute top-2 right-2 bg-gray-700 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide">
-                                    Coming Soon
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                        </section>
+                    </div>
+                )}
 
                 <div className="text-center pt-8 sm:pt-12 mt-8 sm:mt-12 border-t border-gray-200">
                     <p className="text-xs sm:text-sm text-gray-500">

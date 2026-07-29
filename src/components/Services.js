@@ -17,13 +17,13 @@ const Services = () => {
         <div className="text-center mb-10 sm:mb-16">
           <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-red-100 to-blue-100 text-gray-800 text-sm font-medium mb-6">
             <FaBrain className="w-4 h-4 mr-2 text-red-600" />
-            AI-Powered Solutions
+            Made simple for business owners
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Treasure - Powered by AI
+            Why people choose MyTreasure
           </h2>
           <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-            Experience the future of chit fund management with our cutting-edge AI technology
+            Clear answers for everyday work — not complicated finance jargon
           </p>
         </div>
 
@@ -66,17 +66,17 @@ const Services = () => {
           <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 sm:gap-4">
             <div className="flex items-center gap-2 text-gray-600">
               <FaShieldAlt className="w-5 h-5 text-green-600 shrink-0" />
-              <span className="text-sm font-medium">Secure & Reliable</span>
+              <span className="text-sm font-medium">Safe & secure</span>
             </div>
             <div className="hidden sm:block w-1 h-1 bg-gray-400 rounded-full" />
             <div className="flex items-center gap-2 text-gray-600">
               <FaRocket className="w-5 h-5 text-blue-600 shrink-0" />
-              <span className="text-sm font-medium">Fast & Efficient</span>
+              <span className="text-sm font-medium">Works on phone & computer</span>
             </div>
             <div className="hidden sm:block w-1 h-1 bg-gray-400 rounded-full" />
             <div className="flex items-center gap-2 text-gray-600">
               <FaBrain className="w-5 h-5 text-red-600 shrink-0" />
-              <span className="text-sm font-medium">AI-Powered</span>
+              <span className="text-sm font-medium">Easy to learn</span>
             </div>
           </div>
         </div>
