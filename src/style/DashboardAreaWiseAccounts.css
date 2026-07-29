@@ -84,6 +84,12 @@
   font-size: 14px;
 }
 
+.area-wise-header-row p {
+  color: #fff;
+  margin: 0;
+  font-weight: 600;
+}
+
 /* Table Row */
 .area-wise-data-row {
   display: grid;
@@ -103,6 +109,19 @@
 .area-wise-paid-row {
   background-color: #e8f5e9;
   color: #2e7d32;
+}
+
+/* Total Row */
+.area-wise-total-row {
+  font-weight: 700;
+  background-color: #d32f2f;
+  color: #fff;
+  border-top: 2px solid #b71c1c;
+  border-radius: 0 0 6px 6px;
+}
+
+.area-wise-total-row p {
+  color: #fff;
 }
 
 /* List Container */
@@ -126,7 +145,8 @@
 @media (max-width: 768px) {
 
   .area-wise-header-row,
-  .area-wise-data-row {
+  .area-wise-data-row,
+  .area-wise-total-row {
     grid-template-columns: repeat(2, 1fr);
     font-size: 13px;
     padding: 10px;

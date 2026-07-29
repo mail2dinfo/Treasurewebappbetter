@@ -20,6 +20,14 @@ import {
     expandVfPermissionMatches,
     toVfFallbackFeature,
 } from '../utils/vfPermissionCatalog';
+import {
+    HM_ADMINISTRATION_CATEGORIES,
+    HM_GRANULAR_FEATURES,
+    HM_HIDDEN_FEATURE_KEYS,
+    HM_LEGACY_TO_GRANULAR,
+    hmFeaturesAssignableToRole,
+    toHmFallbackFeature,
+} from '../utils/hmPermissionCatalog';
 import { useUserContext } from '../context/user_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
 import MyTreasureBrand from '../components/MyTreasureBrand';
@@ -58,6 +66,8 @@ const MANAGER_SCOPE_PERMISSIONS = {
         accountantDelete: 'chit_accountant_delete',
         accountantOffer: 'chit_accountant_offer_letter',
         accountantViewKeys: ['chit_accountant_add', 'chit_accountant_edit', 'chit_accountant_delete', 'chit_accountant_offer_letter', 'chit_employee_manage'],
+        managerCreatableRoles: ['COLLECTOR', 'ACCOUNTANT'],
+        ownerCreatableRoles: ['MANAGER', 'COLLECTOR', 'ACCOUNTANT'],
         blockedDelegation: [
             'people_access_manage',
             'chit_employee_add',
@@ -104,6 +114,8 @@ const MANAGER_SCOPE_PERMISSIONS = {
         accountantDelete: 'vf_accountant_edit',
         accountantOffer: 'vf_offer_letter',
         accountantViewKeys: ['vf_accountant_view', 'vf_accountant_add', 'vf_accountant_edit', 'vf_employee_manage', 'vf_employee_add', 'vf_offer_letter'],
+        managerCreatableRoles: ['COLLECTOR', 'ACCOUNTANT'],
+        ownerCreatableRoles: ['MANAGER', 'COLLECTOR', 'ACCOUNTANT'],
         blockedDelegation: [
             'people_access_manage',
             'vf_employee_add',
@@ -117,6 +129,86 @@ const MANAGER_SCOPE_PERMISSIONS = {
             'vf_accountant_add',
             'vf_accountant_edit',
             'vf_module_employees_view',
+        ],
+    },
+    HOSTEL_MANAGEMENT: {
+        appLabel: 'Hostel Management',
+        accessAny: [
+            'hm_employee_add',
+            'hm_employee_manage',
+            'hm_manager_view',
+            'hm_receptionist_view',
+            'hm_receptionist_add',
+            'hm_receptionist_edit',
+            'hm_receptionist_delete',
+            'hm_receptionist_offer_letter',
+            'hm_kitchen_view',
+            'hm_kitchen_add',
+            'hm_kitchen_edit',
+            'hm_kitchen_delete',
+            'hm_kitchen_offer_letter',
+        ],
+        manageAll: 'hm_employee_manage',
+        employeeAdd: 'hm_employee_add',
+        collectorView: [
+            'hm_receptionist_view',
+            'hm_receptionist_add',
+            'hm_receptionist_edit',
+            'hm_receptionist_delete',
+            'hm_receptionist_offer_letter',
+            'hm_employee_manage',
+        ],
+        collectorAdd: 'hm_receptionist_add',
+        collectorEdit: 'hm_receptionist_edit',
+        collectorDelete: 'hm_receptionist_delete',
+        collectorOffer: 'hm_receptionist_offer_letter',
+        managerView: 'hm_manager_view',
+        accountantAdd: null,
+        accountantEdit: null,
+        accountantDelete: null,
+        accountantOffer: null,
+        accountantViewKeys: [],
+        receptionistView: [
+            'hm_receptionist_view',
+            'hm_receptionist_add',
+            'hm_receptionist_edit',
+            'hm_receptionist_delete',
+            'hm_receptionist_offer_letter',
+            'hm_employee_manage',
+        ],
+        receptionistAdd: 'hm_receptionist_add',
+        receptionistEdit: 'hm_receptionist_edit',
+        receptionistDelete: 'hm_receptionist_delete',
+        receptionistOffer: 'hm_receptionist_offer_letter',
+        kitchenView: [
+            'hm_kitchen_view',
+            'hm_kitchen_add',
+            'hm_kitchen_edit',
+            'hm_kitchen_delete',
+            'hm_kitchen_offer_letter',
+            'hm_employee_manage',
+        ],
+        kitchenAdd: 'hm_kitchen_add',
+        kitchenEdit: 'hm_kitchen_edit',
+        kitchenDelete: 'hm_kitchen_delete',
+        kitchenOffer: 'hm_kitchen_offer_letter',
+        managerCreatableRoles: ['RECEPTIONIST', 'KITCHEN_STAFF'],
+        ownerCreatableRoles: ['MANAGER', 'RECEPTIONIST', 'KITCHEN_STAFF'],
+        blockedDelegation: [
+            'people_access_manage',
+            'hm_employee_add',
+            'hm_employee_manage',
+            'hm_manager_view',
+            'hm_receptionist_view',
+            'hm_receptionist_add',
+            'hm_receptionist_edit',
+            'hm_receptionist_delete',
+            'hm_receptionist_offer_letter',
+            'hm_kitchen_view',
+            'hm_kitchen_add',
+            'hm_kitchen_edit',
+            'hm_kitchen_delete',
+            'hm_kitchen_offer_letter',
         ],
     },
 };
@@ -138,6 +230,7 @@ const emptyProfile = {
 const APP_DISPLAY_ORDER = [
     'CHIT_FUND',
     'VEHICLE_FINANCE',
+    'HOSTEL_MANAGEMENT',
     'DAILY_COLLECTION',
     'PERSONAL_LOAN',
     'TWO_WHEELER_FINANCE',
@@ -148,6 +241,7 @@ const defaultAppLabel = (appCode) => {
     const labels = {
         CHIT_FUND: 'Chit Fund',
         VEHICLE_FINANCE: 'Vehicle Finance',
+        HOSTEL_MANAGEMENT: 'Hostel Management',
         DAILY_COLLECTION: 'Daily Collection',
         PERSONAL_LOAN: 'Personal Loan',
         TWO_WHEELER_FINANCE: 'Two Wheeler Finance',
@@ -183,7 +277,14 @@ const getFeatureLabel = (feature) => (
     typeof feature === 'string' ? feature : feature.displayName || feature.display_name || feature.name || getFeatureKey(feature)
 );
 
-const EMPLOYEE_ROLES = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT'];
+const EMPLOYEE_ROLES = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF'];
+const ROLE_DISPLAY_NAME = {
+    MANAGER: 'Manager',
+    COLLECTOR: 'Collector',
+    ACCOUNTANT: 'Accountant',
+    RECEPTIONIST: 'Receptionist',
+    KITCHEN_STAFF: 'Kitchen Staff',
+};
 const fallbackFeature = (featureKey, displayName, category, defaultRoles) => ({
     featureKey,
     displayName,
@@ -202,6 +303,12 @@ const FALLBACK_APP_CATALOG = [
         displayName: 'Vehicle Finance',
         description: 'Vehicle finance lending and collections',
         features: VF_GRANULAR_FEATURES.map(toVfFallbackFeature),
+    },
+    {
+        appCode: 'HOSTEL_MANAGEMENT',
+        displayName: 'Hostel Management',
+        description: 'Hostels, residents, rent, meals and ledger',
+        features: HM_GRANULAR_FEATURES.map(toHmFallbackFeature),
     },
     {
         appCode: 'DAILY_COLLECTION',
@@ -263,13 +370,16 @@ const mergeCatalogWithFallback = (catalogList) => {
 
         // Chit / VF Step 3: server catalog is source of truth (API rejects unknown keys).
         // Fallback list only orders/labels keys that already exist in DB.
-        if (appCode === 'CHIT_FUND' || appCode === 'VEHICLE_FINANCE') {
+        if (appCode === 'CHIT_FUND' || appCode === 'VEHICLE_FINANCE' || appCode === 'HOSTEL_MANAGEMENT') {
             const granularFeatures = getFeatures(fallbackApp);
             const serverFeatures = getFeatures(app);
             const serverKeys = new Set(serverFeatures.map(getFeatureKey).filter(Boolean));
-            const legacyKeys = new Set(Object.keys(
-                appCode === 'CHIT_FUND' ? CHIT_LEGACY_TO_GRANULAR : VF_LEGACY_TO_GRANULAR
-            ));
+            const legacyMap = appCode === 'CHIT_FUND'
+                ? CHIT_LEGACY_TO_GRANULAR
+                : appCode === 'VEHICLE_FINANCE'
+                    ? VF_LEGACY_TO_GRANULAR
+                    : HM_LEGACY_TO_GRANULAR;
+            const legacyKeys = new Set(Object.keys(legacyMap));
             if (!serverKeys.size) {
                 return {
                     ...app,
@@ -300,11 +410,14 @@ const mergeCatalogWithFallback = (catalogList) => {
                 return key
                     && !orderedKeys.has(key)
                     && !legacyKeys.has(key)
-                    && !(appCode === 'CHIT_FUND' && CHIT_HIDDEN_FEATURE_KEYS.has(key));
+                    && !(appCode === 'CHIT_FUND' && CHIT_HIDDEN_FEATURE_KEYS.has(key))
+                    && !(appCode === 'HOSTEL_MANAGEMENT' && HM_HIDDEN_FEATURE_KEYS.has(key));
             });
             const merged = [...orderedKnown, ...serverExtras].filter((feature) => {
                 const key = getFeatureKey(feature);
-                return !(appCode === 'CHIT_FUND' && key && CHIT_HIDDEN_FEATURE_KEYS.has(key));
+                if (appCode === 'CHIT_FUND' && key && CHIT_HIDDEN_FEATURE_KEYS.has(key)) return false;
+                if (appCode === 'HOSTEL_MANAGEMENT' && key && HM_HIDDEN_FEATURE_KEYS.has(key)) return false;
+                return true;
             });
             return {
                 ...app,
@@ -375,6 +488,11 @@ const expandGrantedPermissions = (appCode, permissionKeys = []) => {
         }
         if (appCode === 'CHIT_FUND' && CHIT_LEGACY_TO_GRANULAR[key]) {
             CHIT_LEGACY_TO_GRANULAR[key].forEach((item) => expanded.add(item));
+            expanded.add(key);
+            return;
+        }
+        if (appCode === 'HOSTEL_MANAGEMENT' && HM_LEGACY_TO_GRANULAR[key]) {
+            HM_LEGACY_TO_GRANULAR[key].forEach((item) => expanded.add(item));
             expanded.add(key);
             return;
         }
@@ -478,13 +596,14 @@ const PlatformEmployeesPage = ({
     const scopedAppLabel = scopeConfig.appLabel;
     const isVfScoped = appScope === 'VEHICLE_FINANCE';
     const isChitScoped = appScope === 'CHIT_FUND';
-    // Chit Fund + Vehicle Finance (scoped page or /platform/employees):
-    // Collector/Accountant use the same role-package Step 3 as manager/employees.
+    const isHmScoped = appScope === 'HOSTEL_MANAGEMENT';
+    // Role-package Step 3 for subordinate staff (Collector/Accountant/Receptionist).
     const usesCollectorAccountantPackage = (roleCode, forAppCode = null) => {
         const role = String(roleCode || '').toUpperCase();
-        if (!['COLLECTOR', 'ACCOUNTANT'].includes(role)) return false;
+        if (!['COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF'].includes(role)) return false;
         if (managerMode) return true;
         const appCode = String(forAppCode || appScope || '').toUpperCase();
+        if (role === 'RECEPTIONIST' || role === 'KITCHEN_STAFF') return appCode === 'HOSTEL_MANAGEMENT';
         return appCode === 'VEHICLE_FINANCE' || appCode === 'CHIT_FUND';
     };
     const isScopedManager = Boolean(
@@ -523,20 +642,58 @@ const PlatformEmployeesPage = ({
         || (scopeConfig.managerView ? contextHasGranted(scopeConfig.managerView) : false)
         || hasManageAll;
     const canMutateManagers = isOwner; // Only User/Owner can create/edit/delete Managers
-    const canCreateAccountant = isOwner || contextHasGranted(scopeConfig.accountantAdd) || hasManageAll;
-    const canEditAccountant = isOwner || contextHasGranted(scopeConfig.accountantEdit) || hasManageAll;
-    const canDeleteAccountant = isOwner || contextHasGranted(scopeConfig.accountantDelete) || hasManageAll;
-    const canOfferLetterAccountant = isOwner || contextHasGranted(scopeConfig.accountantOffer) || hasManageAll;
-    // Manager may add only roles they have Add permission for (Collector / Accountant).
+    const canCreateAccountant = isOwner
+        || (scopeConfig.accountantAdd && (contextHasGranted(scopeConfig.accountantAdd) || hasManageAll));
+    const canEditAccountant = isOwner
+        || (scopeConfig.accountantEdit && (contextHasGranted(scopeConfig.accountantEdit) || hasManageAll));
+    const canDeleteAccountant = isOwner
+        || (scopeConfig.accountantDelete && (contextHasGranted(scopeConfig.accountantDelete) || hasManageAll));
+    const canOfferLetterAccountant = isOwner
+        || (scopeConfig.accountantOffer && (contextHasGranted(scopeConfig.accountantOffer) || hasManageAll));
+    const canViewReceptionists = isOwner
+        || (scopeConfig.receptionistView || []).some((key) => contextHasGranted(key))
+        || canViewCollectors;
+    const canCreateReceptionist = isOwner
+        || contextHasGranted(scopeConfig.receptionistAdd || scopeConfig.collectorAdd)
+        || hasManageAll;
+    const canEditReceptionist = isOwner
+        || contextHasGranted(scopeConfig.receptionistEdit || scopeConfig.collectorEdit)
+        || hasManageAll;
+    const canDeleteReceptionist = isOwner
+        || contextHasGranted(scopeConfig.receptionistDelete || scopeConfig.collectorDelete)
+        || hasManageAll;
+    const canOfferLetterReceptionist = isOwner
+        || contextHasGranted(scopeConfig.receptionistOffer || scopeConfig.collectorOffer)
+        || hasManageAll;
+    const canViewKitchenStaff = isOwner
+        || (scopeConfig.kitchenView || []).some((key) => contextHasGranted(key))
+        || hasManageAll;
+    const canCreateKitchenStaff = isOwner
+        || contextHasGranted(scopeConfig.kitchenAdd)
+        || hasManageAll;
+    const canEditKitchenStaff = isOwner
+        || contextHasGranted(scopeConfig.kitchenEdit)
+        || hasManageAll;
+    const canDeleteKitchenStaff = isOwner
+        || contextHasGranted(scopeConfig.kitchenDelete)
+        || hasManageAll;
+    const canOfferLetterKitchenStaff = isOwner
+        || contextHasGranted(scopeConfig.kitchenOffer)
+        || hasManageAll;
+    // Manager may add only roles they have Add permission for.
     const canAddEmployee = canMutateManagers
         || canCreateCollector
-        || canCreateAccountant;
+        || canCreateAccountant
+        || canCreateReceptionist
+        || canCreateKitchenStaff;
     const canAssignRole = (roleCode) => {
         // Managers cannot create/assign another Manager (same role).
         if (managerMode && roleCode === 'MANAGER') return false;
         if (isOwner || !managerMode) return true;
         if (roleCode === 'COLLECTOR') return canCreateCollector;
         if (roleCode === 'ACCOUNTANT') return canCreateAccountant;
+        if (roleCode === 'RECEPTIONIST') return canCreateReceptionist;
+        if (roleCode === 'KITCHEN_STAFF') return canCreateKitchenStaff;
         return false;
     };
     const getEmployeeRoles = (employee) => (
@@ -547,47 +704,57 @@ const PlatformEmployeesPage = ({
     );
     const employeeHasRole = (employee, roleCode) => getEmployeeRoles(employee).includes(roleCode);
     const getAssignableRoles = (app) => {
-        // Manager create/edit: always offer Collector + Accountant (enable only if Add permission exists).
-        if (managerMode) {
-            return [
-                { roleCode: 'COLLECTOR', displayName: 'Collector' },
-                { roleCode: 'ACCOUNTANT', displayName: 'Accountant' },
-            ];
-        }
-        // Chit / VF (user employees or platform → that app): Manager + Collector + Accountant.
         const appCode = getAppCode(app);
+        const scope = MANAGER_SCOPE_PERMISSIONS[appCode] || scopeConfig;
+        if (managerMode) {
+            const roles = scope.managerCreatableRoles || ['COLLECTOR', 'ACCOUNTANT'];
+            return roles.map((roleCode) => ({
+                roleCode,
+                displayName: ROLE_DISPLAY_NAME[roleCode] || roleCode,
+            }));
+        }
         if (
             isVfScoped
             || isChitScoped
+            || isHmScoped
             || appCode === 'VEHICLE_FINANCE'
             || appCode === 'CHIT_FUND'
+            || appCode === 'HOSTEL_MANAGEMENT'
         ) {
+            const preferred = scope.ownerCreatableRoles
+                || ['MANAGER', 'COLLECTOR', 'ACCOUNTANT'];
             const fromCatalog = getRoles(app).filter((role) => EMPLOYEE_ROLES.includes(getRoleCode(role)));
             const byCode = new Map(fromCatalog.map((role) => [getRoleCode(role), role]));
-            return ['MANAGER', 'COLLECTOR', 'ACCOUNTANT'].map((roleCode) => (
-                byCode.get(roleCode) || { roleCode, displayName: roleCode.charAt(0) + roleCode.slice(1).toLowerCase() }
+            return preferred.map((roleCode) => (
+                byCode.get(roleCode) || {
+                    roleCode,
+                    displayName: ROLE_DISPLAY_NAME[roleCode] || roleCode,
+                }
             ));
         }
         return getRoles(app).filter((role) => EMPLOYEE_ROLES.includes(getRoleCode(role)));
     };
-    // HR keys must not be copied onto Collector/Accountant enrollments.
+    // HR keys must not be copied onto subordinate enrollments.
     const getFeaturesForRoleAssignment = (features, roleCode, forAppCode = null) => {
         const appCode = String(forAppCode || appScope || '').toUpperCase();
         if (!usesCollectorAccountantPackage(roleCode, appCode)) return features;
         const blockedKeys = new Set(
             (MANAGER_SCOPE_PERMISSIONS[appCode] || scopeConfig).blockedDelegation || []
         );
-        const roleFeatures = featuresAssignableToRole(
+        const assignFn = appCode === 'HOSTEL_MANAGEMENT' || roleCode === 'RECEPTIONIST' || roleCode === 'KITCHEN_STAFF'
+            ? hmFeaturesAssignableToRole
+            : featuresAssignableToRole;
+        const roleFeatures = assignFn(
             features,
             roleCode,
             getFeatureKey,
             (feature) => feature.defaultRoles || feature.default_roles || []
         );
-        // With Add for that role, show the role’s default package — not only features
-        // the Manager personally holds (Managers rarely hold Ledger/Reports themselves).
         const canGrantRolePackage = isOwner
             || (roleCode === 'COLLECTOR' && canCreateCollector)
-            || (roleCode === 'ACCOUNTANT' && canCreateAccountant);
+            || (roleCode === 'ACCOUNTANT' && canCreateAccountant)
+            || (roleCode === 'RECEPTIONIST' && canCreateReceptionist)
+            || (roleCode === 'KITCHEN_STAFF' && canCreateKitchenStaff);
         return roleFeatures.filter((feature) => {
             const featureKey = getFeatureKey(feature);
             if (!featureKey || blockedKeys.has(featureKey)) return false;
@@ -651,9 +818,11 @@ const PlatformEmployeesPage = ({
         return employees.filter((employee) => {
             const roles = getEmployeeRoles(employee);
             if (roles.includes('MANAGER')) return canViewManagers;
+            if (roles.includes('RECEPTIONIST')) return canViewReceptionists;
+            if (roles.includes('KITCHEN_STAFF')) return canViewKitchenStaff;
             if (roles.includes('COLLECTOR')) return canViewCollectors;
             if (roles.includes('ACCOUNTANT')) {
-                return scopeConfig.accountantViewKeys.some((key) => contextHasGranted(key))
+                return (scopeConfig.accountantViewKeys || []).some((key) => contextHasGranted(key))
                     || canCreateAccountant
                     || canEditAccountant
                     || canDeleteAccountant
@@ -667,12 +836,15 @@ const PlatformEmployeesPage = ({
         managerMode,
         canViewManagers,
         canViewCollectors,
+        canViewReceptionists,
+        canViewKitchenStaff,
         canCreateAccountant,
         canEditAccountant,
         canDeleteAccountant,
         canOfferLetterAccountant,
-        scopeConfig,
         isOwner,
+        scopeConfig,
+        contextHasGranted,
     ]);
 
     const getAppLabel = useCallback((appCode) => {
@@ -878,6 +1050,14 @@ const PlatformEmployeesPage = ({
             setError('Edit Accountant permission is required.');
             return;
         }
+        if (managerMode && employeeHasRole(employee, 'RECEPTIONIST') && !canEditReceptionist) {
+            setError('Edit Receptionist permission is required.');
+            return;
+        }
+        if (managerMode && employeeHasRole(employee, 'KITCHEN_STAFF') && !canEditKitchenStaff) {
+            setError('Edit Kitchen Staff permission is required.');
+            return;
+        }
         const sourceProfile = employee.profile || employee;
         const sourceUser = sourceProfile.user || employee.user || sourceProfile;
         setEditingEmployee(employee);
@@ -1001,9 +1181,25 @@ const PlatformEmployeesPage = ({
                 // Never prefer Collector when Accountant is also allowed.
                 let defaultRoleCode = 'MANAGER';
                 if (managerMode) {
-                    if (canCreateCollector && !canCreateAccountant) defaultRoleCode = 'COLLECTOR';
-                    else if (!canCreateCollector && canCreateAccountant) defaultRoleCode = 'ACCOUNTANT';
-                    else defaultRoleCode = null;
+                    if (
+                        canCreateReceptionist
+                        && !canCreateKitchenStaff
+                        && !canCreateCollector
+                        && !canCreateAccountant
+                    ) {
+                        defaultRoleCode = 'RECEPTIONIST';
+                    } else if (
+                        canCreateKitchenStaff
+                        && !canCreateReceptionist
+                        && !canCreateCollector
+                        && !canCreateAccountant
+                    ) {
+                        defaultRoleCode = 'KITCHEN_STAFF';
+                    } else if (canCreateCollector && !canCreateAccountant && !canCreateReceptionist && !canCreateKitchenStaff) {
+                        defaultRoleCode = 'COLLECTOR';
+                    } else if (!canCreateCollector && canCreateAccountant && !canCreateReceptionist && !canCreateKitchenStaff) {
+                        defaultRoleCode = 'ACCOUNTANT';
+                    } else defaultRoleCode = null;
                 }
                 if (!defaultRoleCode) return;
                 const roleFeatures = getFeaturesForRoleAssignment(
@@ -1057,15 +1253,17 @@ const PlatformEmployeesPage = ({
                 return false;
             }
             if (managerMode && !canAddEmployee) {
-                setEditorError('Add Collector or Add Accountant permission is required.');
+                setEditorError('Add permission for a subordinate role is required.');
                 return false;
             }
             ensureDefaultEnrollmentsForSelectedApps();
-            // Auto-select the only allowed role for managers (e.g. Accountant-only).
+            // Auto-select the only allowed role for managers (e.g. Receptionist-only).
             if (managerMode) {
                 const scopedAppCode = appScope || 'CHIT_FUND';
                 const app = catalog.find((item) => getAppCode(item) === scopedAppCode);
-                const allowedRoleCodes = ['COLLECTOR', 'ACCOUNTANT'].filter((roleCode) => canAssignRole(roleCode));
+                const scopeRoles = (MANAGER_SCOPE_PERMISSIONS[scopedAppCode]?.managerCreatableRoles)
+                    || ['COLLECTOR', 'ACCOUNTANT'];
+                const allowedRoleCodes = scopeRoles.filter((roleCode) => canAssignRole(roleCode));
                 if (app && allowedRoleCodes.length === 1) {
                     const onlyRole = allowedRoleCodes[0];
                     setEnrollments((current) => {
@@ -1229,6 +1427,14 @@ const PlatformEmployeesPage = ({
             setError('Delete Accountant permission is required.');
             return;
         }
+        if (managerMode && employeeHasRole(employee, 'RECEPTIONIST') && !canDeleteReceptionist) {
+            setError('Delete Receptionist permission is required.');
+            return;
+        }
+        if (managerMode && employeeHasRole(employee, 'KITCHEN_STAFF') && !canDeleteKitchenStaff) {
+            setError('Delete Kitchen Staff permission is required.');
+            return;
+        }
         const employeeId = employee.id || employee.employeeId || employee.employee_id;
         const name = employee.profile?.name || employee.user?.name || employee.name || 'this employee';
         if (!employeeId || !window.confirm(`Delete/deactivate ${name}? They will lose platform access.`)) return;
@@ -1248,6 +1454,8 @@ const PlatformEmployeesPage = ({
     const canGenerateOfferLetterFor = (employee) => {
         if (employeeHasRole(employee, 'COLLECTOR')) return canOfferLetterCollector;
         if (employeeHasRole(employee, 'ACCOUNTANT')) return canOfferLetterAccountant;
+        if (employeeHasRole(employee, 'RECEPTIONIST')) return canOfferLetterReceptionist;
+        if (employeeHasRole(employee, 'KITCHEN_STAFF')) return canOfferLetterKitchenStaff;
         // Owner may also generate for Managers from People & Access.
         if (isOwner && employeeHasRole(employee, 'MANAGER')) return true;
         return false;
@@ -1419,10 +1627,16 @@ const PlatformEmployeesPage = ({
                             <div className="max-w-2xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-3 mt-8 text-left">
                                 {[
                                     ['1', 'Employee details', 'Add profile and login information'],
-                                    ['2', 'App details', (managerMode || isVfScoped || isChitScoped) ? `${scopedAppLabel} (current app)` : 'Confirm application access'],
+                                    ['2', 'App details', (managerMode || isVfScoped || isChitScoped || isHmScoped) ? `${scopedAppLabel} (current app)` : 'Confirm application access'],
                                     ['3', 'Roles & features', managerMode
-                                        ? 'Collector or Accountant (by your permissions)'
-                                        : ((isVfScoped || isChitScoped) ? 'Manager and Collector / Accountant' : 'Choose duties and permissions')],
+                                        ? (isHmScoped
+                                            ? 'Receptionist (by your permissions)'
+                                            : 'Collector or Accountant (by your permissions)')
+                                        : ((isVfScoped || isChitScoped)
+                                            ? 'Manager and Collector / Accountant'
+                                            : (isHmScoped
+                                                ? 'Manager and Receptionist'
+                                                : 'Choose duties and permissions'))],
                                 ].map(([number, title, description]) => (
                                     <div key={number} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                                         <div className="w-7 h-7 rounded-full bg-red-600 text-white text-xs font-semibold flex items-center justify-center">{number}</div>
@@ -1528,13 +1742,19 @@ const PlatformEmployeesPage = ({
                                                     const isCollectorEmployee = employeeHasRole(employee, 'COLLECTOR');
                                                     const isManagerEmployee = employeeHasRole(employee, 'MANAGER');
                                                     const isAccountantEmployee = employeeHasRole(employee, 'ACCOUNTANT');
+                                                    const isReceptionistEmployee = employeeHasRole(employee, 'RECEPTIONIST');
+                                                    const isKitchenStaffEmployee = employeeHasRole(employee, 'KITCHEN_STAFF');
                                                     const canEditThis = isOwner
                                                         || (isCollectorEmployee && canEditCollector)
                                                         || (isAccountantEmployee && canEditAccountant)
+                                                        || (isReceptionistEmployee && canEditReceptionist)
+                                                        || (isKitchenStaffEmployee && canEditKitchenStaff)
                                                         || (isManagerEmployee && canMutateManagers);
                                                     const canDeleteThis = isOwner
                                                         || (isCollectorEmployee && canDeleteCollector)
                                                         || (isAccountantEmployee && canDeleteAccountant)
+                                                        || (isReceptionistEmployee && canDeleteReceptionist)
+                                                        || (isKitchenStaffEmployee && canDeleteKitchenStaff)
                                                         || (isManagerEmployee && canMutateManagers);
                                                     const isActive =
                                                         (employeeProfile.employmentStatus || employeeProfile.employment_status) === 'ACTIVE'
@@ -1756,7 +1976,7 @@ const PlatformEmployeesPage = ({
                                     ]
                                     : [
                                         [1, 'Employee details'],
-                                        [2, (managerMode || isVfScoped || isChitScoped) ? `App (${scopedAppLabel})` : 'App details'],
+                                        [2, (managerMode || isVfScoped || isChitScoped || isHmScoped) ? `App (${scopedAppLabel})` : 'App details'],
                                         [3, managerMode
                                             ? 'Collector / Accountant'
                                             : ((isVfScoped || isChitScoped) ? 'Manager · Collector / Accountant' : 'Roles assign')],
@@ -1874,7 +2094,7 @@ const PlatformEmployeesPage = ({
                                 <section>
                                     <h3 className="font-semibold text-gray-900">App details</h3>
                                     <p className="text-sm text-gray-500 mt-1 mb-4">
-                                        {(managerMode || isVfScoped || isChitScoped)
+                                        {(managerMode || isVfScoped || isChitScoped || isHmScoped)
                                             ? `Application is fixed to the app you are working in (${scopedAppLabel}).`
                                             : 'Choose which applications this employee can access.'}
                                     </p>
@@ -2092,12 +2312,14 @@ const PlatformEmployeesPage = ({
                                                                                 );
                                                                             };
 
-                                                                            // Nest Employee / Collector / Accountant under Administration (Chit + VF).
+                                                                            // Nest Employee / Collector / Accountant / Receptionist under Administration.
                                                                             const adminCategories = appCode === 'CHIT_FUND'
                                                                                 ? CHIT_ADMINISTRATION_CATEGORIES
                                                                                 : (appCode === 'VEHICLE_FINANCE'
                                                                                     ? VF_ADMINISTRATION_CATEGORIES
-                                                                                    : null);
+                                                                                    : (appCode === 'HOSTEL_MANAGEMENT'
+                                                                                        ? HM_ADMINISTRATION_CATEGORIES
+                                                                                        : null));
                                                                             if (adminCategories) {
                                                                                 const adminSet = new Set(adminCategories);
                                                                                 const generalGroups = orderedFeatureGroups.filter(([category]) => !adminSet.has(category));

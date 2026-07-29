@@ -12,6 +12,10 @@ import {
     permissionGrantsFeature,
 } from '../utils/chitPermissionCatalog';
 import { vfPermissionGrantsFeature } from '../utils/vfPermissionCatalog';
+import {
+    HM_MANAGER_DEFAULT_FEATURES,
+    hmPermissionGrantsFeature,
+} from '../utils/hmPermissionCatalog';
 import { useUserContext } from './user_context';
 
 const STORAGE_KEY = 'platform_active_context';
@@ -208,12 +212,13 @@ export const PlatformAccessProvider = ({ children }) => {
         const isVfFeature = key.startsWith('vf_') || key.startsWith('vf.');
         const roleCode = String(activeContext?.roleCode || '').toUpperCase();
         // Owner bypass only for owner/user context — never when acting as Manager/Collector.
-        const staffRoleActive = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT'].includes(roleCode);
+        const staffRoleActive = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF'].includes(roleCode);
         if (session?.isOwner && !staffRoleActive) return true;
 
-        // Fail closed for VF until session/context is known (never grant by default).
+        // Fail closed for VF/HM staff until session/context is known.
+        const isHmFeature = key.startsWith('hm_') || key === 'people_access_manage';
         if (!isAvailable || !hasLoaded) {
-            return isVfFeature ? false : true;
+            return (isVfFeature || (isHmFeature && staffRoleActive)) ? false : true;
         }
         if (!activeContext) {
             return isVfFeature ? false : true;
@@ -293,6 +298,8 @@ export const PlatformAccessProvider = ({ children }) => {
         if (!assignedPermissions.length && !matrixConfigured && activeContext.roleCode === 'MANAGER') {
             if (activeContext.appCode === 'CHIT_FUND') {
                 effectivePermissions = CHIT_MANAGER_DEFAULT_FEATURES;
+            } else if (activeContext.appCode === 'HOSTEL_MANAGEMENT') {
+                effectivePermissions = HM_MANAGER_DEFAULT_FEATURES;
             }
         }
 
@@ -300,6 +307,7 @@ export const PlatformAccessProvider = ({ children }) => {
             requestedKeys.some((requested) => (
                 permissionGrantsFeature(permission, requested)
                 || vfPermissionGrantsFeature(permission, requested)
+                || hmPermissionGrantsFeature(permission, requested)
             ))
         ));
     }, [activeContext, hasLoaded, isAvailable, session]);

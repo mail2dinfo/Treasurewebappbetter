@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../utils/apiConfig';
 import ReceivableReceitPdf from "./PDF/ReceivableReceitPdf";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { FiDownload, FiUser, FiPhone, FiCalendar, FiDollarSign, FiX, FiCheck, FiAlertCircle, FiPrinter } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 import 'react-toastify/dist/ReactToastify.css';
 
 const PayablePaymentModal = ({ isOpen, onClose, payable, fetchPayables }) => {
@@ -147,6 +148,49 @@ const PayablePaymentModal = ({ isOpen, onClose, payable, fetchPayables }) => {
         printWindow.document.write('</body></html>');
         printWindow.document.close();
         printWindow.print();
+    };
+
+    const buildWhatsAppBillUrl = () => {
+        if (!receiptData) return null;
+
+        const digits = String(phone || '').replace(/\D/g, '');
+        const subscriberPhone = digits.length >= 10
+            ? (digits.length === 10 ? `91${digits}` : digits)
+            : '';
+
+        const companyLabel = userCompany?.name ? ` from ${userCompany.name}` : '';
+        const message = [
+            `Payment Receipt${companyLabel}`,
+            '',
+            `Bill No: ${receiptData.billNumber ?? '-'}`,
+            `Subscriber Name: ${receiptData.subscriberName || name || '-'}`,
+            `Payable Date: ${formatDate(payableDate)}`,
+            `Group Name: ${group_name || '-'}`,
+            `Auction Date: ${formatDate(auct_date)}`,
+            `Amount Paid: ${formatCurrency(receiptData.paymentAmount)}`,
+            `Payment Method: ${receiptData.paymentMethod || '-'}`,
+            `Payment Type: ${receiptData.paymentType || '-'}`,
+            '',
+            'Thank you for your payment.',
+        ].join('\n');
+
+        const encoded = encodeURIComponent(message);
+        return subscriberPhone
+            ? `https://api.whatsapp.com/send?phone=${subscriberPhone}&text=${encoded}`
+            : `https://api.whatsapp.com/send?text=${encoded}`;
+    };
+
+    const handleSendBillOnWhatsApp = () => {
+        const url = buildWhatsAppBillUrl();
+        if (!url) {
+            toast.error('Unable to open WhatsApp. Please try again.');
+            return;
+        }
+        if (!String(phone || '').replace(/\D/g, '')) {
+            toast.error('Subscriber phone number is missing.');
+            return;
+        }
+        window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     return (
@@ -332,46 +376,56 @@ const PayablePaymentModal = ({ isOpen, onClose, payable, fetchPayables }) => {
                                 </div>
                             </div>
 
-                            <div className="flex gap-3">
+                            <div className="flex flex-col gap-3">
                                 <button
-                                    onClick={handlePrint}
-                                    className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2"
+                                    type="button"
+                                    onClick={handleSendBillOnWhatsApp}
+                                    className="w-full py-3 px-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors duration-200 flex items-center justify-center gap-2"
                                 >
-                                    <FiPrinter className="w-5 h-5" />
-                                    Print
+                                    <FaWhatsapp className="w-5 h-5" />
+                                    Send Bill to Subscriber
                                 </button>
-                                <PDFDownloadLink
-                                    key={`payable-pdf-${receiptData.billNumber ?? receiptData.paymentId ?? 'new'}`}
-                                    document={
-                                        <ReceivableReceitPdf
-                                            receivableData={{
-                                                ...receiptData,
-                                                billNumber: receiptData.billNumber ?? receiptData.paymentId,
-                                            }}
-                                            companyData={userCompany}
-                                        />
-                                    }
-                                    fileName={`Receipt-${receiptData.billNumber || receiptData.subscriberName}-${Date.now()}.pdf`}
-                                    className="flex-1"
-                                    onClick={() => {
-                                        setIsDownloading(true);
-                                        setTimeout(() => setIsDownloading(false), 3000);
-                                    }}
-                                >
-                                    {({ loading: pdfLoading }) => (
-                                        <button className="w-full py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center justify-center gap-2">
-                                            <FiDownload className="w-5 h-5" />
-                                            {pdfLoading || isDownloading ? "Downloading..." : "Download PDF"}
-                                        </button>
-                                    )}
-                                </PDFDownloadLink>
-                                <button
-                                    onClick={onClose}
-                                    className="flex-1 py-3 px-4 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center gap-2"
-                                >
-                                    <FiCheck className="w-5 h-5" />
-                                    Close
-                                </button>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handlePrint}
+                                        className="flex-1 py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center gap-2"
+                                    >
+                                        <FiPrinter className="w-5 h-5" />
+                                        Print
+                                    </button>
+                                    <PDFDownloadLink
+                                        key={`payable-pdf-${receiptData.billNumber ?? receiptData.paymentId ?? 'new'}`}
+                                        document={
+                                            <ReceivableReceitPdf
+                                                receivableData={{
+                                                    ...receiptData,
+                                                    billNumber: receiptData.billNumber ?? receiptData.paymentId,
+                                                }}
+                                                companyData={userCompany}
+                                            />
+                                        }
+                                        fileName={`Receipt-${receiptData.billNumber || receiptData.subscriberName}-${Date.now()}.pdf`}
+                                        className="flex-1"
+                                        onClick={() => {
+                                            setIsDownloading(true);
+                                            setTimeout(() => setIsDownloading(false), 3000);
+                                        }}
+                                    >
+                                        {({ loading: pdfLoading }) => (
+                                            <button className="w-full py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors duration-200 flex items-center justify-center gap-2">
+                                                <FiDownload className="w-5 h-5" />
+                                                {pdfLoading || isDownloading ? "Downloading..." : "Download PDF"}
+                                            </button>
+                                        )}
+                                    </PDFDownloadLink>
+                                    <button
+                                        onClick={onClose}
+                                        className="flex-1 py-3 px-4 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center gap-2"
+                                    >
+                                        <FiCheck className="w-5 h-5" />
+                                        Close
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ) : (

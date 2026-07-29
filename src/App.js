@@ -29,6 +29,9 @@ import VehicleFinanceCollectorLayout from './components/vehicleFinance/VehicleFi
 import VehicleFinanceCustomerLayout from './components/vehicleFinance/VehicleFinanceCustomerLayout';
 import RentalManagementAdminLayout from './components/rentalManagement/RentalManagementAdminLayout';
 import RentalManagementCustomerLayout from './components/rentalManagement/RentalManagementCustomerLayout';
+import HostelManagementAdminLayout from './components/hostelManagement/HostelManagementAdminLayout';
+import HostelManagementResidentLayout from './components/hostelManagement/HostelManagementResidentLayout';
+import HostelManagementKitchenLayout from './components/hostelManagement/HostelManagementKitchenLayout';
 
 // Legacy layouts for backward compatibility (can be removed later)
 import CollectorLayout from './components/collector/CollectorLayout';
@@ -95,6 +98,11 @@ function App() {
                         {/* Rental Management App Routes */}
                         <Route path="/rental-management/user" component={RentalManagementAdminLayout} />
                         <Route path="/rental-management/customer" component={RentalManagementCustomerLayout} />
+
+                        {/* Hostel Management App Routes */}
+                        <Route path="/hostel-management/user" component={HostelManagementAdminLayout} />
+                        <Route path="/hostel-management/resident" component={HostelManagementResidentLayout} />
+                        <Route path="/hostel-management/kitchen" component={HostelManagementKitchenLayout} />
 
                         {/* Legacy Routes for Backward Compatibility */}
                         <Route path="/customer" render={() => <Redirect to="/chit-fund/subscriber" />} />

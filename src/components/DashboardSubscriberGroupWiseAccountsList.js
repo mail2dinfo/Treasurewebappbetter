@@ -275,6 +275,16 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
         setFilteredItems(filtered);
     }, [subscriberFilter, groupFilter, items]);
 
+    const columnTotals = filteredItems.reduce(
+        (acc, item) => ({
+            total: acc.total + Number(item.receivable_amount || 0),
+            paid: acc.paid + Number(item.received_amount || 0),
+            outstanding: acc.outstanding + Number(item.outstanding_due || 0),
+        }),
+        { total: 0, paid: 0, outstanding: 0 }
+    );
+
+    const formatAmount = (value) => Number(value || 0).toLocaleString('en-IN');
 
     const handleGeneratePDF = () => {
         const formattedData = filteredItems.map(item => ({
@@ -285,6 +295,16 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
             received_amount: item.received_amount,
             outstanding_due: item.outstanding_due
         }));
+        if (formattedData.length > 0) {
+            formattedData.push({
+                subscriber_name: 'Total',
+                group_name: '',
+                phone: '',
+                receivable_amount: columnTotals.total,
+                received_amount: columnTotals.paid,
+                outstanding_due: columnTotals.outstanding,
+            });
+        }
         setPdfData(formattedData);
     };
 
@@ -364,14 +384,14 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
 
             {/* Subscriber list */}
             <div className="subscriber-list">
-                <article className="account-grid-header">
+                <div className="subscriber-groupwise-header-row">
                     <p>Subscriber</p>
                     <p>Group</p>
                     <p>Phone</p>
                     <p>Total</p>
                     <p>Paid</p>
                     <p>Outstanding</p>
-                </article>
+                </div>
 
                 {filteredItems.length > 0 ? (
                     filteredItems.map((item, index) => (
@@ -389,6 +409,17 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
                     ))
                 ) : (
                     <p className="no-results">No matching records found.</p>
+                )}
+
+                {filteredItems.length > 0 && (
+                    <article className="account-grid-row total-row">
+                        <span data-label="Subscriber">Total</span>
+                        <span data-label="Group" />
+                        <span data-label="Phone" />
+                        <span data-label="Total">{formatAmount(columnTotals.total)}</span>
+                        <span data-label="Paid">{formatAmount(columnTotals.paid)}</span>
+                        <span data-label="Outstanding">{formatAmount(columnTotals.outstanding)}</span>
+                    </article>
                 )}
 
             </div>

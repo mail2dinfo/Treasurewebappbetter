@@ -47,6 +47,15 @@ const APP_ROUTES = {
         ACCOUNTANT: '/rental-management/user/dashboard',
         SUBSCRIBER: '/rental-management/customer/dashboard',
     },
+    HOSTEL_MANAGEMENT: {
+        USER: '/hostel-management/user/dashboard',
+        MANAGER: '/hostel-management/user/dashboard',
+        RECEPTIONIST: '/hostel-management/user/dashboard',
+        KITCHEN_STAFF: '/hostel-management/kitchen/food-report',
+        COLLECTOR: '/hostel-management/user/dashboard',
+        ACCOUNTANT: '/hostel-management/user/dashboard',
+        SUBSCRIBER: '/hostel-management/resident/dashboard',
+    },
 };
 
 const CUSTOMER_APP_PATHS = {
@@ -55,6 +64,7 @@ const CUSTOMER_APP_PATHS = {
     VEHICLE_FINANCE: '/vehicle-finance/customer/dashboard',
     PERSONAL_LOAN: '/personal-loan/customer/dashboard',
     RENTAL_MANAGEMENT: '/rental-management/customer/dashboard',
+    HOSTEL_MANAGEMENT: '/hostel-management/resident/dashboard',
 };
 
 const PLATFORM_ACCOUNT_ROLE = {
@@ -62,6 +72,9 @@ const PLATFORM_ACCOUNT_ROLE = {
     manager: 'MANAGER',
     collector: 'COLLECTOR',
     accountant: 'ACCOUNTANT',
+    receptionist: 'RECEPTIONIST',
+    'kitchen staff': 'KITCHEN_STAFF',
+    kitchen_staff: 'KITCHEN_STAFF',
 };
 
 const resolveRoute = (app, role) => (
@@ -85,6 +98,8 @@ const accountNameToRoleCode = (accountName) => {
     if (!key) return null;
     if (PLATFORM_ACCOUNT_ROLE[key]) return PLATFORM_ACCOUNT_ROLE[key];
     // Membership names are sometimes "Chit Collector" / "VF Manager", etc.
+    if (key.includes('kitchen')) return 'KITCHEN_STAFF';
+    if (key.includes('receptionist')) return 'RECEPTIONIST';
     if (key.includes('accountant')) return 'ACCOUNTANT';
     if (key.includes('collector')) return 'COLLECTOR';
     if (key.includes('manager')) return 'MANAGER';
@@ -253,6 +268,20 @@ const AppSelectionPage = () => {
                 </svg>
             ),
             path: '/rental-management/user/dashboard',
+            isActive: true
+        },
+        {
+            id: 7,
+            appCode: 'HOSTEL_MANAGEMENT',
+            name: 'MyTreasure - Hostel Management',
+            description: 'Hostels, rooms, residents, rent dues, food & ledger',
+            icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
+                    <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
+                </svg>
+            ),
+            path: '/hostel-management/user/dashboard',
             isActive: true
         }
     ], []);
@@ -436,7 +465,7 @@ const AppSelectionPage = () => {
             const roles = Array.isArray(app.roles) ? app.roles : [];
             const staffRoles = roles.filter((role) => {
                 const code = String(role.roleCode || '').toUpperCase();
-                return ['USER', 'OWNER', 'MANAGER', 'COLLECTOR', 'ACCOUNTANT'].includes(code);
+                return ['USER', 'OWNER', 'MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF'].includes(code);
             });
 
             if (!staffRoles.length) {

@@ -4,6 +4,8 @@ const ROLE_CODE_LABELS = {
     MANAGER: 'Manager',
     COLLECTOR: 'Collector',
     ACCOUNTANT: 'Accountant',
+    RECEPTIONIST: 'Receptionist',
+    KITCHEN_STAFF: 'Kitchen Staff',
 };
 
 export const formatRoleLabel = (value) => {
@@ -50,6 +52,7 @@ export const getLoggedInRoleLabel = ({
     if (platform?.isOwner) return 'Owner';
 
     const path = String(pathname || '');
+    if (path.includes('/kitchen')) return 'Kitchen Staff';
     if (path.includes('/manager')) return 'Manager';
     if (path.includes('/collector')) return 'Collector';
     if (path.includes('/accountant')) return 'Accountant';

@@ -9,6 +9,7 @@ import {
   FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign,
   FiCreditCard, FiTrendingUp, FiDownload, FiPlus, FiMinus, FiGrid, FiList,
 } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 import { usePlatformAccess } from '../context/platformAccess_context';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -64,6 +65,32 @@ const Payables = () => {
       month: "short",
       year: "numeric",
     });
+  };
+
+  const sendBillOnWhatsApp = (person, payment) => {
+    const digits = String(person?.phone || '').replace(/\D/g, '');
+    if (!digits) {
+      window.alert('Subscriber phone number is missing.');
+      return;
+    }
+    const subscriberPhone = digits.length === 10 ? `91${digits}` : digits;
+    const companyLabel = userCompany?.name ? ` from ${userCompany.name}` : '';
+    const message = [
+      `Payment Receipt${companyLabel}`,
+      '',
+      `Bill No: ${payment.id ?? '-'}`,
+      `Subscriber Name: ${person.name || '-'}`,
+      `Payable Date: ${payment.created_at ? formatDate(payment.created_at) : '-'}`,
+      `Group Name: ${person.group_name || '-'}`,
+      `Auction Date: ${formatDate(person.auct_date)}`,
+      `Amount Paid: ${formatCurrency(payment.payment_amount)}`,
+      `Payment Method: ${payment.payment_method || '-'}`,
+      `Payment Type: ${payment.payment_type || '-'}`,
+      '',
+      'Thank you for your payment.',
+    ].join('\n');
+    const url = `https://api.whatsapp.com/send?phone=${subscriberPhone}&text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const isValidUserImage = (url) => {
@@ -168,7 +195,7 @@ const Payables = () => {
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Billno</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Amount</th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Download</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -180,7 +207,16 @@ const Payables = () => {
                 </td>
                 <td className="px-3 py-2 text-sm text-gray-800">{formatCurrency(payment.payment_amount || 0)}</td>
                 <td className="px-3 py-2">
-                  <PDFDownloadLink
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => sendBillOnWhatsApp(person, payment)}
+                      className="px-2 py-1 bg-green-600 text-white text-xs rounded-md flex items-center gap-1 hover:bg-green-700"
+                    >
+                      <FaWhatsapp className="w-3 h-3" />
+                      Send Bill
+                    </button>
+                    <PDFDownloadLink
                     key={`payable-payment-${payment.id}`}
                     document={
                       <ReceivableReceitPdf
@@ -208,6 +244,7 @@ const Payables = () => {
                       </button>
                     )}
                   </PDFDownloadLink>
+                  </div>
                 </td>
               </tr>
             ))}

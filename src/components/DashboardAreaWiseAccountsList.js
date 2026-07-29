@@ -243,6 +243,17 @@ const DashboardAreaWiseAccountsList = ({ items }) => {
             item.aob.toLowerCase().includes(areaFilter.toLowerCase())
     );
 
+    const columnTotals = filteredItems.reduce(
+        (acc, item) => ({
+            total: acc.total + Number(item.rbtotal || 0),
+            paid: acc.paid + Number(item.rctotal || 0),
+            due: acc.due + Number(item.rbdue || 0),
+        }),
+        { total: 0, paid: 0, due: 0 }
+    );
+
+    const formatAmount = (value) => Number(value || 0).toLocaleString('en-IN');
+
     const handleGeneratePDF = () => {
         const formattedData = filteredItems.map((item) => ({
             aob: item.aob,
@@ -252,6 +263,16 @@ const DashboardAreaWiseAccountsList = ({ items }) => {
             paid: item.rctotal,
             due: item.rbdue,
         }));
+        if (formattedData.length > 0) {
+            formattedData.push({
+                aob: '',
+                name: 'Total',
+                phone: '',
+                total: columnTotals.total,
+                paid: columnTotals.paid,
+                due: columnTotals.due,
+            });
+        }
         setPdfData(formattedData);
     };
 
@@ -360,6 +381,16 @@ const DashboardAreaWiseAccountsList = ({ items }) => {
                     })
                 ) : (
                     <p className="no-results">No matching results found.</p>
+                )}
+                {filteredItems.length > 0 && (
+                    <div className="area-wise-data-row area-wise-total-row">
+                        <p>Total</p>
+                        <p />
+                        <p />
+                        <p>{formatAmount(columnTotals.total)}</p>
+                        <p>{formatAmount(columnTotals.paid)}</p>
+                        <p>{formatAmount(columnTotals.due)}</p>
+                    </div>
                 )}
             </div>
         </div>

@@ -84,6 +84,12 @@
   font-size: 14px;
 }
 
+.subscriber-groupwise-header-row p {
+  color: #fff;
+  margin: 0;
+  font-weight: 600;
+}
+
 /* Table Row */
 .subscriber-groupwise-data-row {
   display: grid;
@@ -105,28 +111,65 @@
   color: #2e7d32;
 }
 
+/* Table grid (subscriber group wise list) */
+.subscriber-groupwise-wrapper .account-grid-header,
+.subscriber-groupwise-wrapper .account-grid-row {
+  display: grid;
+  grid-template-columns: 1.8fr 1.8fr 1.5fr 1fr 1fr 1fr;
+  padding: 10px 12px;
+  font-size: 14px;
+  align-items: center;
+}
+
+.subscriber-groupwise-wrapper .account-grid-header {
+  background-color: #d32f2f;
+  color: #fff;
+  font-weight: 600;
+  border-radius: 6px 6px 0 0;
+  padding: 12px;
+}
+
+.subscriber-groupwise-wrapper .account-grid-header p,
+.subscriber-groupwise-wrapper .account-grid-header span {
+  color: #fff;
+  margin: 0;
+  font-weight: 600;
+}
+
+.subscriber-groupwise-wrapper .account-grid-row {
+  border-bottom: 1px solid #f0f0f0;
+  color: #333;
+  background-color: #fff;
+  border-radius: 0;
+}
+
+.subscriber-groupwise-wrapper .account-grid-row.total-row {
+  font-weight: 700;
+  background-color: #d32f2f;
+  color: #fff;
+  border-top: 2px solid #b71c1c;
+  border-bottom: none;
+  border-radius: 0 0 6px 6px;
+}
+
+.subscriber-groupwise-wrapper .account-grid-row.total-row span {
+  color: #fff;
+  font-weight: 700;
+}
+
 /* List Container */
 .subscriber-groupwise-list {
   display: flex;
   flex-direction: column;
 }
 
-/* Optional Account Grid Row */
-.account-grid-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
-  padding: 10px;
-  background-color: #f7f7f7;
-  border: 1px solid #eee;
-  border-radius: 6px;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
 
   .subscriber-groupwise-header-row,
-  .subscriber-groupwise-data-row {
+  .subscriber-groupwise-data-row,
+  .subscriber-groupwise-wrapper .account-grid-header,
+  .subscriber-groupwise-wrapper .account-grid-row {
     grid-template-columns: repeat(2, 1fr);
     font-size: 13px;
     padding: 10px;
@@ -144,9 +187,5 @@
   .download-btn {
     width: 100%;
     justify-content: center;
-  }
-
-  .account-grid-row {
-    grid-template-columns: 1fr 1fr;
   }
 }
