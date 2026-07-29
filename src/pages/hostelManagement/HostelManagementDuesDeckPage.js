@@ -87,7 +87,8 @@ const BedHistory = ({ bed, stayLabel, onClose, fetchReceivables, hostelId }) => 
           <p className="p-4 text-sm text-gray-400">No billing records found for this resident.</p>
         )}
         {!loading && rows.length > 0 && (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[480px]">
             <thead className="text-left text-[11px] uppercase tracking-wide text-gray-500 bg-gray-50 sticky top-0">
               <tr>
                 <th className="px-3 py-2">Period</th>
@@ -128,6 +129,7 @@ const BedHistory = ({ bed, stayLabel, onClose, fetchReceivables, hostelId }) => 
               </tr>
             </tfoot>
           </table>
+          </div>
         )}
       </div>
     </div>

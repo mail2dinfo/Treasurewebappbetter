@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import { API_BASE_URL } from '../../utils/apiConfig';
+import { API_BASE_URL, readApiResponse } from '../../utils/apiConfig';
 import { useUserContext } from '../user_context';
 
 const PersonalLoanContext = createContext();
@@ -88,6 +88,12 @@ function personalLoanReducer(state, action) {
                         : loan
                 ),
                 isLoading: false
+            };
+        case 'DELETE_LOAN':
+            return {
+                ...state,
+                loans: state.loans.filter((loan) => loan.id !== action.payload),
+                isLoading: false,
             };
         case 'SET_RECEIVABLES':
             return { ...state, receivables: action.payload, isLoading: false };
@@ -527,6 +533,42 @@ export function PersonalLoanProvider({ children }) {
             return { success: false, error: errorMessage };
         }
     }, [user]);
+
+    // Permanently delete a loan with related receivables and payments
+    const deleteLoan = async (loanId) => {
+        try {
+            dispatch({ type: 'SET_LOADING', payload: true });
+            const token = user?.results?.token;
+            if (!token) throw new Error('Authentication token not found');
+
+            const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+            if (!membershipId) throw new Error('Membership ID not found');
+
+            // Pass membership in query as well — some proxies strip DELETE bodies
+            const res = await fetch(
+                `${API_BASE_URL}/pl/loans/${loanId}?parent_membership_id=${encodeURIComponent(membershipId)}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ membershipId }),
+                }
+            );
+
+            const result = await readApiResponse(res);
+            dispatch({ type: 'DELETE_LOAN', payload: loanId });
+            await fetchLoans();
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return { success: true, data: result.results || result.data || result };
+        } catch (error) {
+            const errorMessage = error.message || 'Unknown error occurred';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return { success: false, error: errorMessage };
+        }
+    };
 
     // Disburse new loan
     const disburseLoan = async (loanData) => {
@@ -1026,6 +1068,7 @@ export function PersonalLoanProvider({ children }) {
         fetchLoans,
         disburseLoan,
         getLoanById,
+        deleteLoan,
         forecloseLoan,
         collectPayment,
         fetchReceivablesByLoan,

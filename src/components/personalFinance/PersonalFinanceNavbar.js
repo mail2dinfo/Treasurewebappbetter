@@ -31,7 +31,7 @@ const BillingNavButton = ({ billingPath }) => {
             className={`${navButtonClass} relative`}
         >
             <FiCreditCard className="w-4 h-4 mr-1.5" />
-            <span>Billing</span>
+            <span className="hidden sm:inline">Billing</span>
             {badge.status !== 'unknown' && (
                 <span
                     className={`ml-1 text-xs px-1.5 py-0.5 rounded-full ${

@@ -503,7 +503,8 @@ const HostelManagementResidentsPage = () => {
               : 'Residents'}
           </p>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[960px]">
           <thead className="bg-gray-50 text-left">
             <tr>
               <th className="px-4 py-3">Name</th>
@@ -632,6 +633,7 @@ const HostelManagementResidentsPage = () => {
             })}
           </tbody>
         </table>
+        </div>
         {residents.length === 0 && selectedHostelId && (
           <p className="p-6 text-gray-500">No residents yet for this hostel.</p>
         )}

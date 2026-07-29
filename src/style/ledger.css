@@ -1,9 +1,17 @@
 /* Base Styling */
 .ledger-page {
-  padding: 20px;
+  padding: 12px;
   font-family: sans-serif;
   max-width: 1000px;
   margin: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .ledger-page {
+    padding: 20px;
+  }
 }
 
 h2 {
@@ -215,140 +223,32 @@ h2 {
 .button-group {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 1023px) {
   .button-group {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+    align-items: stretch;
   }
 
-  .add-entry-btn {
+  .button-group .add-entry-btn {
     width: 100%;
   }
-
-  .filter-bar {
-    flex-direction: column;
-    gap: 10px;
-  }
 }
 
-/* Ledger header alone */
-.account-header-section {
-  padding: 1rem;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  max-width: 100%;
-  margin-bottom: 1.5rem;
-  /* 👈 Add this line */
-}
-
-@media (max-width: 768px) {
-  .account-header-top {
-    flex-direction: column;
-    /* ✅ Mobile: stack heading and button */
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .add-entry-btn {
-    width: 100%;
-    /* Full width on mobile */
-  }
-}
-
-
-
-.account-header-top h2 {
-  margin: 0;
-  font-size: 1.25rem;
-  color: #222;
-}
-
-.add-entry-btn {
-  margin-top: 0.5rem;
-  padding: 0.5rem 1rem;
-  background-color: #cd3240;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.add-entry-btn:hover {
-  background-color: #2563eb;
-}
-
-@media (max-width: 768px) {
-  .account-grid-row {
-    display: block;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    padding: 0.75rem;
-    background-color: #fff;
-  }
-
-  .account-grid-row span {
-    display: flex;
-    font-size: 0.95rem;
-    padding: 4px 0;
-  }
-
-  .account-grid-row span::before {
-    content: attr(data-label) " : ";
-    font-weight: 600;
-    width: 140px;
-    /* fixed width for alignment */
-    display: inline-block;
-    color: #444;
-  }
-}
-
-@media (min-width: 768px) {
-  .account-grid-header {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-    font-weight: bold;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid #ccc;
-    color: #444;
-  }
-
-  .account-grid-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
-    border: none;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 0;
-    border-radius: 0;
-    background-color: transparent;
-    padding: 0.5rem 0;
-  }
-
-  .account-grid-row span {
-    padding: 0;
-  }
-}
+/* Account header chrome lives in LedgerHeader.css — do not redefine grids here */
 
 .total-row {
   font-weight: bold;
   background-color: #d32f2f;
-  /* Red background */
   color: #fff;
-  /* White text */
   border-top: 2px solid #b71c1c;
-  /* Optional top border */
   border-radius: 8px;
-  /* Smooth rounded corners */
   overflow: hidden;
-  /* Prevent rounding issues with child spans */
 }
 
 .total-row span {

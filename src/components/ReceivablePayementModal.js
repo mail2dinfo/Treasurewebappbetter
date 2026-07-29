@@ -306,19 +306,19 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-[9999] p-0 sm:p-4">
             <ToastContainer position="top-center" />
-            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-white rounded-t-2xl sm:rounded-xl shadow-2xl max-w-2xl w-full max-h-[92vh] overflow-hidden">
                 {/* Modal Header */}
-                <div className="bg-gradient-to-r from-custom-red to-red-600 px-6 py-4 text-white">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="relative">
+                <div className="bg-gradient-to-r from-custom-red to-red-600 px-4 py-3 sm:px-6 sm:py-4 text-white">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                            <div className="relative flex-shrink-0">
                                 {user_image_from_s3 ? (
                                     <img
                                         src={user_image_from_s3}
                                         alt={name}
-                                        className="w-12 h-12 rounded-full object-cover border-2 border-white/30"
+                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-white/30"
                                         onError={(e) => {
                                             e.target.style.display = 'none';
                                             e.target.nextSibling.style.display = 'flex';
@@ -326,22 +326,22 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                     />
                                 ) : null}
                                 <div
-                                    className={`w-12 h-12 rounded-full border-2 border-white/30 bg-white/20 flex items-center justify-center ${user_image_from_s3 ? 'hidden' : 'flex'}`}
+                                    className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-white/30 bg-white/20 flex items-center justify-center ${user_image_from_s3 ? 'hidden' : 'flex'}`}
                                 >
-                                    <FiUser className="w-6 h-6 text-white" />
+                                    <FiUser className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                                 </div>
                             </div>
-                            <div>
-                                <h2 className="text-xl font-bold">{name}</h2>
-                                <p className="text-red-100 text-sm flex items-center gap-1">
-                                    <FiPhone className="w-3 h-3" />
+                            <div className="min-w-0">
+                                <h2 className="text-base sm:text-xl font-bold truncate">{name}</h2>
+                                <p className="text-red-100 text-xs sm:text-sm flex items-center gap-1 truncate">
+                                    <FiPhone className="w-3 h-3 flex-shrink-0" />
                                     {phone}
                                 </p>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-full transition-colors duration-200"
+                            className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-full transition-colors duration-200 flex-shrink-0"
                         >
                             <FiX className="w-5 h-5" />
                         </button>
@@ -349,7 +349,7 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                 </div>
 
                 {/* Modal Content */}
-                <div className="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+                <div className="p-4 sm:p-6 max-h-[calc(92vh-100px)] overflow-y-auto">
                     {isConfirming && !receiptData ? (
                         /* Confirmation Screen */
                         <div className="space-y-6">

@@ -843,6 +843,7 @@ const ProductsPage = () => {
                   <div className="p-6">
                     {(selectedProduct.monthlyDetails || []).length > 0 ? (
                       <div className="space-y-3 overflow-x-auto">
+                        <div className="min-w-[860px] space-y-3">
                         {/* Header Row */}
                         <div className="grid grid-cols-8 gap-2 md:gap-3 p-4 bg-gradient-to-r from-red-50 to-red-100 rounded-xl font-bold text-sm text-red-800 shadow-sm border border-red-200">
                           <div className="text-center flex items-center justify-center gap-1 cursor-pointer bg-red-600 text-white hover:bg-red-700 rounded px-2 py-1" onClick={handleTenureSort}>
@@ -933,6 +934,7 @@ const ProductsPage = () => {
                             </div>
                           );
                         })}
+                        </div>
                       </div>
                     ) : (
                       <div className="text-center py-8 text-gray-500">

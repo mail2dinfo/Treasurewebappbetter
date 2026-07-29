@@ -27,13 +27,9 @@ const MENU_ICONS = {
     employees: FiUserCheck,
 };
 
-/**
- * App-specific module bar for Vehicle Finance.
- * Shown under the main navbar on /vehicle-finance/{user|manager|collector}/*.
- */
 const VehicleFinanceAppMenuBar = ({ basePath: basePathProp }) => {
     const location = useLocation();
-    const { canAccess, canAccessModule, canAccessAny } = useVfPermission();
+        const { canAccess, canAccessModule, canAccessAny } = useVfPermission();
     const basePath = basePathProp || getVehicleFinanceBasePath(location.pathname);
 
     const items = useMemo(() => {
@@ -79,35 +75,37 @@ const VehicleFinanceAppMenuBar = ({ basePath: basePathProp }) => {
     if (!items.length) return null;
 
     return (
-        <nav
-            className="bg-white border-b border-gray-200 sticky top-14 z-40 shadow-sm"
-            aria-label="Vehicle Finance modules"
-        >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center gap-1 overflow-x-auto py-2 -mx-1 px-1 scrollbar-thin">
-                    {items.map((item) => {
-                        const Icon = MENU_ICONS[item.id] || FiDollarSign;
-                        const active = isItemActive(item);
-                        return (
-                            <NavLink
-                                key={item.id}
-                                to={item.path}
-                                title={item.description || item.label}
-                                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                                    active
-                                        ? 'bg-red-50 text-custom-red border border-red-100'
-                                        : 'text-gray-600 border border-transparent hover:bg-gray-50 hover:text-gray-900'
-                                }`}
-                                aria-current={active ? 'page' : undefined}
-                            >
-                                <Icon className="w-4 h-4 shrink-0" aria-hidden />
-                                <span>{item.label}</span>
-                            </NavLink>
-                        );
-                    })}
+        <>
+            <nav
+                className="hidden lg:block bg-white border-b border-gray-200 sticky top-14 z-40 shadow-sm"
+                aria-label="Vehicle Finance modules"
+            >
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center gap-1 overflow-x-auto py-2 -mx-1 px-1 scrollbar-thin">
+                        {items.map((item) => {
+                            const Icon = MENU_ICONS[item.id] || FiDollarSign;
+                            const active = isItemActive(item);
+                            return (
+                                <NavLink
+                                    key={item.id}
+                                    to={item.path}
+                                    title={item.description || item.label}
+                                    className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                                        active
+                                            ? 'bg-red-50 text-custom-red border border-red-100'
+                                            : 'text-gray-600 border border-transparent hover:bg-gray-50 hover:text-gray-900'
+                                    }`}
+                                    aria-current={active ? 'page' : undefined}
+                                >
+                                    <Icon className="w-4 h-4 shrink-0" aria-hidden />
+                                    <span>{item.label}</span>
+                                </NavLink>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
-        </nav>
+            </nav>
+        </>
     );
 };
 

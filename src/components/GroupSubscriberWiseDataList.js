@@ -102,7 +102,8 @@ const GroupSubscriberWiseDataList = ({ items }) => {
 
     // Table Component - Exact GroupAccountList pattern
     const renderSubscriberWiseTable = () => (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-2 px-2">
+            <div className="min-w-[720px]">
             <div className="bg-custom-red text-white rounded-lg overflow-hidden">
                 <div className="grid grid-cols-5 gap-4 p-4 text-sm font-semibold">
                     <div className="flex items-center gap-1">
@@ -163,6 +164,7 @@ const GroupSubscriberWiseDataList = ({ items }) => {
                         </div>
                     </div>
                 ))}
+            </div>
             </div>
         </div>
     );

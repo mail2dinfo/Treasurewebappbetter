@@ -170,17 +170,17 @@ const Receivable = () => {
           Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
         </p>
         <div className="grid grid-cols-3 gap-2">
-          <div className="text-center p-2 bg-blue-50 rounded-lg">
+          <div className="text-center p-2 bg-blue-50 rounded-lg min-w-0">
             <p className="text-[10px] text-blue-600 font-medium uppercase">Total Due</p>
-            <p className="text-sm font-bold text-blue-800">{formatCurrency(totals.totalDue)}</p>
+            <p className="text-xs sm:text-sm font-bold text-blue-800 break-words">{formatCurrency(totals.totalDue)}</p>
           </div>
-          <div className="text-center p-2 bg-green-50 rounded-lg">
+          <div className="text-center p-2 bg-green-50 rounded-lg min-w-0">
             <p className="text-[10px] text-green-600 font-medium uppercase">Paid</p>
-            <p className="text-sm font-bold text-green-800">{formatCurrency(totals.paid)}</p>
+            <p className="text-xs sm:text-sm font-bold text-green-800 break-words">{formatCurrency(totals.paid)}</p>
           </div>
-          <div className="text-center p-2 bg-red-50 rounded-lg">
+          <div className="text-center p-2 bg-red-50 rounded-lg min-w-0">
             <p className="text-[10px] text-red-600 font-medium uppercase">Balance</p>
-            <p className="text-sm font-bold text-red-800">{formatCurrency(totals.balance)}</p>
+            <p className="text-xs sm:text-sm font-bold text-red-800 break-words">{formatCurrency(totals.balance)}</p>
           </div>
         </div>
       </div>
@@ -221,18 +221,18 @@ const Receivable = () => {
         <p className="text-sm font-semibold text-gray-900 mb-3">
           Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-            <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">Total Due</p>
-            <p className="text-xl font-bold text-blue-800 mt-1">{formatCurrency(totals.totalDue)}</p>
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-2.5 sm:p-4 min-w-0">
+            <p className="text-[10px] sm:text-xs font-medium text-blue-600 uppercase tracking-wide">Total Due</p>
+            <p className="text-sm sm:text-xl font-bold text-blue-800 mt-1 break-words">{formatCurrency(totals.totalDue)}</p>
           </div>
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-            <p className="text-xs font-medium text-green-600 uppercase tracking-wide">Paid</p>
-            <p className="text-xl font-bold text-green-800 mt-1">{formatCurrency(totals.paid)}</p>
+          <div className="rounded-lg border border-green-200 bg-green-50 p-2.5 sm:p-4 min-w-0">
+            <p className="text-[10px] sm:text-xs font-medium text-green-600 uppercase tracking-wide">Paid</p>
+            <p className="text-sm sm:text-xl font-bold text-green-800 mt-1 break-words">{formatCurrency(totals.paid)}</p>
           </div>
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="text-xs font-medium text-red-600 uppercase tracking-wide">Balance</p>
-            <p className="text-xl font-bold text-red-800 mt-1">{formatCurrency(totals.balance)}</p>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 sm:p-4 min-w-0">
+            <p className="text-[10px] sm:text-xs font-medium text-red-600 uppercase tracking-wide">Balance</p>
+            <p className="text-sm sm:text-xl font-bold text-red-800 mt-1 break-words">{formatCurrency(totals.balance)}</p>
           </div>
         </div>
       </div>
@@ -256,9 +256,19 @@ const Receivable = () => {
     };
   };
 
-  const getVisiblePageNumbers = (totalPages) => (
-    Array.from({ length: totalPages }, (_, index) => index + 1)
-  );
+  const getVisiblePageNumbers = (totalPages, current) => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+    const windowSize = 5;
+    let start = Math.max(1, current - Math.floor(windowSize / 2));
+    let end = start + windowSize - 1;
+    if (end > totalPages) {
+      end = totalPages;
+      start = Math.max(1, end - windowSize + 1);
+    }
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  };
 
   const renderViewToggle = () => (
     <div className="inline-flex w-full sm:w-auto rounded-lg border border-gray-300 overflow-hidden bg-white shadow-sm">
@@ -294,12 +304,12 @@ const Receivable = () => {
 
     if (totalItems === 0) return null;
 
-    const pageNumbers = getVisiblePageNumbers(totalPages);
+    const pageNumbers = getVisiblePageNumbers(totalPages, safePage);
 
     return (
-      <div className="mt-4 bg-white rounded-xl shadow-lg border border-gray-200 p-4 md:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-gray-600">
+      <div className="mt-4 bg-white rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 md:p-5">
+        <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm text-gray-600">
             <span>
               Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to{' '}
               <span className="font-semibold text-gray-900">{endIndex}</span> of{' '}
@@ -321,7 +331,7 @@ const Receivable = () => {
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-center sm:justify-end gap-1 overflow-x-auto">
+            <div className="flex items-center justify-center sm:justify-end gap-1 flex-wrap">
               <button
                 type="button"
                 onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
@@ -334,6 +344,21 @@ const Receivable = () => {
               >
                 &lt;
               </button>
+
+              {pageNumbers[0] > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(1)}
+                    className="min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  >
+                    1
+                  </button>
+                  {pageNumbers[0] > 2 && (
+                    <span className="px-1 text-gray-400 text-sm">…</span>
+                  )}
+                </>
+              )}
 
               {pageNumbers.map((pageNum) => (
                 <button
@@ -348,6 +373,21 @@ const Receivable = () => {
                   {pageNum}
                 </button>
               ))}
+
+              {pageNumbers[pageNumbers.length - 1] < totalPages && (
+                <>
+                  {pageNumbers[pageNumbers.length - 1] < totalPages - 1 && (
+                    <span className="px-1 text-gray-400 text-sm">…</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(totalPages)}
+                    className="min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
 
               <button
                 type="button"
@@ -381,13 +421,13 @@ const Receivable = () => {
     } = person;
 
     return (
-      <div key={unique_id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-        <div className="bg-gradient-to-r from-custom-red to-red-600 p-6 text-white">
-          <div className="flex items-center gap-4">
-            {renderUserAvatar(person, { sizeClass: 'w-16 h-16', iconClass: 'w-8 h-8', variant: 'header' })}
+      <div key={unique_id} className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300">
+        <div className="bg-gradient-to-r from-custom-red to-red-600 p-4 sm:p-6 text-white">
+          <div className="flex items-center gap-3 sm:gap-4">
+            {renderUserAvatar(person, { sizeClass: 'w-12 h-12 sm:w-16 sm:h-16', iconClass: 'w-6 h-6 sm:w-8 sm:h-8', variant: 'header' })}
             <div className="flex-1 min-w-0">
-              <h3 className="text-xl font-bold truncate">{name}</h3>
-              <p className="text-red-100 flex items-center gap-2">
+              <h3 className="text-lg sm:text-xl font-bold truncate">{name}</h3>
+              <p className="text-red-100 flex items-center gap-2 text-sm">
                 <FiPhone className="w-4 h-4 flex-shrink-0" />
                 <span className="truncate">{phone}</span>
               </p>
@@ -395,20 +435,20 @@ const Receivable = () => {
           </div>
         </div>
 
-        <div className="p-6">
-          <div className="mb-4 grid grid-cols-2 gap-3">
-            <div className="p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+        <div className="p-4 sm:p-6">
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:gap-3">
+            <div className="p-2.5 sm:p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <FiUser className="w-4 h-4 text-blue-600" />
+                <FiUser className="w-4 h-4 text-blue-600 flex-shrink-0" />
                 <span className="text-xs text-blue-600 font-medium uppercase tracking-wide">Group</span>
               </div>
               <p className="text-sm font-bold text-blue-900 truncate" title={group_name}>
                 {group_name}
               </p>
             </div>
-            <div className="p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+            <div className="p-2.5 sm:p-3 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <FiCalendar className="w-4 h-4 text-purple-600" />
+                <FiCalendar className="w-4 h-4 text-purple-600 flex-shrink-0" />
                 <span className="text-xs text-purple-600 font-medium uppercase tracking-wide">Auction</span>
               </div>
               <p className="text-sm font-bold text-purple-900">
@@ -418,42 +458,47 @@ const Receivable = () => {
           </div>
 
           <div
-            className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:shadow-md hover:border-yellow-300 transition-all duration-200 hover:scale-[1.02]"
+            className="mb-4 p-3 sm:p-4 bg-yellow-50 border border-yellow-200 rounded-lg cursor-pointer hover:shadow-md hover:border-yellow-300 transition-all duration-200"
             onClick={() => handleOpenAdvanceModal(person)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') handleOpenAdvanceModal(person);
+            }}
+            role="button"
+            tabIndex={0}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">💰</span>
-                <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xl sm:text-2xl flex-shrink-0" aria-hidden>💰</span>
+                <div className="min-w-0">
                   <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Advance Balance</p>
-                  <span className="text-xs text-yellow-600">Click for details</span>
+                  <span className="text-xs text-yellow-600">Tap for details</span>
                 </div>
               </div>
-              <p className="text-2xl font-bold text-yellow-900">
+              <p className="text-base sm:text-2xl font-bold text-yellow-900 whitespace-nowrap">
                 {formatCurrency(person?.total_advance_balance || 0)}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <div className="text-xs text-blue-600 font-medium mb-1">Total Due</div>
-              <div className="text-lg font-bold text-blue-700">{formatCurrency(rbtotal)}</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
+            <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg min-w-0">
+              <div className="text-[10px] sm:text-xs text-blue-600 font-medium mb-1">Total Due</div>
+              <div className="text-xs sm:text-lg font-bold text-blue-700 break-words">{formatCurrency(rbtotal)}</div>
             </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <div className="text-xs text-green-600 font-medium mb-1">Paid</div>
-              <div className="text-lg font-bold text-green-700">{formatCurrency(rbpaid)}</div>
+            <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg min-w-0">
+              <div className="text-[10px] sm:text-xs text-green-600 font-medium mb-1">Paid</div>
+              <div className="text-xs sm:text-lg font-bold text-green-700 break-words">{formatCurrency(rbpaid)}</div>
             </div>
-            <div className="text-center p-3 bg-red-50 rounded-lg">
-              <div className="text-xs text-red-600 font-medium mb-1">Balance</div>
-              <div className="text-lg font-bold text-red-700">{formatCurrency(rbdue)}</div>
+            <div className="text-center p-2 sm:p-3 bg-red-50 rounded-lg min-w-0">
+              <div className="text-[10px] sm:text-xs text-red-600 font-medium mb-1">Balance</div>
+              <div className="text-xs sm:text-lg font-bold text-red-700 break-words">{formatCurrency(rbdue)}</div>
             </div>
           </div>
 
           {canPayReceivable && (
             <button
               onClick={() => openPaymentModal(person)}
-              className="w-full py-3 px-4 bg-gradient-to-r from-custom-red to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-gradient-to-r from-custom-red to-red-600 text-white font-semibold rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
             >
               <FiDollarSign className="w-5 h-5" />
               Process Payment
@@ -467,34 +512,42 @@ const Receivable = () => {
   const renderReceivableMobileListCard = (person, index) => (
     <div
       key={getReceivableKey(person, index)}
-      className="bg-white rounded-xl border border-gray-200 shadow-sm p-4"
+      className="bg-white rounded-xl border border-gray-200 shadow-sm p-3.5 sm:p-4"
     >
-      <div className="flex items-center gap-3 mb-3">
-        {renderUserAvatar(person, { sizeClass: 'w-12 h-12', iconClass: 'w-6 h-6' })}
+      <div className="flex items-start gap-3 mb-3">
+        {renderUserAvatar(person, { sizeClass: 'w-11 h-11', iconClass: 'w-5 h-5' })}
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-gray-900 truncate">{person.name}</p>
           <p className="text-sm text-gray-500 truncate">{person.phone}</p>
+          <p className="text-xs text-gray-500 mt-0.5 truncate">
+            {person.group_name} · {formatDate(person.auct_date)}
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 mb-3 text-sm text-gray-700">
-        <div><span className="font-medium">Group:</span> {person.group_name}</div>
-        <div><span className="font-medium">Auction:</span> {formatDate(person.auct_date)}</div>
-        <div><span className="font-medium">Area:</span> {person.aob || person.area || 'N/A'}</div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3 text-xs text-gray-600">
+        <span><span className="font-medium text-gray-700">Area:</span> {person.aob || person.area || 'N/A'}</span>
+        <button
+          type="button"
+          onClick={() => handleOpenAdvanceModal(person)}
+          className="font-semibold text-yellow-700 underline"
+        >
+          Advance: {formatCurrency(person?.total_advance_balance || 0)}
+        </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <div className="text-center p-2 bg-blue-50 rounded-lg">
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-3">
+        <div className="text-center p-2 bg-blue-50 rounded-lg min-w-0">
           <p className="text-[10px] text-blue-600 font-medium">Due</p>
-          <p className="text-sm font-bold text-blue-700">{formatCurrency(person.rbtotal)}</p>
+          <p className="text-[11px] sm:text-sm font-bold text-blue-700 break-words leading-tight">{formatCurrency(person.rbtotal)}</p>
         </div>
-        <div className="text-center p-2 bg-green-50 rounded-lg">
+        <div className="text-center p-2 bg-green-50 rounded-lg min-w-0">
           <p className="text-[10px] text-green-600 font-medium">Paid</p>
-          <p className="text-sm font-bold text-green-700">{formatCurrency(person.rbpaid)}</p>
+          <p className="text-[11px] sm:text-sm font-bold text-green-700 break-words leading-tight">{formatCurrency(person.rbpaid)}</p>
         </div>
-        <div className="text-center p-2 bg-red-50 rounded-lg">
+        <div className="text-center p-2 bg-red-50 rounded-lg min-w-0">
           <p className="text-[10px] text-red-600 font-medium">Balance</p>
-          <p className="text-sm font-bold text-red-700">{formatCurrency(person.rbdue)}</p>
+          <p className="text-[11px] sm:text-sm font-bold text-red-700 break-words leading-tight">{formatCurrency(person.rbdue)}</p>
         </div>
       </div>
 
@@ -502,9 +555,9 @@ const Receivable = () => {
         <button
           type="button"
           onClick={() => openPaymentModal(person)}
-          className="w-full py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+          className="w-full py-2.5 sm:py-3 px-4 bg-custom-red text-white font-semibold rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
         >
-          <FiDollarSign className="w-5 h-5" />
+          <FiDollarSign className="w-4 h-4 sm:w-5 sm:h-5" />
           Process Payment
         </button>
       )}
@@ -669,7 +722,7 @@ const Receivable = () => {
   const isInitialLoad = isLoading && receivables.length === 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 sm:p-3 md:p-4 overflow-x-hidden">
       {isInitialLoad ? (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
@@ -678,40 +731,40 @@ const Receivable = () => {
           </div>
         </div>
       ) : (
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto w-full">
           {/* Header */}
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-8">
-            <div className="bg-gradient-to-r from-custom-red to-red-600 px-8 py-6 rounded-t-xl">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                    <FiCreditCard className="w-8 h-8" />
-                    Receivables Management
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-4 sm:mb-6 md:mb-8 overflow-hidden">
+            <div className="bg-gradient-to-r from-custom-red to-red-600 px-4 py-4 sm:px-6 sm:py-5 md:px-8 md:py-6 rounded-t-xl">
+              <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                    <FiCreditCard className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 flex-shrink-0" />
+                    <span className="truncate">Receivables</span>
                   </h1>
-                  <p className="text-red-100 mt-2">Track and manage outstanding payments</p>
+                  <p className="text-red-100 mt-1 sm:mt-2 text-sm sm:text-base">Track and manage outstanding payments</p>
                 </div>
-                <div className="flex items-center gap-3 self-start sm:self-auto">
+                <div className="flex items-center gap-2 sm:gap-3 self-stretch sm:self-auto">
                   <button
                     type="button"
                     onClick={fetchReceivables}
                     disabled={isLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-yellow-400 text-black rounded-lg hover:bg-yellow-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
                     title="Refresh Receivables"
                   >
                     <FiRefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
-                    <span className="hidden md:inline">Refresh</span>
+                    <span className="hidden sm:inline">Refresh</span>
                   </button>
-                  <div className="bg-white/20 rounded-lg px-4 py-2">
-                    <span className="text-white font-semibold text-lg">{receivables.length}</span>
-                    <p className="text-red-100 text-sm">Total Records</p>
+                  <div className="bg-white/20 rounded-lg px-3 sm:px-4 py-2 text-center ml-auto sm:ml-0">
+                    <span className="text-white font-semibold text-base sm:text-lg">{receivables.length}</span>
+                    <p className="text-red-100 text-xs sm:text-sm">Total Records</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Filters */}
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <div className="p-3 sm:p-4 md:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <FiSearch className="h-5 w-5 text-gray-400" />
@@ -721,7 +774,7 @@ const Receivable = () => {
                     placeholder="Search by group name"
                     value={groupFilter}
                     onChange={(e) => setGroupFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-red focus:border-transparent transition-all duration-200"
+                    className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-red focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                   />
                 </div>
 
@@ -734,7 +787,7 @@ const Receivable = () => {
                     placeholder="Search by subscriber name"
                     value={subscriberFilter}
                     onChange={(e) => setSubscriberFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-red focus:border-transparent transition-all duration-200"
+                    className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-red focus:border-transparent transition-all duration-200 text-sm sm:text-base"
                   />
                 </div>
 
@@ -745,7 +798,7 @@ const Receivable = () => {
                   <select
                     value={areaFilter}
                     onChange={(e) => setAreaFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-red focus:border-transparent transition-all duration-200 appearance-none bg-white"
+                    className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-red focus:border-transparent transition-all duration-200 appearance-none bg-white text-sm sm:text-base"
                   >
                     <option value="">All Areas</option>
                     {[...new Set(aobs.map((item) => item.aob).filter(Boolean))].map((areaName, index) => (
@@ -758,7 +811,7 @@ const Receivable = () => {
 
                 <button
                   onClick={clearFilters}
-                  className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
+                  className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center gap-2 font-medium text-sm sm:text-base"
                 >
                   <FiX className="w-4 h-4" />
                   Clear Filters
@@ -766,7 +819,7 @@ const Receivable = () => {
               </div>
 
               {/* Results Summary */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm text-gray-600">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 text-sm text-gray-600">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <span>Showing {filteredReceivables.length} of {receivables.length} receivables</span>
                   {(groupFilter || subscriberFilter || areaFilter) && (
@@ -860,7 +913,7 @@ const Receivable = () => {
                 return (
                   <>
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-4 mb-4 md:mb-6">
                       <div className="bg-green-50 rounded-lg p-3 md:p-4 text-center border border-green-200">
                         <p className="text-xs md:text-sm text-green-600 font-medium mb-1">Collected</p>
                         <p className="text-base md:text-xl font-bold text-green-700">₹{totalCredit.toLocaleString()}</p>

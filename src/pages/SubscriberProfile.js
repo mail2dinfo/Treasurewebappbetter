@@ -546,9 +546,6 @@ const SubscriberProfile = () => {
     { label: 'Source System', key: 'source_system' },
   ];
 
-  const openModal = (section) => {
-    setVisibleSection(section);
-  };
   // return (
   //   <Container>
   //     <section style={{ textAlign: 'center', marginTop: '2rem' }}>

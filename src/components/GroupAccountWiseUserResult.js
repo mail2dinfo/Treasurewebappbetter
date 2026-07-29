@@ -124,5 +124,22 @@ const Wrapper = styled.article`
   display: flex;
   justify-content: space-between;
 }
+
+@media (max-width: 768px) {
+  .subcriber-header,
+  .subcriber-item {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .subcriber-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .subcriber-data {
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+  }
+}
 `;
 export default GroupAccountWiseUserResult;

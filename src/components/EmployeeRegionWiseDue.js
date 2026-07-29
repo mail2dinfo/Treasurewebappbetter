@@ -132,5 +132,19 @@ const Wrapper = styled.article`
   align-items: center; /* Vertical alignment */
     justify-content: center; /* Horizontal alignment */
 }
+
+@media (max-width: 1023px) {
+  .subcriber-header,
+  .subcriber-item {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    min-width: 0;
+  }
+  .subcriber-header p:first-child,
+  .subcriber-item > *:first-child {
+    grid-column: 1 / -1;
+  }
+}
 `;
 export default EmployeeRegionWiseDue;

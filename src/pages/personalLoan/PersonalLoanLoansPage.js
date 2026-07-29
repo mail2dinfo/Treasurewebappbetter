@@ -268,7 +268,7 @@ const PersonalLoanLoansPage = () => {
                         <h1 className="text-3xl font-bold text-gray-900">Loans Management</h1>
                         <p className="text-gray-600 mt-1">Manage loan disbursements and collections</p>
                     </div>
-                    <div className="mt-4 sm:mt-0 flex items-center gap-3">
+                    <div className="mt-4 sm:mt-0 flex flex-wrap items-center gap-2 sm:gap-3">
                         {activeTab === 'ACTIVE' && activeLoans.length > 0 && (
                             <PDFDownloadLink
                                 document={
@@ -377,7 +377,7 @@ const PersonalLoanLoansPage = () => {
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
+                            <table className="min-w-[960px] divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -607,7 +607,7 @@ const PersonalLoanLoansPage = () => {
                         <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
                             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                                 <h2 className="text-2xl font-bold text-gray-900">Loan Details</h2>
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -1014,7 +1014,7 @@ const PersonalLoanLoansPage = () => {
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
                             <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                     <div className="w-11 h-11 bg-amber-100 rounded-full flex items-center justify-center">
                                         <FiUpload className="w-5 h-5 text-amber-700" />
                                     </div>

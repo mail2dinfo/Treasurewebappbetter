@@ -75,7 +75,7 @@ const CollectorHeader = () => {
                             className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium hover:bg-red-700"
                         >
                             <FiLogOut className="h-4 w-4" />
-                            <span>Logout</span>
+                            <span className="hidden sm:inline">Logout</span>
                         </button>
                     </div>
                 </div>

@@ -446,7 +446,7 @@ const VehicleFinanceEmployeesPage = () => {
                             ];
                             return (
                                 <>
-                                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-5">
                                         {metrics.map(metric => (
                                             <div key={metric.label} className="rounded-lg border p-3">
                                                 <p className="text-xs text-gray-500">{metric.label}</p>

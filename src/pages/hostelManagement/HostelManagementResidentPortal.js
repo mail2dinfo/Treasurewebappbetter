@@ -166,7 +166,7 @@ const HostelManagementResidentPortal = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-sm">
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-xs text-gray-500">Floor</p>
             <p className="font-semibold text-gray-900">{stay.floor_name || resident.floor_name || 'Not assigned'}</p>
@@ -200,7 +200,7 @@ const HostelManagementResidentPortal = () => {
             : ' · charged as needed')}
         </p>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-green-50 border border-green-100 rounded-lg p-3">
             <p className="text-xs text-green-700">Total paid</p>
             <p className="text-xl font-bold text-green-800">{rs(paymentSummary.totalPaid)}</p>

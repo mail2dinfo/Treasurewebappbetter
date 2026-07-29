@@ -315,11 +315,23 @@
   border: 1px solid #e0e0e0;
   padding: 0.8rem 1rem;
   display: flex;
-  /* Keep card structure */
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
   transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .group-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .group-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
 }
 
 .group-details-grid {

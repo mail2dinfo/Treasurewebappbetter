@@ -258,10 +258,10 @@
 
 
 /* Responsive */
-@media (max-width: 600px) {
+@media (max-width: 1023px) {
     .employee-header {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
         gap: 1rem;
     }
 
@@ -270,7 +270,7 @@
     }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 1023px) {
 
     .employee-list,
     .employee-list thead,
@@ -301,22 +301,26 @@
     }
 
     .employee-list td {
-        text-align: right;
-        padding-left: 50%;
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        padding-left: 0.75rem;
         position: relative;
         border: none;
         background-color: transparent;
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        word-break: break-word;
     }
 
     .employee-list td::before {
         content: attr(data-label);
-        position: absolute;
-        left: 1rem;
-        top: 0.6rem;
+        position: static;
         font-weight: bold;
         text-align: left;
-        white-space: nowrap;
+        white-space: normal;
         color: #4b5563;
+        font-size: 0.75rem;
     }
 
     .employee-actions {

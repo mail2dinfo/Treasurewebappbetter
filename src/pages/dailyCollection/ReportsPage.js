@@ -458,7 +458,7 @@ const ReportsPage = () => {
                         <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
                         <p className="text-gray-600 mt-1">Generate and export detailed reports</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                         <button
                             onClick={() => setShowFilters(!showFilters)}
                             className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
@@ -604,15 +604,15 @@ const ReportCard = ({ report, onGenerate, isLoading }) => {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between mb-4">
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClasses[report.color]}`}>
+        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="flex items-start justify-between gap-3 mb-3">
+                <div className={`w-12 h-12 rounded-lg flex-shrink-0 flex items-center justify-center ${colorClasses[report.color]}`}>
                     <report.icon className="w-6 h-6" />
                 </div>
                 <button
                     onClick={onGenerate}
                     disabled={isLoading}
-                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    className="bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white px-3 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-1.5 text-sm whitespace-nowrap"
                 >
                     {isLoading ? (
                         <FiRefreshCw className="w-4 h-4 animate-spin" />
@@ -622,7 +622,7 @@ const ReportCard = ({ report, onGenerate, isLoading }) => {
                     Generate
                 </button>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{report.title}</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">{report.title}</h3>
             <p className="text-gray-600 text-sm">{report.description}</p>
         </div>
     );
@@ -894,9 +894,9 @@ const ReportItem = ({ report, onView, onExport, companies, user }) => {
     };
 
     return (
-        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex-shrink-0 flex items-center justify-center">
                     <FiFileText className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
@@ -906,7 +906,7 @@ const ReportItem = ({ report, onView, onExport, companies, user }) => {
                     </p>
                 </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                 <button
                     onClick={() => onView(report)}
                     className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"

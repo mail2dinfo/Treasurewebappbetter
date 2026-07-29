@@ -395,7 +395,7 @@ const PersonalLoanLoanCollectionForm = ({ loan, onClose, onSuccess }) => {
                                     {' '}(principal + interest due).
                                 </li>
                             </ul>
-                            <div className="grid grid-cols-3 gap-2 pt-1">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                                 <div className="rounded-lg bg-white/80 p-2">
                                     <p className="text-xs text-gray-500">Interest due</p>
                                     <p className="font-bold text-orange-700">{formatCurrency(bulletSummary.interestDue)}</p>

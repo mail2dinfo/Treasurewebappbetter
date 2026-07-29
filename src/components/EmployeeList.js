@@ -123,31 +123,28 @@ const EmployeeList = ({ items, removeItem, editItem, toggleList }) => {
                     return (
 
 
-                        <article className='employer-item' key={id}>
+                        <article className='employer-item' key={id} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
                             {signedUrls[user_image] ? (
-                                // Render image using the signed URL
                                 <img src={signedUrls[user_image]} alt={name} />
                             ) : (
-                                // Render a default image or handle other cases as needed
                                 <img src="default-image.jpg" alt={name} />
                             )}
-                            <p className='title' style={{ minWidth: "180px" }}>{name}</p>
-                            <p className='title' style={{ minWidth: "180px" }}>{role}</p>
-                            <p className='title' style={{ minWidth: "120px" }}>{phone}</p>
+                            <p className='title' style={{ flex: '1 1 140px', minWidth: 0 }}>{name}</p>
+                            <p className='title' style={{ flex: '1 1 100px', minWidth: 0 }}>{role}</p>
+                            <p className='title' style={{ flex: '1 1 100px', minWidth: 0 }}>{phone}</p>
 
-                            <div className='btn-container' style={{ display: "flex" }}>
+                            <div className='btn-container' style={{ display: "flex", flexWrap: 'wrap', gap: '8px' }}>
                                 <button
                                     type='button'
-                                    className='view-btn' // Add a class for styling
-                                    onClick={() => handleViewEmployee(item)} // Call handleViewEmployee with the full item
-                                    style={{ width: "60px", marginRight: "12px" }} >
+                                    className='view-btn'
+                                    onClick={() => handleViewEmployee(item)}
+                                    style={{ width: "60px" }} >
                                     View
                                 </button>
                                 <button
                                     type='button'
                                     className='edit-btn'
                                     onClick={() => editItem(user_image)}
-                                    style={{ marginRight: "12px" }}
                                 >
                                     <FaEdit />
                                 </button>

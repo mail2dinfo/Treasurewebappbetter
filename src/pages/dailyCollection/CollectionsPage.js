@@ -345,7 +345,7 @@ const CollectionsPage = () => {
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Collections</h1>
                         <p className="text-sm text-gray-600 mt-1">Manage loan collections and payments</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         {filteredReceivables.length > 0 && companies.length > 0 && (
                             <PDFDownloadLink
                                 document={
@@ -497,8 +497,8 @@ const CollectionsPage = () => {
                             )}
                         </div>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full min-w-[900px]">
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Subscriber</th>
@@ -654,6 +654,83 @@ const CollectionsPage = () => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile cards */}
+                    <div className="md:hidden p-4 space-y-3">
+                        {isLoading && (
+                            <p className="text-center text-gray-500 py-8">Loading receivables...</p>
+                        )}
+                        {!isLoading && error && (
+                            <p className="text-center text-red-500 py-8">Error: {error}</p>
+                        )}
+                        {!isLoading && !error && filteredReceivables.length === 0 && (
+                            <p className="text-center text-gray-500 py-8">No receivables found</p>
+                        )}
+                        {!isLoading && !error && filteredReceivables.map((receivable) => {
+                            const status = getStatusBadge(receivable);
+                            const loanId = receivable.loan_id || receivable.loan?.id;
+                            const progress = getLoanProgress(loanId);
+                            const name = receivable.subscriber?.name || receivable.subscriber?.firstname || receivable.subscriber?.dc_cust_name || 'N/A';
+                            const phone = receivable.subscriber?.phone || receivable.subscriber?.dc_cust_phone || '';
+                            return (
+                                <div key={receivable.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-gray-900 truncate">{name}</p>
+                                            <p className="text-xs text-gray-500">{phone}</p>
+                                        </div>
+                                        <span className={`shrink-0 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${status.color}`}>
+                                            {status.text}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-700 mb-1">{receivable.product?.product_name || 'N/A'}</p>
+                                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                                        <div>
+                                            <p className="text-xs text-gray-500">Amount</p>
+                                            <p className="font-semibold">{formatAmount(receivable.due_amount || receivable.amount)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-gray-500">Due</p>
+                                            <p>{receivable.due_date ? new Date(receivable.due_date).toLocaleDateString('en-GB') : 'N/A'}</p>
+                                        </div>
+                                        {progress.total > 0 && (
+                                            <div className="col-span-2">
+                                                <p className="text-xs text-gray-500">Progress</p>
+                                                <p>{progress.paid} / {progress.total} receivables</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleNavigate(receivable)}
+                                            className="flex-1 min-w-[7rem] text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg text-sm font-medium"
+                                        >
+                                            Route
+                                        </button>
+                                        {!receivable.is_paid && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedReceivable(receivable);
+                                                    setPaymentForm({
+                                                        amount: receivable.due_amount || receivable.amount || 0,
+                                                        paymentMethod: '',
+                                                        paymentDate: new Date().toISOString().split('T')[0],
+                                                        notes: ''
+                                                    });
+                                                    setShowPaymentModal(true);
+                                                }}
+                                                className="flex-1 min-w-[7rem] bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium"
+                                            >
+                                                Collect
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 

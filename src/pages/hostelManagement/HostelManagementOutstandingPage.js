@@ -148,7 +148,7 @@ const HostelManagementOutstandingPage = () => {
       </div>
 
       {summary && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: 'Rows', value: summary.count },
             { label: 'Total', value: `₹${Number(summary.total_due || 0).toLocaleString('en-IN')}` },
@@ -164,7 +164,7 @@ const HostelManagementOutstandingPage = () => {
       )}
 
       <div className="bg-white border rounded-xl overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm min-w-[720px]">
           <thead className="bg-gray-50 text-left">
             <tr>
               <th className="px-3 py-3">Month</th>
@@ -180,7 +180,6 @@ const HostelManagementOutstandingPage = () => {
           </thead>
           <tbody>
             {rows.map((r) => {
-              const roomLabel = [r.floor_name, r.room_number, r.bed_label].filter(Boolean).join(' / ');
               const receiptDoc = (
                 <HostelReceiptPDF
                   {...buildHostelBillProps({

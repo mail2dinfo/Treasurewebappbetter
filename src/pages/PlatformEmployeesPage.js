@@ -1689,7 +1689,7 @@ const PlatformEmployeesPage = ({
                     </div>
                 ) : (
                     <div>
-                        <div className="mb-3 py-2 border-b border-gray-200 flex items-center justify-between gap-3">
+                        <div className="mb-3 py-2 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center">
                                     <FiUsers className={`w-4 h-4 ${brandRed}`} />
@@ -1991,7 +1991,7 @@ const PlatformEmployeesPage = ({
                         </div>
 
                         <div className="px-5 sm:px-7 py-4 border-b border-gray-100">
-                            <div className={`grid gap-2 ${skipAppStep ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                            <div className={`grid gap-2 ${skipAppStep ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3'}`}>
                                 {(skipAppStep
                                     ? [
                                         [1, 'Employee details'],

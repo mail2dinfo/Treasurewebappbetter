@@ -2,20 +2,26 @@ main {
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
+    padding: 1rem;
 }
 
 .areacontainer {
-    width: 50vw;
+    width: 100%;
     margin: 1rem 0;
-    max-width: var(--fixed-width);
+    max-width: var(--fixed-width, 640px);
     background: var(--clr-white);
     border-radius: var(--radius);
-    padding: 2rem 2rem;
+    padding: 1.25rem;
     box-shadow: var(--dark-shadow);
     overflow-y: auto;
+    box-sizing: border-box;
+}
 
-    /* Add vertical scroll */
+@media (min-width: 768px) {
+    .areacontainer {
+        padding: 2rem;
+    }
 }
 
 .areacontainer h3 {
@@ -26,19 +32,32 @@ main {
 
 .areaperson {
     display: grid;
-    grid-template-columns: auto 2fr 1fr;
+    grid-template-columns: auto 1fr;
     column-gap: 0.75rem;
     margin-bottom: 2rem;
     margin-top: 2rem;
     align-items: center;
 }
 
+@media (min-width: 480px) {
+    .areaperson {
+        grid-template-columns: auto 2fr 1fr;
+    }
+}
+
 .areaperson img {
-    width: 75px;
-    height: 75px;
+    width: 56px;
+    height: 56px;
     object-fit: cover;
     border-radius: 50%;
     box-shadow: var(--light-shadow);
+}
+
+@media (min-width: 480px) {
+    .areaperson img {
+        width: 75px;
+        height: 75px;
+    }
 }
 
 .areaperson h4 {

@@ -7,6 +7,7 @@ export const PL_APP_MENU_IDS = [
     'ledger',
     'collections',
     'reports',
+    'adminsettings',
 ];
 
 export const getPersonalLoanMenuItems = (basePath = PL_BASE_PATH) => [
@@ -51,6 +52,13 @@ export const getPersonalLoanMenuItems = (basePath = PL_BASE_PATH) => [
         path: `${basePath}/reports`,
         icon: '📈',
         description: 'Business reports',
+    },
+    {
+        id: 'adminsettings',
+        label: 'Admin Settings',
+        path: `${basePath}/adminsettings`,
+        icon: '⚙️',
+        description: 'Manage loans and admin tools',
     },
     {
         id: 'billing',

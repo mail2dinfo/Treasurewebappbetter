@@ -5,22 +5,23 @@
   margin-bottom: 16px;
   align-items: flex-end;
   justify-content: flex-start;
+  width: 100%;
 }
 
 .filter-item {
   display: flex;
   flex-direction: column;
-  width: 180px;
-  min-width: 180px;
-  max-width: 180px;
+  flex: 1 1 160px;
+  min-width: 140px;
+  max-width: 220px;
 }
 
 .filter-item label {
   margin-bottom: 4px;
   font-weight: 500;
+  font-size: 0.85rem;
 }
 
-/* Normalize all inputs and selects */
 .filter-item input,
 .filter-item select {
   padding: 6px 10px;
@@ -29,37 +30,23 @@
   width: 100%;
   box-sizing: border-box;
   font-size: 14px;
-
-  /* Set consistent height and line-height */
   height: 38px;
   line-height: 1.2;
-  vertical-align: middle;
-
-  /* Remove default appearance on select for consistency */
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
   background-color: white;
 }
 
-/* Add a little padding to the select for dropdown arrow */
 .filter-item select {
   padding-right: 30px;
   background-image:
-    url("data:image/svg+xml;charset=US-ASCII,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='gray'%3e%3cpath d='M4 6l4 4 4-4z'/%3e%3c/svg%3e");
+    url("data:image/svg+xml;charset=US-ASCII,%3csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill=gray%3e%3cpath d='M4 6l4 4 4-4z'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 12px;
 }
 
-/* Fix for select in Firefox */
-@-moz-document url-prefix() {
-  .filter-item select {
-    padding-right: 10px;
-  }
-}
-
-/* Clear button styling to align with inputs */
 .clear-button {
   padding: 8px 14px;
   border: 1px solid #ccc;
@@ -75,22 +62,29 @@
   justify-content: center;
 }
 
-/* Responsive behavior for mobile */
-@media (max-width: 600px) {
+@media (max-width: 1023px) {
   .filter-bar {
-    flex-direction: column;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: end;
   }
 
   .filter-item {
     width: 100%;
-    min-width: unset;
-    max-width: unset;
+    min-width: 0;
+    max-width: none;
+    flex: none;
   }
 
   .clear-button {
+    grid-column: 1 / -1;
     width: 100%;
     align-self: stretch;
-    margin-top: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .filter-bar {
+    grid-template-columns: 1fr;
   }
 }

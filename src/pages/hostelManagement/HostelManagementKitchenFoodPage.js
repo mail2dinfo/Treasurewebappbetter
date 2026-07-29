@@ -9,6 +9,7 @@ import FinanceHubNavButton from '../../components/FinanceHubNavButton';
 import { getLoggedInRoleLabel } from '../../utils/roleLabels';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { downloadImage } from '../../utils/downloadImage';
+import { AppNavbarBurgerButton } from '../../components/AppMobileSidebar';
 
 const ALL_HOSTELS = 'ALL';
 
@@ -133,7 +134,7 @@ const HostelManagementKitchenFoodPage = () => {
                 <p className="text-sm font-semibold text-gray-800 mb-2">
                   {day.weekday} · {day.meal_date}
                 </p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <MealBlock label="Breakfast" count={day.breakfast?.count} />
                   <MealBlock label="Lunch" count={day.lunch?.count} />
                   <MealBlock label="Dinner" count={day.dinner?.count} />
@@ -209,6 +210,14 @@ const KitchenNavbar = () => {
   const platform = usePlatformAccess();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('https://i.imgur.com/ndu6pfe.png');
+  const kitchenBrandTo = '/hostel-management/kitchen/food-report';
+  const kitchenItems = KITCHEN_LINKS.map((item) => ({
+    id: item.to,
+    label: item.label,
+    path: item.to,
+    Icon: item.icon,
+  }));
+  const kitchenIcons = Object.fromEntries(kitchenItems.map((i) => [i.id, i.Icon]));
 
   const displayName = capitalizeName(
     user?.results?.firstname || user?.results?.userDetail?.userName || user?.results?.name || 'User'
@@ -219,6 +228,11 @@ const KitchenNavbar = () => {
     userAccounts: user?.results?.userAccounts,
     pathname: location.pathname,
   });
+
+  const handleLogout = () => {
+    logout();
+    history.push('/login');
+  };
 
   useEffect(() => {
     const fetchImage = async () => {
@@ -247,13 +261,15 @@ const KitchenNavbar = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14">
             <MyTreasureBrand
-              to="/hostel-management/kitchen/food-report"
+              to={kitchenBrandTo}
               subtitle="Hostel · Kitchen"
               inverse
             />
-            <div className="flex items-center space-x-2 sm:space-x-3">
+
+            {/* Desktop nav actions */}
+            <div className="hidden lg:flex items-center space-x-2 sm:space-x-3">
               <FinanceHubNavButton className="flex items-center px-3 py-1.5 text-sm font-medium text-white hover:text-red-100 hover:bg-white/10 rounded-lg transition-colors" />
-              <div className="hidden sm:block text-right px-2 border-l border-white/30">
+              <div className="text-right px-2 border-l border-white/30">
                 <p className="text-sm font-semibold text-white truncate max-w-[10rem]">Hi {displayName}</p>
                 <p className="text-xs text-red-100">Logged in as {roleLabel}</p>
               </div>
@@ -263,6 +279,7 @@ const KitchenNavbar = () => {
                   onClick={() => setIsTooltipVisible(!isTooltipVisible)}
                   onBlur={() => setTimeout(() => setIsTooltipVisible(false), 150)}
                   className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/50 hover:border-white transition-colors"
+                  aria-label={`${displayName}, ${roleLabel}`}
                 >
                   <img
                     src={previewUrl}
@@ -282,10 +299,7 @@ const KitchenNavbar = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => {
-                        logout();
-                        history.push('/login');
-                      }}
+                      onClick={handleLogout}
                       className="w-full px-4 py-2 text-left text-sm text-red-700 hover:bg-red-50 flex items-center"
                     >
                       <FiLogOut className="w-4 h-4 mr-2" />
@@ -295,10 +309,57 @@ const KitchenNavbar = () => {
                 )}
               </div>
             </div>
+
+            {/* Mobile: avatar + burger (like Chit Fund) */}
+            <div className="flex lg:hidden items-center gap-2">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsTooltipVisible(!isTooltipVisible)}
+                  onBlur={() => setTimeout(() => setIsTooltipVisible(false), 150)}
+                  className="w-9 h-9 rounded-full overflow-hidden border-2 border-white/50"
+                  aria-label={`${displayName}, ${roleLabel}`}
+                >
+                  <img
+                    src={previewUrl}
+                    alt={displayName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://i.imgur.com/ndu6pfe.png';
+                    }}
+                  />
+                </button>
+                {isTooltipVisible && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-semibold text-gray-900">Hi {displayName}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Logged in as {roleLabel}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2 text-left text-sm text-red-700 hover:bg-red-50 flex items-center"
+                    >
+                      <FiLogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+              <AppNavbarBurgerButton
+                brandTo={kitchenBrandTo}
+                brandSubtitle="Hostel · Kitchen"
+                items={kitchenItems}
+                isItemActive={(item) => location.pathname.startsWith(item.path)}
+                icons={kitchenIcons}
+                DefaultIcon={FiCoffee}
+              />
+            </div>
           </div>
         </div>
       </header>
-      <nav className="bg-white border-b border-gray-200 shadow-sm" aria-label="Kitchen modules">
+      <nav className="hidden lg:block bg-white border-b border-gray-200 shadow-sm" aria-label="Kitchen modules">
         <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto py-2">
           {KITCHEN_LINKS.map((item) => {
             const Icon = item.icon;

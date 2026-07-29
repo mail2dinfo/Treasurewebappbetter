@@ -36,9 +36,9 @@ const MENU_ICONS = {
 
 const HostelManagementAppMenuBar = ({ basePath = HM_BASE_PATH }) => {
   const location = useLocation();
-  const { nav, isOwner } = useHmPermission();
+    const { nav, isOwner } = useHmPermission();
   const items = getHostelManagementMenuItems(basePath).filter((item) => {
-    if (item.id === 'billing') return false; // billing lives in top nav
+    if (item.id === 'billing') return false;
     if (!item.navKey) return isOwner;
     return Boolean(nav[item.navKey]);
   });
@@ -57,31 +57,33 @@ const HostelManagementAppMenuBar = ({ basePath = HM_BASE_PATH }) => {
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-14 z-40 shadow-sm" aria-label="Hostel Management modules">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-1 overflow-x-auto py-2 -mx-1 px-1">
-          {items.map((item) => {
-            const Icon = MENU_ICONS[item.id] || FiHome;
-            const active = isItemActive(item);
-            return (
-              <NavLink
-                key={item.id}
-                to={item.path}
-                title={item.label}
-                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-red-50 text-red-800 border border-red-100'
-                    : 'text-gray-600 border border-transparent hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span>{item.label}</span>
-              </NavLink>
-            );
-          })}
+    <>
+      <nav className="hidden lg:block bg-white border-b border-gray-200 sticky top-14 z-40 shadow-sm" aria-label="Hostel Management modules">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-1 overflow-x-auto py-2 -mx-1 px-1">
+            {items.map((item) => {
+              const Icon = MENU_ICONS[item.id] || FiHome;
+              const active = isItemActive(item);
+              return (
+                <NavLink
+                  key={item.id}
+                  to={item.path}
+                  title={item.label}
+                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? 'bg-red-50 text-red-800 border border-red-100'
+                      : 'text-gray-600 border border-transparent hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 };
 

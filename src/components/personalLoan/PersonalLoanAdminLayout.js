@@ -20,6 +20,7 @@ import PersonalLoanLoansPage from '../../pages/personalLoan/PersonalLoanLoansPag
 import PersonalLoanLedgerPage from '../../pages/personalLoan/PersonalLoanLedgerPage';
 import PersonalLoanCollectionsPage from '../../pages/personalLoan/PersonalLoanCollectionsPage';
 import PersonalLoanReportsPage from '../../pages/personalLoan/PersonalLoanReportsPage';
+import PersonalLoanAdminSettingsPage from '../../pages/personalLoan/PersonalLoanAdminSettingsPage';
 import MyBillingPage from '../../pages/MyBillingPage';
 import BillingAppGuards from '../BillingAppGuards';
 import PrivateRoute from '../../pages/PrivateRoute';
@@ -49,6 +50,7 @@ const PersonalLoanAdminLayout = () => {
                             <PrivateRoute exact path="/personal-loan/user/ledger" component={PersonalLoanLedgerPage} />
                             <PrivateRoute exact path="/personal-loan/user/collections" component={PersonalLoanCollectionsPage} />
                             <PrivateRoute exact path="/personal-loan/user/reports" component={PersonalLoanReportsPage} />
+                            <PrivateRoute exact path="/personal-loan/user/adminsettings" component={PersonalLoanAdminSettingsPage} />
                             <PrivateRoute exact path="/personal-loan/user/billing" component={MyBillingPage} />
 
                             {/* Default redirect to dashboard */}

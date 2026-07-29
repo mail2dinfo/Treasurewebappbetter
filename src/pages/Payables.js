@@ -263,7 +263,7 @@ const Payables = () => {
         <p className="text-sm font-semibold text-gray-900 mb-3">
           Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
         </p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <div className="text-center p-2 bg-blue-50 rounded-lg">
             <p className="text-[10px] text-blue-600 font-medium uppercase">Total Due</p>
             <p className="text-sm font-bold text-blue-800">{formatCurrency(totals.totalDue)}</p>
@@ -491,7 +491,7 @@ const Payables = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             <div className="text-center p-3 bg-blue-50 rounded-lg">
               <div className="text-xs text-blue-600 font-medium mb-1">Total</div>
               <div className="text-lg font-bold text-blue-700">{formatCurrency(pytotal || 0)}</div>
@@ -563,7 +563,7 @@ const Payables = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-2 mb-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
           <div className="text-center p-2 bg-blue-50 rounded-lg">
             <p className="text-[10px] text-blue-600 font-medium">Total</p>
             <p className="text-sm font-bold text-blue-700">{formatCurrency(person.pytotal || 0)}</p>

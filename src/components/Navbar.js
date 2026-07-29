@@ -71,7 +71,7 @@ const Nav = () => {
                         }`}></span>
                     )}
                   </div>
-                  <span>Billing</span>
+                  <span className="hidden sm:inline">Billing</span>
                   {billingBadge.status !== 'unknown' && (
                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${billingBadge.color === 'red' ? 'bg-red-100 text-red-800' :
                       billingBadge.color === 'blue' ? 'bg-blue-100 text-blue-800' :

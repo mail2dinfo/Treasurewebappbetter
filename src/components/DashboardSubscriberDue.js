@@ -125,5 +125,18 @@ const Wrapper = styled.article`
   align-items: center; /* Vertical alignment */
     justify-content: center; /* Horizontal alignment */
 }
+
+@media (max-width: 768px) {
+  .subcriber-header,
+  .subcriber-item {
+    flex-wrap: wrap;
+    gap: 8px;
+    overflow-x: auto;
+  }
+  .subcriber-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 `;
 export default DashboardSubscriberDue;

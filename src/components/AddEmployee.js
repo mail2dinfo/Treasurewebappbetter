@@ -206,6 +206,7 @@ const AddEmployee = () => {
             {isLoading ? (
                 <img src={loadingImage} alt="Loading..." />
             ) : (
+                <div className="overflow-x-auto">
                 <table className="employee-list">
                     <thead>
                         <tr>
@@ -255,6 +256,7 @@ const AddEmployee = () => {
                     </tbody>
 
                 </table>
+                </div>
             )}
             {isDialogOpen && (
                 <div className="employee-modal-overlay">
