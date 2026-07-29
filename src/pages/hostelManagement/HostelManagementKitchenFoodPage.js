@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useHistory, useLocation, NavLink } from 'react-router-dom';
 import { FiLogOut, FiCoffee, FiClipboard } from 'react-icons/fi';
 import { useUserContext } from '../../context/user_context';
@@ -7,6 +7,10 @@ import { useHostelManagement } from '../../context/hostelManagement/HostelManage
 import MyTreasureBrand from '../../components/MyTreasureBrand';
 import FinanceHubNavButton from '../../components/FinanceHubNavButton';
 import { getLoggedInRoleLabel } from '../../utils/roleLabels';
+import { API_BASE_URL } from '../../utils/apiConfig';
+import { downloadImage } from '../../utils/downloadImage';
+
+const ALL_HOSTELS = 'ALL';
 
 const toDate = (d) => d.toISOString().slice(0, 10);
 
@@ -31,6 +35,7 @@ const MealBlock = ({ label, count }) => (
 const HostelManagementKitchenFoodPage = () => {
   const { membershipId, orgFoodReport, fetchOrgFoodReport } = useHostelManagement();
   const [startDate, setStartDate] = useState(() => toDate(mondayOfWeek()));
+  const [hostelFilter, setHostelFilter] = useState(ALL_HOSTELS);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -49,9 +54,36 @@ const HostelManagementKitchenFoodPage = () => {
     return () => { cancelled = true; };
   }, [membershipId, startDate, fetchOrgFoodReport]);
 
-  const hostels = orgFoodReport?.hostels || [];
-  const totals = orgFoodReport?.totals_by_date || [];
+  const allHostels = orgFoodReport?.hostels || [];
   const endLabel = orgFoodReport?.end_date || '';
+
+  // Keep filter valid if hostel list changes (select values are strings)
+  useEffect(() => {
+    if (hostelFilter === ALL_HOSTELS) return;
+    if (!allHostels.some((h) => String(h.hostel_id) === String(hostelFilter))) {
+      setHostelFilter(ALL_HOSTELS);
+    }
+  }, [allHostels, hostelFilter]);
+
+  const filteredHostels = useMemo(() => {
+    if (hostelFilter === ALL_HOSTELS) return allHostels;
+    return allHostels.filter((h) => String(h.hostel_id) === String(hostelFilter));
+  }, [allHostels, hostelFilter]);
+
+  const selectedHostel = useMemo(
+    () => allHostels.find((h) => String(h.hostel_id) === String(hostelFilter)) || null,
+    [allHostels, hostelFilter]
+  );
+
+  const displayTotals = useMemo(() => {
+    if (hostelFilter === ALL_HOSTELS) return orgFoodReport?.totals_by_date || [];
+    const days = selectedHostel?.days || [];
+    return [...days].sort((a, b) => String(a.meal_date).localeCompare(String(b.meal_date)));
+  }, [hostelFilter, orgFoodReport, selectedHostel]);
+
+  const totalsTitle = hostelFilter === ALL_HOSTELS
+    ? 'All hostels · combined'
+    : `${selectedHostel?.hostel_name || 'Hostel'} · totals`;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
@@ -59,11 +91,24 @@ const HostelManagementKitchenFoodPage = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Weekly Food Estimation</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Totals across all hostels for breakfast / lunch / dinner — use this to prep for the week.
+            Breakfast / lunch / dinner counts — filter by hostel or view all combined.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500">Week starting</label>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-xs text-gray-500">Hostel</label>
+          <select
+            className="border rounded-lg px-3 py-2 text-sm min-w-[180px] bg-white"
+            value={hostelFilter}
+            onChange={(e) => setHostelFilter(e.target.value)}
+          >
+            <option value={ALL_HOSTELS}>All hostels</option>
+            {allHostels.map((h) => (
+              <option key={h.hostel_id} value={h.hostel_id}>
+                {h.hostel_name}
+              </option>
+            ))}
+          </select>
+          <label className="text-xs text-gray-500 ml-1">Week starting</label>
           <input
             type="date"
             className="border rounded-lg px-3 py-2 text-sm"
@@ -75,15 +120,15 @@ const HostelManagementKitchenFoodPage = () => {
 
       {loading && <p className="text-sm text-gray-500">Loading estimates…</p>}
 
-      {!loading && totals.length > 0 && (
+      {!loading && displayTotals.length > 0 && (
         <section className="bg-white border rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <FiCoffee className="text-red-700" />
-            <h2 className="font-bold text-gray-900">All hostels · combined</h2>
+            <h2 className="font-bold text-gray-900">{totalsTitle}</h2>
             <span className="text-xs text-gray-400">{startDate} → {endLabel}</span>
           </div>
           <div className="space-y-3">
-            {totals.map((day) => (
+            {displayTotals.map((day) => (
               <div key={day.meal_date} className="border rounded-lg p-3">
                 <p className="text-sm font-semibold text-gray-800 mb-2">
                   {day.weekday} · {day.meal_date}
@@ -100,7 +145,7 @@ const HostelManagementKitchenFoodPage = () => {
       )}
 
       <div className="space-y-4">
-        {hostels.map((hostel) => (
+        {filteredHostels.map((hostel) => (
           <section key={hostel.hostel_id} className="bg-white border rounded-xl p-4">
             <h2 className="font-bold text-lg text-gray-900 mb-3">{hostel.hostel_name}</h2>
             {(hostel.days || []).length === 0 ? (
@@ -136,8 +181,11 @@ const HostelManagementKitchenFoodPage = () => {
         ))}
       </div>
 
-      {!loading && hostels.length === 0 && (
+      {!loading && allHostels.length === 0 && (
         <p className="text-gray-500">No hostels found for this company.</p>
+      )}
+      {!loading && allHostels.length > 0 && filteredHostels.length === 0 && (
+        <p className="text-gray-500">No data for the selected hostel this week.</p>
       )}
     </div>
   );
@@ -148,14 +196,23 @@ const KITCHEN_LINKS = [
   { to: '/hostel-management/kitchen/special-orders', label: 'Special orders', icon: FiClipboard },
 ];
 
+const capitalizeName = (value) => {
+  const name = String(value || '').trim();
+  if (!name) return 'User';
+  return name.charAt(0).toUpperCase() + name.slice(1);
+};
+
 const KitchenNavbar = () => {
   const history = useHistory();
   const location = useLocation();
   const { user, logout, userRole } = useUserContext();
   const platform = usePlatformAccess();
-  const displayName = String(
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState('https://i.imgur.com/ndu6pfe.png');
+
+  const displayName = capitalizeName(
     user?.results?.firstname || user?.results?.userDetail?.userName || user?.results?.name || 'User'
-  ).trim() || 'User';
+  );
   const roleLabel = getLoggedInRoleLabel({
     platform,
     userRole,
@@ -163,32 +220,84 @@ const KitchenNavbar = () => {
     pathname: location.pathname,
   });
 
+  useEffect(() => {
+    const fetchImage = async () => {
+      try {
+        if (user?.results?.userDetail?.user_image_s3_image) {
+          setPreviewUrl(user.results.userDetail.user_image_s3_image);
+        } else if (user?.results?.user_image_s3_image) {
+          setPreviewUrl(user.results.user_image_s3_image);
+        } else if (user?.results?.userDetail?.userImage) {
+          const imageUrl = user.results.userDetail.userImage.startsWith('http')
+            ? user.results.userDetail.userImage
+            : `${API_BASE_URL}/uploads/${user.results.userDetail.userImage}`;
+          const downloadedImage = await downloadImage(imageUrl);
+          setPreviewUrl(downloadedImage || imageUrl);
+        }
+      } catch {
+        setPreviewUrl('https://i.imgur.com/ndu6pfe.png');
+      }
+    };
+    if (user) fetchImage();
+  }, [user]);
+
   return (
     <div className="sticky top-0 z-50">
-      <nav className="bg-[#d62828] text-white shadow">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <MyTreasureBrand className="text-white" />
-            <span className="hidden sm:inline text-sm text-red-100 truncate">
-              Kitchen · {displayName} · {roleLabel}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <FinanceHubNavButton />
-            <button
-              type="button"
-              onClick={() => {
-                logout();
-                history.push('/login');
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg hover:bg-white/10"
-            >
-              <FiLogOut className="w-4 h-4" />
-              Logout
-            </button>
+      <header className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14">
+            <MyTreasureBrand
+              to="/hostel-management/kitchen/food-report"
+              subtitle="Hostel · Kitchen"
+              inverse
+            />
+            <div className="flex items-center space-x-2 sm:space-x-3">
+              <FinanceHubNavButton className="flex items-center px-3 py-1.5 text-sm font-medium text-white hover:text-red-100 hover:bg-white/10 rounded-lg transition-colors" />
+              <div className="hidden sm:block text-right px-2 border-l border-white/30">
+                <p className="text-sm font-semibold text-white truncate max-w-[10rem]">Hi {displayName}</p>
+                <p className="text-xs text-red-100">Logged in as {roleLabel}</p>
+              </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsTooltipVisible(!isTooltipVisible)}
+                  onBlur={() => setTimeout(() => setIsTooltipVisible(false), 150)}
+                  className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/50 hover:border-white transition-colors"
+                >
+                  <img
+                    src={previewUrl}
+                    alt={displayName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = 'https://i.imgur.com/ndu6pfe.png';
+                    }}
+                  />
+                </button>
+                {isTooltipVisible && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <div className="px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-semibold text-gray-900">Hi {displayName}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Logged in as {roleLabel}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        logout();
+                        history.push('/login');
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-red-700 hover:bg-red-50 flex items-center"
+                    >
+                      <FiLogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </nav>
+      </header>
       <nav className="bg-white border-b border-gray-200 shadow-sm" aria-label="Kitchen modules">
         <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto py-2">
           {KITCHEN_LINKS.map((item) => {

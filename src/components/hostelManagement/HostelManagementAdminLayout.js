@@ -94,7 +94,7 @@ const HostelManagementAdminLayout = () => (
               <PermissionRoute exact path="/hostel-management/user/outstanding" component={HostelManagementOutstandingPage} featureKeys={HM_NAV_ANY.outstanding} />
               <PermissionRoute exact path="/hostel-management/user/payments" component={HostelManagementPaymentsPage} featureKeys={HM_NAV_ANY.payments} />
               <PermissionRoute exact path="/hostel-management/user/food-report" component={HostelManagementFoodReportPage} featureKeys={HM_NAV_ANY.foodReport} />
-              <PermissionRoute exact path="/hostel-management/user/special-orders" component={HostelManagementSpecialOrdersPage} featureKeys={HM_NAV_ANY.foodReport} />
+              <PermissionRoute exact path="/hostel-management/user/special-orders" component={HostelManagementSpecialOrdersPage} featureKeys={HM_NAV_ANY.specialOrders} />
               <PermissionRoute exact path="/hostel-management/user/turfs" component={HostelManagementTurfsPage} featureKeys={HM_NAV_ANY.turfs} />
               <PermissionRoute exact path="/hostel-management/user/shuttle-courts" component={HostelManagementShuttleCourtsPage} featureKeys={HM_NAV_ANY.shuttleCourts} />
               <PermissionRoute exact path="/hostel-management/user/ledger" component={HostelManagementLedgerPage} featureKeys={HM_NAV_ANY.ledger} />

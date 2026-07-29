@@ -68,7 +68,7 @@ const QrUploadField = ({ value, onUploaded }) => {
 
 const qrSrc = (h) => h.payment_qr_url_s3_image || h.payment_qr_url || null;
 
-const HostelManagementHostelsPage = () => {
+const HostelManagementHostelsPage = ({ embedded = false }) => {
   const {
     hostels, fetchHostels, createHostel, updateHostel, isLoading,
     fetchNearbyShops, createNearbyShop, deleteNearbyShop,
@@ -79,6 +79,7 @@ const HostelManagementHostelsPage = () => {
   const canView = can('hm_hostel_view') || canCreate || can('hm_hostel_manage');
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [shops, setShops] = useState([]);
   const [shopForm, setShopForm] = useState({ shopName: '', category: 'Food', phone: '', address: '', mapsUrl: '' });
@@ -98,12 +99,22 @@ const HostelManagementHostelsPage = () => {
   const resetForm = () => {
     setForm(EMPTY_FORM);
     setEditingId(null);
+    setFormOpen(false);
     setShops([]);
     setShopsHostelId(null);
   };
 
+  const openAddForm = () => {
+    setForm(EMPTY_FORM);
+    setEditingId(null);
+    setShops([]);
+    setShopsHostelId(null);
+    setFormOpen(true);
+  };
+
   const startEdit = async (h) => {
     setEditingId(h.id);
+    setFormOpen(true);
     setShopsHostelId(h.id);
     setForm({
       hostelName: h.hostel_name || '',
@@ -172,15 +183,28 @@ const HostelManagementHostelsPage = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Hostels & Amenities</h1>
-        <p className="text-sm text-gray-500">
-          Add hostel details, PhonePe/UPI and payment QR for resident payments.
-        </p>
+    <div className={embedded ? 'space-y-5' : 'max-w-5xl mx-auto px-4 py-6 space-y-6'}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className={`font-bold text-gray-900 ${embedded ? 'text-lg' : 'text-2xl'}`}>
+            {embedded ? 'Hostels' : 'Hostels & Amenities'}
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Manage hostel details, payment QR, and amenities.
+          </p>
+        </div>
+        {canCreate && !formOpen && (
+          <button
+            type="button"
+            onClick={openAddForm}
+            className="bg-red-600 text-white font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-red-700 shrink-0"
+          >
+            + Add new hostel
+          </button>
+        )}
       </div>
 
-      {(canCreate || (canEdit && editingId)) && (
+      {(canCreate || (canEdit && editingId)) && formOpen && (
         <form onSubmit={onSubmit} className="bg-white border rounded-xl p-5 grid grid-cols-1 md:grid-cols-2 gap-3 shadow-sm">
           {editingId && (
             <div className="md:col-span-2 flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
@@ -252,25 +276,40 @@ const HostelManagementHostelsPage = () => {
               disabled={saving}
               className="flex-1 min-w-[140px] bg-red-600 text-white font-semibold rounded-lg py-2.5 hover:bg-red-700 disabled:opacity-50"
             >
-              {saving ? 'Saving…' : editingId ? 'Save changes' : '+ Add Hostel'}
+              {saving ? 'Saving…' : editingId ? 'Save changes' : 'Create hostel'}
             </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="px-4 py-2.5 border rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={resetForm}
+              className="px-4 py-2.5 border rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
           </div>
         </form>
       )}
       {!canView && <p className="text-sm text-amber-700">You do not have permission to view hostels.</p>}
 
+      {canView && (
       <div className="bg-white border rounded-xl shadow-sm overflow-hidden">
+        <div className="px-4 py-3 border-b bg-gray-50">
+          <p className="text-sm font-semibold text-gray-800">
+            All hostels ({hostels.length})
+          </p>
+        </div>
         {isLoading ? <p className="p-6 text-gray-500">Loading…</p> : hostels.length === 0 ? (
-          <p className="p-6 text-gray-500">No hostels yet.</p>
+          <div className="p-8 text-center">
+            <p className="text-gray-500 text-sm">No hostels yet.</p>
+            {canCreate && !formOpen && (
+              <button
+                type="button"
+                onClick={openAddForm}
+                className="mt-3 text-sm font-semibold text-red-700 underline"
+              >
+                + Add new hostel
+              </button>
+            )}
+          </div>
         ) : (
           <ul className="divide-y">
             {hostels.map((h) => {
@@ -307,6 +346,7 @@ const HostelManagementHostelsPage = () => {
           </ul>
         )}
       </div>
+      )}
     </div>
   );
 };

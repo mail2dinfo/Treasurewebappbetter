@@ -125,26 +125,22 @@ const HostelManagementFloorsRoomsPage = () => {
                       {(room.beds || []).map((bed) => (
                         <div
                           key={bed.id}
-                          className={`min-w-[7.5rem] max-w-[11rem] px-2.5 py-2 rounded-lg text-xs ${
-                            bed.status === 'OCCUPIED'
-                              ? 'bg-red-600 border border-red-700 text-white'
-                              : 'bg-green-50 border border-green-100 text-green-900'
-                          }`}
+                          className="min-w-[7.5rem] max-w-[11rem] px-2.5 py-2 rounded-lg text-xs bg-red-600 border border-red-700 text-white"
                         >
-                          <p className="font-semibold">
+                          <p className="font-semibold text-white">
                             {bed.bed_label} · {bed.status === 'OCCUPIED' ? 'Occupied' : 'Vacant'}
                           </p>
                           {bed.status === 'OCCUPIED' ? (
-                            <div className="mt-1 space-y-0.5">
+                            <div className="mt-1 space-y-0.5 text-white">
                               <p className="font-medium truncate" title={bed.resident_name || ''}>
                                 {bed.resident_name || 'Resident'}
                               </p>
-                              <p className="text-[11px] opacity-80">
+                              <p className="text-[11px] text-white/90">
                                 {bed.resident_phone || '—'}
                               </p>
                             </div>
                           ) : (
-                            <p className="mt-1 text-[11px] opacity-70">Available</p>
+                            <p className="mt-1 text-[11px] text-white/90">Available</p>
                           )}
                         </div>
                       ))}

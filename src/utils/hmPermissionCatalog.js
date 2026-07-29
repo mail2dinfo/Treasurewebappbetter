@@ -1,6 +1,6 @@
 /**
  * Granular Hostel Management feature permissions.
- * Owner (USER) assigns these to Manager; Manager may hire Receptionist only.
+ * Owner (USER) assigns these to Manager; Manager may hire Receptionist / Kitchen Staff.
  */
 
 export const HM_FEATURE_CATEGORIES = [
@@ -20,6 +20,16 @@ export const HM_FEATURE_CATEGORIES = [
 
 export const HM_ADMINISTRATION_CATEGORIES = ['Employee', 'Receptionist', 'Kitchen Staff'];
 
+export const HM_LEGACY_TO_GRANULAR = {
+  hm_hostel_manage: ['hm_hostel_view', 'hm_hostel_create', 'hm_hostel_delete'],
+  hm_floor_room_manage: ['hm_floor_room_view', 'hm_floor_room_create', 'hm_floor_room_delete'],
+  hm_resident_manage: ['hm_resident_view', 'hm_resident_create', 'hm_resident_delete'],
+  hm_receivable_manage: ['hm_receivable_view', 'hm_receivable_create', 'hm_receivable_delete', 'hm_payment_record'],
+  hm_meals_report: ['hm_meals_view'],
+  hm_ledger_manage: ['hm_ledger_view', 'hm_ledger_create', 'hm_ledger_delete'],
+  hm_venue_manage: ['hm_venue_view', 'hm_venue_create', 'hm_venue_delete'],
+};
+
 export const HM_HIDDEN_FEATURE_KEYS = new Set([
   'hm_hostel_manage',
   'hm_floor_room_manage',
@@ -27,6 +37,7 @@ export const HM_HIDDEN_FEATURE_KEYS = new Set([
   'hm_receivable_manage',
   'hm_meals_report',
   'hm_ledger_manage',
+  'hm_venue_manage',
 ]);
 
 /** @type {{ featureKey: string, displayName: string, category: string, defaultRoles: string[] }[]} */
@@ -54,6 +65,8 @@ export const HM_GRANULAR_FEATURES = [
   { featureKey: 'hm_payment_verify', displayName: 'Verify', category: 'Payments', defaultRoles: ['MANAGER'] },
 
   { featureKey: 'hm_meals_view', displayName: 'View Food Report', category: 'Meals', defaultRoles: ['MANAGER', 'RECEPTIONIST', 'KITCHEN_STAFF'] },
+  { featureKey: 'hm_special_orders_view', displayName: 'View Special Orders', category: 'Meals', defaultRoles: ['MANAGER', 'RECEPTIONIST', 'KITCHEN_STAFF'] },
+  { featureKey: 'hm_special_orders_update', displayName: 'Update Special Orders', category: 'Meals', defaultRoles: ['MANAGER', 'KITCHEN_STAFF'] },
 
   { featureKey: 'hm_venue_view', displayName: 'View Turfs & Courts', category: 'Venues', defaultRoles: ['MANAGER', 'RECEPTIONIST'] },
   { featureKey: 'hm_venue_create', displayName: 'Create / Edit listings', category: 'Venues', defaultRoles: ['MANAGER'] },
@@ -79,15 +92,6 @@ export const HM_GRANULAR_FEATURES = [
   { featureKey: 'hm_kitchen_offer_letter', displayName: 'Offer Letter', category: 'Kitchen Staff', defaultRoles: ['MANAGER'] },
 ];
 
-export const HM_LEGACY_TO_GRANULAR = {
-  hm_hostel_manage: ['hm_hostel_view', 'hm_hostel_create', 'hm_hostel_delete'],
-  hm_floor_room_manage: ['hm_floor_room_view', 'hm_floor_room_create', 'hm_floor_room_delete'],
-  hm_resident_manage: ['hm_resident_view', 'hm_resident_create', 'hm_resident_delete'],
-  hm_receivable_manage: ['hm_receivable_view', 'hm_receivable_create', 'hm_receivable_delete', 'hm_payment_record'],
-  hm_meals_report: ['hm_meals_view'],
-  hm_ledger_manage: ['hm_ledger_view', 'hm_ledger_create', 'hm_ledger_delete'],
-};
-
 export const HM_NAV_ANY = {
   dashboard: ['hm_dashboard'],
   hostels: ['hm_hostel_view', 'hm_hostel_create', 'hm_hostel_manage'],
@@ -97,7 +101,8 @@ export const HM_NAV_ANY = {
   receivables: ['hm_receivable_view', 'hm_receivable_create', 'hm_receivable_manage'],
   outstanding: ['hm_receivable_view', 'hm_receivable_manage'],
   payments: ['hm_payment_view', 'hm_payment_verify', 'hm_receivable_manage'],
-  foodReport: ['hm_meals_view', 'hm_meals_report'],
+  foodReport: ['hm_meals_view', 'hm_meals_report', 'hm_special_orders_view'],
+  specialOrders: ['hm_special_orders_view', 'hm_special_orders_update', 'hm_meals_view'],
   turfs: ['hm_venue_view', 'hm_venue_create', 'hm_venue_manage', 'hm_hostel_view', 'hm_hostel_manage'],
   shuttleCourts: ['hm_venue_view', 'hm_venue_create', 'hm_venue_manage', 'hm_hostel_view', 'hm_hostel_manage'],
   ledger: ['hm_ledger_view', 'hm_ledger_create', 'hm_ledger_manage'],

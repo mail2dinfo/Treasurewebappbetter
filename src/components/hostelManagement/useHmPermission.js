@@ -37,6 +37,7 @@ export const useHmPermission = () => {
     outstanding: canAny(HM_NAV_ANY.outstanding),
     payments: canAny(HM_NAV_ANY.payments),
     foodReport: canAny(HM_NAV_ANY.foodReport),
+    specialOrders: canAny(HM_NAV_ANY.specialOrders),
     turfs: canAny(HM_NAV_ANY.turfs),
     shuttleCourts: canAny(HM_NAV_ANY.shuttleCourts),
     ledger: canAny(HM_NAV_ANY.ledger),

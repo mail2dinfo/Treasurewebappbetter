@@ -811,6 +811,8 @@ const PlatformEmployeesPage = ({
     const [expandedListApps, setExpandedListApps] = useState({});
     // App sections in Step 3 role/permission editor.
     const [expandedEditorApps, setExpandedEditorApps] = useState({});
+    // Role sections inside an app (Step 3): undefined/true = expanded when selected, false = collapsed.
+    const [expandedEditorRoles, setExpandedEditorRoles] = useState({});
     const stepThreeEnteredAtRef = useRef(0);
 
     const visibleEmployees = useMemo(() => {
@@ -900,6 +902,16 @@ const PlatformEmployeesPage = ({
         setExpandedEditorApps((current) => ({
             ...current,
             [appCode]: current[appCode] === false,
+        }));
+    };
+
+    const editorRoleKey = (appCode, roleCode) => `${appCode}:${roleCode}`;
+    const isEditorRoleExpanded = (appCode, roleCode) => expandedEditorRoles[editorRoleKey(appCode, roleCode)] !== false;
+    const toggleEditorRole = (appCode, roleCode) => {
+        const key = editorRoleKey(appCode, roleCode);
+        setExpandedEditorRoles((current) => ({
+            ...current,
+            [key]: current[key] === false,
         }));
     };
 
@@ -1034,6 +1046,7 @@ const PlatformEmployeesPage = ({
         setExpandedEditorApps(
             Object.fromEntries(initialApps.map((code) => [code, true]))
         );
+        setExpandedEditorRoles({});
         setIsEditorOpen(true);
     };
 
@@ -1090,6 +1103,11 @@ const PlatformEmployeesPage = ({
         setExpandedEditorApps(
             Object.fromEntries(appCodes.map((code) => [code, true]))
         );
+        setExpandedEditorRoles(
+            Object.fromEntries(
+                existingEnrollments.map((item) => [editorRoleKey(item.appCode, item.roleCode), true])
+            )
+        );
         setIsEditorOpen(true);
     };
 
@@ -1130,6 +1148,13 @@ const PlatformEmployeesPage = ({
                     : getDefaultPermissions(role, app),
             }]
         );
+        if (!exists) {
+            setExpandedEditorRoles((current) => ({
+                ...current,
+                [editorRoleKey(appCode, roleCode)]: true,
+            }));
+        }
+        setEditorError('');
     };
 
     const togglePermission = (appCode, roleCode, featureKey) => {
@@ -2216,6 +2241,8 @@ const PlatformEmployeesPage = ({
                                                         const roleCode = getRoleCode(role);
                                                         const selectedEnrollment = enrollments.find((item) => item.appCode === appCode && item.roleCode === roleCode);
                                                         const roleAssignable = canAssignRole(roleCode);
+                                                        const roleExpanded = isEditorRoleExpanded(appCode, roleCode);
+                                                        const roleLabel = role.displayName || role.display_name || roleCode;
                                                         const roleFeatures = getFeaturesForRoleAssignment(
                                                             getStep3Features(app),
                                                             roleCode,
@@ -2233,22 +2260,34 @@ const PlatformEmployeesPage = ({
                                                             ])
                                                             : Object.entries(featureGroups);
                                                         return (
-                                                            <div key={roleCode} className={`rounded-lg bg-gray-50 border border-gray-100 p-3 ${roleAssignable ? '' : 'opacity-60'}`}>
-                                                                <label className="flex items-center gap-2 font-medium text-gray-800">
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={Boolean(selectedEnrollment)}
-                                                                        disabled={!roleAssignable && !selectedEnrollment}
-                                                                        onChange={() => toggleRole(app, role)}
-                                                                        className="text-red-600 focus:ring-red-500 rounded"
-                                                                    />
-                                                                    {role.displayName || role.display_name || roleCode}
-                                                                    {!roleAssignable && !selectedEnrollment && (
-                                                                        <span className="text-xs font-normal text-gray-500">(no Add permission)</span>
-                                                                    )}
-                                                                </label>
-                                                                {selectedEnrollment && roleFeatures.length > 0 && (
-                                                                    <div className="mt-3 pl-6 space-y-3">
+                                                            <div key={roleCode} className={`rounded-lg border border-gray-200 overflow-hidden ${roleAssignable ? 'bg-white' : 'bg-gray-50 opacity-60'}`}>
+                                                                <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-gray-50">
+                                                                    <label className="flex items-center gap-2 font-medium text-gray-800 min-w-0">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            checked={Boolean(selectedEnrollment)}
+                                                                            disabled={!roleAssignable && !selectedEnrollment}
+                                                                            onChange={() => toggleRole(app, role)}
+                                                                            className="text-red-600 focus:ring-red-500 rounded"
+                                                                        />
+                                                                        <span className="truncate">{roleLabel}</span>
+                                                                        {!roleAssignable && !selectedEnrollment && (
+                                                                            <span className="text-xs font-normal text-gray-500 shrink-0">(no Add permission)</span>
+                                                                        )}
+                                                                    </label>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => toggleEditorRole(appCode, roleCode)}
+                                                                        aria-label={roleExpanded ? `Collapse ${roleLabel}` : `Expand ${roleLabel}`}
+                                                                        aria-expanded={roleExpanded}
+                                                                        title={roleExpanded ? 'Collapse' : 'Expand'}
+                                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-red-200 hover:text-red-700 hover:bg-red-50 shrink-0"
+                                                                    >
+                                                                        {roleExpanded ? <FiMinus className="w-4 h-4" /> : <FiPlus className="w-4 h-4" />}
+                                                                    </button>
+                                                                </div>
+                                                                {roleExpanded && selectedEnrollment && roleFeatures.length > 0 && (
+                                                                    <div className="p-3 pl-6 space-y-3 border-t border-gray-100">
                                                                         <label className="flex items-center gap-2 text-sm font-semibold text-red-700">
                                                                             <input
                                                                                 type="checkbox"
@@ -2373,6 +2412,11 @@ const PlatformEmployeesPage = ({
 
                                                                             return orderedFeatureGroups.map(([category, features]) => renderCategoryBlock(category, features));
                                                                         })()}
+                                                                    </div>
+                                                                )}
+                                                                {roleExpanded && !selectedEnrollment && (
+                                                                    <div className="px-3 py-2.5 border-t border-gray-100 text-xs text-gray-500">
+                                                                        Check the role to assign it and set permissions.
                                                                     </div>
                                                                 )}
                                                             </div>

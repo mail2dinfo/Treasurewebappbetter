@@ -135,7 +135,7 @@ const HostelManagementAdminSettingsPage = () => {
                 isWide ? 'p-2 sm:p-3 overflow-visible' : 'p-4 sm:p-6'
               }`}
             >
-              {activeMenu === 'hostels' && <HostelManagementHostelsPage />}
+              {activeMenu === 'hostels' && <HostelManagementHostelsPage embedded />}
               {activeMenu === 'floors-rooms' && <HostelManagementFloorsRoomsPage />}
               {activeMenu === 'personalsettings' && <PersonalSettings />}
               {activeMenu === 'employees' && (

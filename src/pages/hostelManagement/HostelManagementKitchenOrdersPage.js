@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useHostelManagement } from '../../context/hostelManagement/HostelManagementContext';
+import { useHmPermission } from '../../components/hostelManagement/useHmPermission';
 
 const STATUS_STYLE = {
   NEW: 'bg-amber-100 text-amber-800 border-amber-200',
@@ -23,6 +24,10 @@ const HostelManagementKitchenOrdersPage = () => {
     fetchSpecialOrders,
     updateSpecialOrderStatus,
   } = useHostelManagement();
+  const { can, roleCode } = useHmPermission();
+  const canUpdate = String(roleCode || '').toUpperCase() === 'KITCHEN_STAFF'
+    || can('hm_special_orders_update')
+    || can('hm_special_orders_view');
   const [statusFilter, setStatusFilter] = useState('NEW');
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState(null);
@@ -109,7 +114,7 @@ const HostelManagementKitchenOrdersPage = () => {
                   {o.status === 'IN_PROCESS' ? 'IN PROCESS' : o.status}
                 </span>
               </div>
-              {next && (
+              {next && canUpdate && (
                 <button
                   type="button"
                   disabled={busyId === o.id}

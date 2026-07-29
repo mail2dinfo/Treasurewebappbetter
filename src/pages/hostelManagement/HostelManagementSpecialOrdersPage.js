@@ -26,7 +26,7 @@ const HostelManagementSpecialOrdersPage = () => {
     specialOrders,
   } = useHostelManagement();
   const { can } = useHmPermission();
-  const canCreate = can('hm_meals_view') || can('hm_resident_view') || can('hm_resident_create');
+  const canCreate = can('hm_special_orders_view') || can('hm_meals_view') || can('hm_resident_view') || can('hm_resident_create');
 
   const [form, setForm] = useState({
     residentId: '',
