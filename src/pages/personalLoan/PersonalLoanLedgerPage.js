@@ -1,62 +1,108 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePersonalLoanContext } from '../../context/personalLoan/PersonalLoanContext';
-import { FiPlus, FiDollarSign, FiTrendingUp, FiCalendar, FiRefreshCw, FiX } from 'react-icons/fi';
+import { FiPlus, FiDollarSign, FiTrendingUp, FiCalendar, FiRefreshCw, FiX, FiEdit2, FiDownload } from 'react-icons/fi';
 import PersonalLoanLedgerAccountForm from '../../components/personalLoan/PersonalLoanLedgerAccountForm';
 import PersonalLoanLedgerEntryForm from '../../components/personalLoan/PersonalLoanLedgerEntryForm';
+import { exportToCSV } from '../../utils/exportUtils';
+import { toast } from 'react-toastify';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const PersonalLoanLedgerPage = () => {
     const {
         ledgerAccounts,
         ledgerEntries,
         ledgerSummary,
+        ledgerCategories,
         isLoading,
         error,
-        fetchLedgerAccounts,
         createLedgerAccount,
-        fetchLedgerEntries,
+        updateLedgerAccount,
         createLedgerEntry,
-        fetchLedgerSummary,
+        fetchLedgerEntries,
+        refreshLedgerData,
         clearError
     } = usePersonalLoanContext();
 
     const [activeTab, setActiveTab] = useState('accounts');
     const [showAccountForm, setShowAccountForm] = useState(false);
+    const [editingAccount, setEditingAccount] = useState(null);
     const [showEntryForm, setShowEntryForm] = useState(false);
     const [filters, setFilters] = useState({
         account_id: '',
         category: '',
+        type: '',
         start_date: '',
         end_date: ''
     });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
 
     useEffect(() => {
-        fetchLedgerAccounts();
-        fetchLedgerSummary();
-    }, [fetchLedgerAccounts, fetchLedgerSummary]);
+        refreshLedgerData();
+    }, [refreshLedgerData]);
 
     useEffect(() => {
         if (activeTab === 'entries') {
-            fetchLedgerEntries(filters);
+            fetchLedgerEntries({
+                account_id: filters.account_id,
+                category: filters.category,
+                start_date: filters.start_date,
+                end_date: filters.end_date,
+            });
         }
-    }, [activeTab, filters, fetchLedgerEntries]);
+    }, [
+        activeTab,
+        filters.account_id,
+        filters.category,
+        filters.start_date,
+        filters.end_date,
+        fetchLedgerEntries,
+    ]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filters, pageSize]);
+
+    // Re-sync when user returns to this tab (e.g. after disburse/collect elsewhere)
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') {
+                refreshLedgerData(filters);
+            }
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
+    }, [refreshLedgerData, filters]);
 
     const handleCreateAccount = async (accountData) => {
         const result = await createLedgerAccount(accountData);
         if (result.success) {
             setShowAccountForm(false);
-            fetchLedgerAccounts();
-            fetchLedgerSummary();
+            await refreshLedgerData(filters);
         }
+        return result;
+    };
+
+    const handleUpdateAccount = async (accountData) => {
+        if (!editingAccount?.id) {
+            return { success: false, error: 'No account selected' };
+        }
+        const result = await updateLedgerAccount(editingAccount.id, accountData);
+        if (result.success) {
+            setEditingAccount(null);
+            await refreshLedgerData(filters);
+        }
+        return result;
     };
 
     const handleCreateEntry = async (entryData) => {
         const result = await createLedgerEntry(entryData);
         if (result.success) {
             setShowEntryForm(false);
-            fetchLedgerEntries(filters);
-            fetchLedgerSummary();
-            fetchLedgerAccounts(); // Refresh to update balances
+            await refreshLedgerData(filters);
         }
+        return result;
     };
 
     const formatCurrency = (amount) => {
@@ -71,6 +117,69 @@ const PersonalLoanLedgerPage = () => {
             month: "short",
             year: "numeric",
         });
+    };
+
+    const formatAmountPlain = (amount) => {
+        return Number(amount || 0).toLocaleString('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+    };
+
+    const filteredEntries = useMemo(() => {
+        if (!filters.type) return ledgerEntries;
+        return ledgerEntries.filter((entry) => {
+            const amount = parseFloat(entry.amount || 0);
+            const isCredit = amount >= 0;
+            if (filters.type === 'Credit') return isCredit;
+            if (filters.type === 'Debit') return !isCredit;
+            return true;
+        });
+    }, [ledgerEntries, filters.type]);
+
+    const entriesPagination = useMemo(() => {
+        const totalItems = filteredEntries.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize) || 1);
+        const safePage = Math.min(currentPage, totalPages);
+        const startIndex = totalItems === 0 ? 0 : (safePage - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, totalItems);
+        return {
+            totalItems,
+            totalPages,
+            safePage,
+            startIndex,
+            endIndex,
+            pageItems: filteredEntries.slice(startIndex, endIndex),
+        };
+    }, [filteredEntries, currentPage, pageSize]);
+
+    const handleDownloadExcel = () => {
+        if (!filteredEntries.length) {
+            toast.info('No ledger entries to download');
+            return;
+        }
+
+        const rows = filteredEntries.map((entry) => {
+            const amount = parseFloat(entry.amount || 0);
+            const isCredit = amount >= 0;
+            const absAmount = Math.abs(amount);
+            return {
+                'Transacted Date': entry.payment_date || '',
+                Account: entry.account?.account_name || '',
+                Category: entry.category || '',
+                Subcategory: entry.subcategory || '',
+                Type: isCredit ? 'Credit' : 'Debit',
+                Cr: isCredit ? formatAmountPlain(absAmount) : '',
+                Db: !isCredit ? formatAmountPlain(absAmount) : '',
+                Description: (entry.description || '').replace(/\n/g, ' '),
+                'Reference Type': entry.reference_type || '',
+                'Reference ID': entry.reference_id || '',
+            };
+        });
+
+        const stamp = new Date().toISOString().slice(0, 10);
+        exportToCSV(rows, `pl-ledger-entries-${stamp}.csv`);
+        toast.success(`Downloaded ${rows.length} entries`);
     };
 
     return (
@@ -221,6 +330,7 @@ const PersonalLoanLedgerPage = () => {
                                                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Opening Balance</th>
                                                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Current Balance</th>
                                                 <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Created Date</th>
+                                                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
@@ -246,6 +356,16 @@ const PersonalLoanLedgerPage = () => {
                                                         <span className="text-sm text-gray-600">
                                                             {formatDate(account.created_at)}
                                                         </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setEditingAccount(account)}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                                        >
+                                                            <FiEdit2 className="w-3.5 h-3.5" />
+                                                            Update
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -279,7 +399,7 @@ const PersonalLoanLedgerPage = () => {
                     <>
                         {/* Filters */}
                         <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-                            <div className="flex flex-wrap gap-4">
+                            <div className="flex flex-wrap gap-4 items-end">
                                 <select
                                     value={filters.account_id}
                                     onChange={(e) => setFilters({ ...filters, account_id: e.target.value })}
@@ -299,10 +419,21 @@ const PersonalLoanLedgerPage = () => {
                                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                 >
                                     <option value="">All Categories</option>
-                                    <option value="Loan Disbursement">Loan Disbursement</option>
-                                    <option value="Collection">Collection</option>
-                                    <option value="Expense">Expense</option>
-                                    <option value="Income">Income</option>
+                                    {(ledgerCategories || []).map((cat) => (
+                                        <option key={cat.id} value={cat.category_name}>
+                                            {cat.category_name}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <select
+                                    value={filters.type}
+                                    onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                >
+                                    <option value="">All Types</option>
+                                    <option value="Credit">Credit</option>
+                                    <option value="Debit">Debit</option>
                                 </select>
 
                                 <input
@@ -320,80 +451,190 @@ const PersonalLoanLedgerPage = () => {
                                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
                                     placeholder="End Date"
                                 />
+
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadExcel}
+                                    disabled={filteredEntries.length === 0}
+                                    className="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors"
+                                >
+                                    <FiDownload className="w-4 h-4" />
+                                    Download Excel
+                                </button>
                             </div>
                         </div>
 
                         {/* Entries Table */}
-                        {ledgerEntries.length > 0 ? (
-                            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Account</th>
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Subcategory</th>
-                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200">
-                                            {ledgerEntries.map((entry) => (
-                                                <tr key={entry.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                        {formatDate(entry.payment_date)}
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="text-sm font-medium text-gray-900">
-                                                            {entry.account?.account_name || 'N/A'}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                                            {entry.category}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="text-sm text-gray-600">
-                                                            {entry.subcategory || '-'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className={`text-sm font-semibold ${parseFloat(entry.amount) >= 0
-                                                            ? 'text-green-600'
-                                                            : 'text-red-600'
-                                                            }`}>
-                                                            {formatCurrency(entry.amount)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="text-sm text-gray-600 max-w-xs truncate">
-                                                            {entry.description || '-'}
-                                                        </div>
-                                                    </td>
+                        {filteredEntries.length > 0 ? (
+                            <>
+                                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Transacted Date</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Account</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Subcategory</th>
+                                                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Type</th>
+                                                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Cr</th>
+                                                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Db</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Description</th>
                                                 </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {entriesPagination.pageItems.map((entry) => {
+                                                    const amount = parseFloat(entry.amount || 0);
+                                                    const isCredit = amount >= 0;
+                                                    const absAmount = Math.abs(amount);
+                                                    return (
+                                                        <tr key={entry.id} className="hover:bg-gray-50">
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                                {formatDate(entry.payment_date)}
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <div className="text-sm font-medium text-gray-900">
+                                                                    {entry.account?.account_name || 'N/A'}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                                                    {entry.category}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="text-sm text-gray-600">
+                                                                    {entry.subcategory || '-'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-center">
+                                                                <span
+                                                                    className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                        isCredit
+                                                                            ? 'bg-green-100 text-green-800'
+                                                                            : 'bg-red-100 text-red-800'
+                                                                    }`}
+                                                                >
+                                                                    {isCredit ? 'Credit' : 'Debit'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <span className="text-sm font-semibold text-green-600">
+                                                                    {isCredit ? formatCurrency(absAmount) : '—'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <span className="text-sm font-semibold text-red-600">
+                                                                    {!isCredit ? formatCurrency(absAmount) : '—'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <div className="text-sm text-gray-600 max-w-xs truncate">
+                                                                    {entry.description || '-'}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
+
+                                {/* Pagination */}
+                                <div className="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-gray-600">
+                                            <span>
+                                                Showing{' '}
+                                                <span className="font-semibold text-gray-900">
+                                                    {entriesPagination.startIndex + 1}
+                                                </span>{' '}
+                                                to{' '}
+                                                <span className="font-semibold text-gray-900">
+                                                    {entriesPagination.endIndex}
+                                                </span>{' '}
+                                                of{' '}
+                                                <span className="font-semibold text-gray-900">
+                                                    {entriesPagination.totalItems}
+                                                </span>
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <label htmlFor="pl-ledger-page-size" className="text-sm text-gray-600">
+                                                    Per page
+                                                </label>
+                                                <select
+                                                    id="pl-ledger-page-size"
+                                                    value={pageSize}
+                                                    onChange={(e) => setPageSize(Number(e.target.value))}
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 bg-white"
+                                                >
+                                                    {PAGE_SIZE_OPTIONS.map((size) => (
+                                                        <option key={size} value={size}>
+                                                            {size}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <button
+                                                type="button"
+                                                disabled={entriesPagination.safePage <= 1}
+                                                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                                className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                Previous
+                                            </button>
+                                            <span className="text-sm text-gray-600 px-2">
+                                                Page{' '}
+                                                <span className="font-semibold text-gray-900">
+                                                    {entriesPagination.safePage}
+                                                </span>{' '}
+                                                of{' '}
+                                                <span className="font-semibold text-gray-900">
+                                                    {entriesPagination.totalPages}
+                                                </span>
+                                            </span>
+                                            <button
+                                                type="button"
+                                                disabled={entriesPagination.safePage >= entriesPagination.totalPages}
+                                                onClick={() =>
+                                                    setCurrentPage((p) =>
+                                                        Math.min(entriesPagination.totalPages, p + 1)
+                                                    )
+                                                }
+                                                className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
                         ) : (
                             <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                                 <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <span className="text-4xl">📝</span>
                                 </div>
-                                <h3 className="text-xl font-semibold text-gray-800 mb-2">No Ledger Entries</h3>
+                                <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                                    {ledgerEntries.length > 0 ? 'No Matching Entries' : 'No Ledger Entries'}
+                                </h3>
                                 <p className="text-gray-600 mb-6">
-                                    Create your first ledger entry to start recording financial transactions
+                                    {ledgerEntries.length > 0
+                                        ? 'Try changing the Type or other filters'
+                                        : 'Create your first ledger entry to start recording financial transactions'}
                                 </p>
-                                <button
-                                    onClick={() => setShowEntryForm(true)}
-                                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
-                                >
-                                    <FiPlus className="w-5 h-5" />
-                                    Create Your First Entry
-                                </button>
+                                {ledgerEntries.length === 0 && (
+                                    <button
+                                        onClick={() => setShowEntryForm(true)}
+                                        className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+                                    >
+                                        <FiPlus className="w-5 h-5" />
+                                        Create Your First Entry
+                                    </button>
+                                )}
                             </div>
                         )}
                     </>
@@ -404,6 +645,14 @@ const PersonalLoanLedgerPage = () => {
                     <PersonalLoanLedgerAccountForm
                         onClose={() => setShowAccountForm(false)}
                         onSuccess={handleCreateAccount}
+                    />
+                )}
+
+                {editingAccount && (
+                    <PersonalLoanLedgerAccountForm
+                        account={editingAccount}
+                        onClose={() => setEditingAccount(null)}
+                        onSuccess={handleUpdateAccount}
                     />
                 )}
 

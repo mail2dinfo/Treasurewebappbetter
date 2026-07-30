@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useRef } from 'react';
 import { API_BASE_URL, readApiResponse } from '../../utils/apiConfig';
 import { useUserContext } from '../user_context';
 
@@ -12,6 +12,7 @@ const initialState = {
     receipts: [],
     ledgerAccounts: [],
     ledgerEntries: [],
+    ledgerCategories: [],
     ledgerSummary: null,
     isLoading: false,
     error: null,
@@ -107,6 +108,14 @@ function personalLoanReducer(state, action) {
                 ledgerAccounts: [action.payload, ...state.ledgerAccounts],
                 isLoading: false
             };
+        case 'UPDATE_LEDGER_ACCOUNT':
+            return {
+                ...state,
+                ledgerAccounts: state.ledgerAccounts.map((account) =>
+                    account.id === action.payload.id ? action.payload : account
+                ),
+                isLoading: false,
+            };
         case 'SET_LEDGER_ENTRIES':
             return { ...state, ledgerEntries: action.payload, isLoading: false };
         case 'ADD_LEDGER_ENTRY':
@@ -117,6 +126,20 @@ function personalLoanReducer(state, action) {
             };
         case 'SET_LEDGER_SUMMARY':
             return { ...state, ledgerSummary: action.payload, isLoading: false };
+        case 'SET_LEDGER_CATEGORIES':
+            return { ...state, ledgerCategories: action.payload, isLoading: false };
+        case 'ADD_LEDGER_CATEGORY':
+            return {
+                ...state,
+                ledgerCategories: [...state.ledgerCategories, action.payload],
+                isLoading: false,
+            };
+        case 'DELETE_LEDGER_CATEGORY':
+            return {
+                ...state,
+                ledgerCategories: state.ledgerCategories.filter((c) => c.id !== action.payload),
+                isLoading: false,
+            };
         case 'SET_LOADING':
             return { ...state, isLoading: action.payload };
         case 'SET_ERROR':
@@ -131,6 +154,8 @@ function personalLoanReducer(state, action) {
 export function PersonalLoanProvider({ children }) {
     const [state, dispatch] = useReducer(personalLoanReducer, initialState);
     const { user } = useUserContext();
+    // Lets loan mutations (defined earlier) always call the latest ledger refresh
+    const refreshLedgerDataRef = useRef(async () => ({ success: true }));
 
     // Fetch all companies
     const fetchCompanies = useCallback(async () => {
@@ -560,6 +585,8 @@ export function PersonalLoanProvider({ children }) {
             const result = await readApiResponse(res);
             dispatch({ type: 'DELETE_LOAN', payload: loanId });
             await fetchLoans();
+            // Reverse ledger cash must show immediately on ledger pages
+            await refreshLedgerDataRef.current();
             dispatch({ type: 'SET_LOADING', payload: false });
             return { success: true, data: result.results || result.data || result };
         } catch (error) {
@@ -616,6 +643,8 @@ export function PersonalLoanProvider({ children }) {
             }
 
             dispatch({ type: 'ADD_LOAN', payload: result.results.loan });
+            // Keep ledger accounts/entries in sync after cash-out disbursement
+            await refreshLedgerDataRef.current();
             dispatch({ type: 'SET_LOADING', payload: false });
             return { success: true, data: result.results };
         } catch (error) {
@@ -699,6 +728,7 @@ export function PersonalLoanProvider({ children }) {
 
             // Refresh loans to get updated status
             await fetchLoans();
+            await refreshLedgerDataRef.current();
             return { success: true, data: result.results };
         } catch (error) {
             const errorMessage = error.message || "Unknown error occurred";
@@ -755,6 +785,8 @@ export function PersonalLoanProvider({ children }) {
             }
 
             await fetchLoans();
+            // Collection credits ledger account — refresh balances + entries
+            await refreshLedgerDataRef.current();
             dispatch({ type: 'SET_LOADING', payload: false });
             return { success: true, data: result.results };
         } catch (error) {
@@ -907,10 +939,51 @@ export function PersonalLoanProvider({ children }) {
             }
 
             dispatch({ type: 'ADD_LEDGER_ACCOUNT', payload: result.results });
+            await refreshLedgerDataRef.current();
             return { success: true, data: result.results };
         } catch (error) {
             const errorMessage = error.message || "Unknown error occurred";
             dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    };
+
+    // Update ledger account name
+    const updateLedgerAccount = async (accountId, accountData) => {
+        try {
+            dispatch({ type: 'SET_LOADING', payload: true });
+            const token = user?.results?.token;
+            if (!token) throw new Error('Authentication token not found');
+
+            const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+            if (!membershipId) {
+                throw new Error('Membership ID not found');
+            }
+
+            const res = await fetch(`${API_BASE_URL}/pl/ledger/accounts/${accountId}`, {
+                method: 'PUT',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    account_name: accountData.account_name,
+                    membershipId,
+                }),
+            });
+
+            const result = await res.json();
+            if (!res.ok) {
+                throw new Error(result.message || 'Failed to update ledger account');
+            }
+
+            dispatch({ type: 'UPDATE_LEDGER_ACCOUNT', payload: result.results });
+            await refreshLedgerDataRef.current();
+            return { success: true, data: result.results };
+        } catch (error) {
+            const errorMessage = error.message || 'Unknown error occurred';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            dispatch({ type: 'SET_LOADING', payload: false });
             return { success: false, error: errorMessage };
         }
     };
@@ -1002,8 +1075,8 @@ export function PersonalLoanProvider({ children }) {
             }
 
             dispatch({ type: 'ADD_LEDGER_ENTRY', payload: result.results });
-            // Refresh accounts to update balances
-            await fetchLedgerAccounts();
+            // Manual entry changes balance — refresh accounts + full entry list + summary
+            await refreshLedgerDataRef.current();
             return { success: true, data: result.results };
         } catch (error) {
             const errorMessage = error.message || "Unknown error occurred";
@@ -1051,6 +1124,125 @@ export function PersonalLoanProvider({ children }) {
         }
     }, [user]);
 
+    // Fetch ledger categories (for Create Entry dropdown + Admin)
+    const fetchLedgerCategories = useCallback(async () => {
+        if (!user?.results?.token) {
+            return { success: false, error: 'User not authenticated' };
+        }
+
+        const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+        if (!membershipId) {
+            return { success: false, error: 'Membership ID not found' };
+        }
+
+        try {
+            const url = `${API_BASE_URL}/pl/ledger/categories?parent_membership_id=${membershipId}`;
+            const res = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${user.results.token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Failed to fetch ledger categories');
+            }
+
+            const data = await res.json();
+            dispatch({ type: 'SET_LEDGER_CATEGORIES', payload: data.results || [] });
+            return { success: true };
+        } catch (error) {
+            const errorMessage = error.message || 'Unknown error occurred';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    }, [user]);
+
+    const createLedgerCategory = async (categoryData) => {
+        try {
+            const token = user?.results?.token;
+            if (!token) throw new Error('Authentication token not found');
+
+            const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+            if (!membershipId) throw new Error('Membership ID not found');
+
+            const name = (categoryData.category_name || categoryData.categoryName || '').trim();
+            if (!name) throw new Error('Category name is required');
+
+            const res = await fetch(`${API_BASE_URL}/pl/ledger/categories`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    category_name: name,
+                    membershipId,
+                }),
+            });
+
+            const result = await res.json();
+            if (!res.ok) {
+                throw new Error(result.message || 'Failed to add category');
+            }
+
+            dispatch({ type: 'ADD_LEDGER_CATEGORY', payload: result.results });
+            await fetchLedgerCategories();
+            return { success: true, data: result.results, message: result.message };
+        } catch (error) {
+            const errorMessage = error.message || 'Unknown error occurred';
+            return { success: false, error: errorMessage, message: errorMessage };
+        }
+    };
+
+    const deleteLedgerCategory = async (categoryId) => {
+        try {
+            const token = user?.results?.token;
+            if (!token) throw new Error('Authentication token not found');
+
+            const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+            const res = await fetch(
+                `${API_BASE_URL}/pl/ledger/categories/${categoryId}?parent_membership_id=${membershipId || ''}`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            const result = await res.json();
+            if (!res.ok) {
+                throw new Error(result.message || 'Failed to delete category');
+            }
+
+            dispatch({ type: 'DELETE_LEDGER_CATEGORY', payload: categoryId });
+            return { success: true, message: result.message || 'Category deleted' };
+        } catch (error) {
+            const errorMessage = error.message || 'Unknown error occurred';
+            return { success: false, error: errorMessage, message: errorMessage };
+        }
+    };
+
+    /**
+     * Refresh ledger accounts, entries, and summary together.
+     * Call after disbursement, collection, foreclosure, delete, or manual ledger add.
+     */
+    const refreshLedgerData = useCallback(async (entryFilters = {}) => {
+        await Promise.all([
+            fetchLedgerAccounts(),
+            fetchLedgerEntries(entryFilters),
+            fetchLedgerSummary(),
+            fetchLedgerCategories(),
+        ]);
+        return { success: true };
+    }, [fetchLedgerAccounts, fetchLedgerEntries, fetchLedgerSummary, fetchLedgerCategories]);
+
+    refreshLedgerDataRef.current = refreshLedgerData;
+
     const clearError = () => {
         dispatch({ type: 'CLEAR_ERROR' });
     };
@@ -1075,9 +1267,14 @@ export function PersonalLoanProvider({ children }) {
         fetchReceipts,
         fetchLedgerAccounts,
         createLedgerAccount,
+        updateLedgerAccount,
         fetchLedgerEntries,
         createLedgerEntry,
         fetchLedgerSummary,
+        fetchLedgerCategories,
+        createLedgerCategory,
+        deleteLedgerCategory,
+        refreshLedgerData,
         clearError,
     };
 

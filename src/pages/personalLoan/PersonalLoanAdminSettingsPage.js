@@ -6,6 +6,8 @@ import {
     FiAlertTriangle,
     FiX,
     FiRefreshCw,
+    FiTag,
+    FiPlus,
 } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { usePersonalLoanContext } from '../../context/personalLoan/PersonalLoanContext';
@@ -17,6 +19,12 @@ const MENU_ITEMS = [
         label: 'Manage Loans',
         description: 'View loans and permanently delete',
         icon: FiDollarSign,
+    },
+    {
+        id: 'add-category',
+        label: 'Add Category',
+        description: 'Manage ledger entry categories',
+        icon: FiTag,
     },
 ];
 
@@ -42,16 +50,35 @@ const formatDate = (value) => {
 };
 
 const PersonalLoanAdminSettingsPage = () => {
-    const { loans, fetchLoans, getLoanById, deleteLoan, isLoading } = usePersonalLoanContext();
+    const {
+        loans,
+        fetchLoans,
+        getLoanById,
+        deleteLoan,
+        isLoading,
+        ledgerCategories,
+        fetchLedgerCategories,
+        createLedgerCategory,
+        deleteLedgerCategory,
+    } = usePersonalLoanContext();
     const [selectedMenu, setSelectedMenu] = useState('manage-loans');
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleteCounts, setDeleteCounts] = useState({ receivables: 0, payments: 0 });
     const [isPreparingDelete, setIsPreparingDelete] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [categoryName, setCategoryName] = useState('');
+    const [isSavingCategory, setIsSavingCategory] = useState(false);
+    const [isDeletingCategoryId, setIsDeletingCategoryId] = useState(null);
 
     useEffect(() => {
         fetchLoans();
     }, [fetchLoans]);
+
+    useEffect(() => {
+        if (selectedMenu === 'add-category') {
+            fetchLedgerCategories();
+        }
+    }, [selectedMenu, fetchLedgerCategories]);
 
     const handleOpenDelete = async (loan) => {
         setIsPreparingDelete(true);
@@ -102,6 +129,49 @@ const PersonalLoanAdminSettingsPage = () => {
         }
     };
 
+    const handleAddCategory = async (e) => {
+        e.preventDefault();
+        if (!categoryName.trim()) {
+            toast.error('Please enter a category name');
+            return;
+        }
+        setIsSavingCategory(true);
+        try {
+            const result = await createLedgerCategory({ category_name: categoryName.trim() });
+            if (!result.success) {
+                toast.error(result.message || result.error || 'Failed to add category');
+                return;
+            }
+            toast.success(result.message || 'Category added');
+            setCategoryName('');
+        } catch (err) {
+            toast.error(err.message || 'Failed to add category');
+        } finally {
+            setIsSavingCategory(false);
+        }
+    };
+
+    const handleDeleteCategory = async (category) => {
+        if (category.is_system) {
+            toast.error('System categories cannot be deleted');
+            return;
+        }
+        if (!window.confirm(`Delete category "${category.category_name}"?`)) return;
+        setIsDeletingCategoryId(category.id);
+        try {
+            const result = await deleteLedgerCategory(category.id);
+            if (!result.success) {
+                toast.error(result.message || result.error || 'Failed to delete category');
+                return;
+            }
+            toast.success(result.message || 'Category deleted');
+        } catch (err) {
+            toast.error(err.message || 'Failed to delete category');
+        } finally {
+            setIsDeletingCategoryId(null);
+        }
+    };
+
     return (
         <div className="min-h-[calc(100vh-7rem)] bg-[#f8f9fa] antialiased">
             <div className="max-w-screen-2xl mx-auto px-3 sm:px-5 lg:px-6 py-5 sm:py-7">
@@ -115,7 +185,7 @@ const PersonalLoanAdminSettingsPage = () => {
                                 Admin Settings
                             </h1>
                             <p className="mt-1 text-sm text-[#888]">
-                                Manage loans and permanently remove records when needed
+                                Manage loans, ledger categories, and permanently remove records when needed
                             </p>
                         </div>
                     </div>
@@ -258,6 +328,100 @@ const PersonalLoanAdminSettingsPage = () => {
                                             ))}
                                         </div>
                                     )}
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedMenu === 'add-category' && (
+                            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4 border-b border-gray-200">
+                                    <div>
+                                        <h2 className="text-lg font-semibold text-gray-900">Add Category</h2>
+                                        <p className="text-sm text-gray-500 mt-0.5">
+                                            Categories appear in Create Ledger Entry for users to pick
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => fetchLedgerCategories()}
+                                        className="inline-flex items-center gap-2 self-start px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium"
+                                    >
+                                        <FiRefreshCw className="w-4 h-4" />
+                                        Refresh
+                                    </button>
+                                </div>
+
+                                <div className="p-4 sm:p-6 space-y-5">
+                                    <form
+                                        onSubmit={handleAddCategory}
+                                        className="rounded-xl border border-gray-200 bg-gray-50 p-4"
+                                    >
+                                        <label
+                                            htmlFor="pl-new-category"
+                                            className="block text-sm font-semibold text-gray-800 mb-2"
+                                        >
+                                            + Add New Category
+                                        </label>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input
+                                                id="pl-new-category"
+                                                type="text"
+                                                value={categoryName}
+                                                onChange={(e) => setCategoryName(e.target.value)}
+                                                placeholder="e.g. Office Rent, Bank Charges"
+                                                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400"
+                                            />
+                                            <button
+                                                type="submit"
+                                                disabled={isSavingCategory}
+                                                className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-xl font-semibold"
+                                            >
+                                                <FiPlus className="w-4 h-4" />
+                                                {isSavingCategory ? 'Adding…' : 'Add Category'}
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                    <div className="rounded-xl border border-gray-200 overflow-hidden">
+                                        {(ledgerCategories || []).length === 0 ? (
+                                            <p className="text-center text-gray-500 py-10 text-sm">
+                                                No categories yet.
+                                            </p>
+                                        ) : (
+                                            <ul className="divide-y divide-gray-100 list-none p-0 m-0">
+                                                {(ledgerCategories || []).map((item) => (
+                                                    <li
+                                                        key={item.id}
+                                                        className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 hover:bg-gray-50"
+                                                    >
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-semibold text-gray-900">
+                                                                {item.category_name}
+                                                            </p>
+                                                            {item.is_system && (
+                                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                                    Default category
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                        {!item.is_system && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeleteCategory(item)}
+                                                                disabled={isDeletingCategoryId === item.id}
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg disabled:opacity-50"
+                                                            >
+                                                                <FiTrash2 className="w-3.5 h-3.5" />
+                                                                {isDeletingCategoryId === item.id
+                                                                    ? 'Deleting…'
+                                                                    : 'Delete'}
+                                                            </button>
+                                                        )}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}

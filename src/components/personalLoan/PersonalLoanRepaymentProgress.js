@@ -21,6 +21,45 @@ const statusBadge = (status) => {
 
 const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
+const toDateOnly = (value) => {
+    if (!value) return null;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    d.setHours(0, 0, 0, 0);
+    return d;
+};
+
+const formatDateKey = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
+
+/**
+ * Next interest due date on/after today (or today if due day already reached this month).
+ * Returns null if due day is missing.
+ */
+const getCurrentOrNextInterestDueDate = (interestDueDay, asOf = new Date()) => {
+    const dueDay = Math.min(Math.max(parseInt(interestDueDay, 10) || 0, 1), 31);
+    if (!dueDay) return null;
+
+    const today = toDateOnly(asOf) || new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const lastDayThisMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const dayThisMonth = Math.min(dueDay, lastDayThisMonth);
+    const dueThisMonth = new Date(today.getFullYear(), today.getMonth(), dayThisMonth);
+    dueThisMonth.setHours(0, 0, 0, 0);
+
+    if (dueThisMonth.getTime() <= today.getTime()) {
+        return dueThisMonth;
+    }
+
+    // Due day not reached yet this month → next month's due (not yet payable)
+    return null;
+};
+
 /**
  * Clear repayment progress: completed vs pending + installment / bullet dues.
  */
@@ -49,12 +88,6 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
             ? summary.monthly_interest
             : round2(principalPending * (rate / 100))
     );
-    const interestDue = interestPending > 0 ? interestPending : monthlyInterest;
-    const closeAmount = Number(
-        summary.close_amount != null
-            ? summary.close_amount
-            : round2(principalPending + interestDue)
-    );
 
     /** Bullet dues from receivables (principal + interest lines). */
     const bulletDues = useMemo(() => {
@@ -75,21 +108,49 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
                 return String(a.due_date || '').localeCompare(String(b.due_date || ''));
             });
 
-        // If no interest receivable yet, show projected monthly interest row
-        const hasInterest = rows.some((r) => r.due_type === 'INTEREST' && r.pending > 0);
-        if (!hasInterest && principalPending > 0 && monthlyInterest > 0) {
-            rows.push({
-                id: 'projected-monthly-interest',
-                due_type: 'INTEREST',
-                due_date: null,
-                original: monthlyInterest,
-                pending: monthlyInterest,
-                status: 'PENDING',
-                projected: true,
-            });
+        // Only project interest if today's due day has arrived AND that due is missing.
+        // Example: due day = 5, today = 30 Jul, July due already PAID → do NOT invent ₹690.
+        // Next due Aug 5 is future → wait for cron / due date.
+        const dueTodayOrPast = getCurrentOrNextInterestDueDate(loan?.interest_due_day);
+        if (dueTodayOrPast && principalPending > 0 && monthlyInterest > 0) {
+            const dueKey = formatDateKey(dueTodayOrPast);
+            const hasDueForDate = rows.some(
+                (r) =>
+                    r.due_type === 'INTEREST'
+                    && r.due_date
+                    && String(r.due_date).slice(0, 10) === dueKey
+            );
+            if (!hasDueForDate) {
+                rows.push({
+                    id: `projected-interest-${dueKey}`,
+                    due_type: 'INTEREST',
+                    due_date: dueKey,
+                    original: monthlyInterest,
+                    pending: monthlyInterest,
+                    status: 'PENDING',
+                    projected: true,
+                });
+            }
         }
         return rows;
-    }, [isBullet, loan?.receivables, principalPending, monthlyInterest]);
+    }, [
+        isBullet,
+        loan?.receivables,
+        loan?.interest_due_day,
+        principalPending,
+        monthlyInterest,
+    ]);
+
+    // Close = principal pending + real pending interest (+ projected only if shown as due)
+    const projectedPending = bulletDues
+        .filter((r) => r.projected && r.pending > 0)
+        .reduce((sum, r) => sum + r.pending, 0);
+    const interestDueNow = interestPending > 0 ? interestPending : projectedPending;
+    const closeAmount = Number(
+        summary.close_amount != null && interestPending > 0
+            ? summary.close_amount
+            : round2(principalPending + interestDueNow)
+    );
 
     const interestPaid = Number(summary.interest_paid || 0);
     const interestTotal = Number(
@@ -260,11 +321,11 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
                                                         : 'bg-purple-100 text-purple-800'
                                                 }`}>
                                                     {row.due_type}
-                                                    {row.projected ? ' (this month)' : ''}
+                                                    {row.projected ? ' (due now)' : ''}
                                                 </span>
                                             </td>
                                             <td className="px-3 py-2 text-gray-700">
-                                                {row.projected ? 'Current month' : formatDate(row.due_date)}
+                                                {formatDate(row.due_date)}
                                             </td>
                                             <td className="px-3 py-2 text-right text-gray-800">
                                                 {formatCurrency(row.original)}

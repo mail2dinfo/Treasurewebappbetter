@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { FiX, FiDollarSign } from 'react-icons/fi';
 
-const PersonalLoanLedgerAccountForm = ({ onClose, onSuccess }) => {
+const PersonalLoanLedgerAccountForm = ({ onClose, onSuccess, account = null }) => {
+    const isEdit = Boolean(account?.id);
     const [isLoading, setIsLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
     const [formData, setFormData] = useState({
-        account_name: '',
-        opening_balance: '0',
+        account_name: account?.account_name || '',
+        opening_balance: account?.opening_balance != null ? String(account.opening_balance) : '0',
     });
 
     const handleChange = (e) => {
@@ -31,7 +32,7 @@ const PersonalLoanLedgerAccountForm = ({ onClose, onSuccess }) => {
             newErrors.account_name = 'Account name is required';
         }
 
-        if (formData.opening_balance === '' || isNaN(parseFloat(formData.opening_balance))) {
+        if (!isEdit && (formData.opening_balance === '' || isNaN(parseFloat(formData.opening_balance)))) {
             newErrors.opening_balance = 'Valid opening balance is required';
         }
 
@@ -49,13 +50,17 @@ const PersonalLoanLedgerAccountForm = ({ onClose, onSuccess }) => {
         setIsLoading(true);
 
         try {
-            const result = await onSuccess({
-                account_name: formData.account_name.trim(),
-                opening_balance: parseFloat(formData.opening_balance),
-            });
+            const payload = isEdit
+                ? { account_name: formData.account_name.trim() }
+                : {
+                    account_name: formData.account_name.trim(),
+                    opening_balance: parseFloat(formData.opening_balance),
+                };
+
+            const result = await onSuccess(payload);
 
             if (!result.success) {
-                setErrors({ submit: result.error || 'Failed to create account' });
+                setErrors({ submit: result.error || (isEdit ? 'Failed to update account' : 'Failed to create account') });
             } else {
                 if (onClose) onClose();
             }
@@ -71,7 +76,9 @@ const PersonalLoanLedgerAccountForm = ({ onClose, onSuccess }) => {
             <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
                 {/* Header */}
                 <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-gray-900">Create Ledger Account</h2>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                        {isEdit ? 'Update Ledger Account' : 'Create Ledger Account'}
+                    </h2>
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -103,36 +110,39 @@ const PersonalLoanLedgerAccountForm = ({ onClose, onSuccess }) => {
                                 errors.account_name ? 'border-red-500' : 'border-gray-300'
                             }`}
                             placeholder="e.g., Cash, Bank Account, UPI"
+                            autoFocus
                         />
                         {errors.account_name && (
                             <p className="mt-1 text-sm text-red-600">{errors.account_name}</p>
                         )}
                     </div>
 
-                    {/* Opening Balance */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <FiDollarSign className="inline w-4 h-4 mr-1" />
-                            Opening Balance (₹) *
-                        </label>
-                        <input
-                            type="number"
-                            name="opening_balance"
-                            value={formData.opening_balance}
-                            onChange={handleChange}
-                            step="0.01"
-                            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                                errors.opening_balance ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                            placeholder="0.00"
-                        />
-                        {errors.opening_balance && (
-                            <p className="mt-1 text-sm text-red-600">{errors.opening_balance}</p>
-                        )}
-                        <p className="mt-1 text-xs text-gray-500">
-                            Initial balance when the account is created
-                        </p>
-                    </div>
+                    {/* Opening Balance — create only */}
+                    {!isEdit && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <FiDollarSign className="inline w-4 h-4 mr-1" />
+                                Opening Balance (₹) *
+                            </label>
+                            <input
+                                type="number"
+                                name="opening_balance"
+                                value={formData.opening_balance}
+                                onChange={handleChange}
+                                step="0.01"
+                                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
+                                    errors.opening_balance ? 'border-red-500' : 'border-gray-300'
+                                }`}
+                                placeholder="0.00"
+                            />
+                            {errors.opening_balance && (
+                                <p className="mt-1 text-sm text-red-600">{errors.opening_balance}</p>
+                            )}
+                            <p className="mt-1 text-xs text-gray-500">
+                                Initial balance when the account is created
+                            </p>
+                        </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-4 pt-4 border-t border-gray-200">
@@ -148,7 +158,9 @@ const PersonalLoanLedgerAccountForm = ({ onClose, onSuccess }) => {
                             disabled={isLoading}
                             className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {isLoading ? 'Creating...' : 'Create Account'}
+                            {isLoading
+                                ? (isEdit ? 'Updating...' : 'Creating...')
+                                : (isEdit ? 'Update Account' : 'Create Account')}
                         </button>
                     </div>
                 </form>

@@ -81,6 +81,27 @@ const PersonalLoanDashboard = () => {
         setImageError(false);
     }, [primaryCompany?.id, primaryCompany?.company_logo]);
 
+    const formatCompanyAddress = (address) => {
+        if (!address) return '';
+        return String(address)
+            .split(',')
+            .map((part) => part.trim())
+            .filter(Boolean)
+            .join(', ');
+    };
+
+    const formatCompanyPhone = (phone) => {
+        if (!phone) return '';
+        const digits = String(phone).replace(/\D/g, '');
+        if (digits.length === 10) {
+            return `${digits.slice(0, 5)} ${digits.slice(5)}`;
+        }
+        if (digits.length === 12 && digits.startsWith('91')) {
+            return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
+        }
+        return String(phone).trim();
+    };
+
     if (pageLoading) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
@@ -88,6 +109,9 @@ const PersonalLoanDashboard = () => {
             </div>
         );
     }
+
+    const formattedAddress = formatCompanyAddress(primaryCompany?.address);
+    const formattedPhone = formatCompanyPhone(primaryCompany?.contact_no);
 
     return (
         <div className="home-page">
@@ -138,11 +162,36 @@ const PersonalLoanDashboard = () => {
                                             </button>
                                         </div>
                                     </div>
-                                    {(primaryCompany.address || primaryCompany.contact_no || primaryCompany.email) && (
-                                        <div className="mt-4 space-y-1 text-sm text-gray-600">
-                                            {primaryCompany.address && <p>{primaryCompany.address}</p>}
-                                            {primaryCompany.contact_no && <p>{primaryCompany.contact_no}</p>}
-                                            {primaryCompany.email && <p>{primaryCompany.email}</p>}
+                                    {(formattedAddress || formattedPhone || primaryCompany.email) && (
+                                        <div className="mt-4 pt-4 border-t border-gray-100 space-y-2.5 text-sm text-gray-600">
+                                            {formattedAddress && (
+                                                <div>
+                                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-0.5">
+                                                        Address
+                                                    </p>
+                                                    <p className="leading-relaxed break-words">
+                                                        {formattedAddress}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {formattedPhone && (
+                                                <div>
+                                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-0.5">
+                                                        Phone
+                                                    </p>
+                                                    <p className="font-medium text-gray-800 tracking-wide">
+                                                        {formattedPhone}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            {primaryCompany.email && (
+                                                <div>
+                                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 mb-0.5">
+                                                        Email
+                                                    </p>
+                                                    <p className="break-all">{primaryCompany.email}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
