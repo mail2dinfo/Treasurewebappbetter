@@ -91,6 +91,20 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
         return rows;
     }, [isBullet, loan?.receivables, principalPending, monthlyInterest]);
 
+    const interestPaid = Number(summary.interest_paid || 0);
+    const interestTotal = Number(
+        summary.interest_total != null
+            ? summary.interest_total
+            : round2(interestPaid + interestPending)
+    );
+    const interestPct = Number(
+        summary.interest_percent != null
+            ? summary.interest_percent
+            : (interestTotal > 0
+                ? Math.min(100, Math.round((interestPaid / interestTotal) * 100))
+                : 0)
+    );
+
     return (
         <div className="space-y-5 mb-6">
             <div>
@@ -101,30 +115,59 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
                     </span>
                 </div>
 
-                {isBullet ? (
-                    <p className="mb-2 text-sm text-gray-700">
-                        Open-ended bullet loan — no fixed installment schedule. Interest is monthly on outstanding principal.
-                    </p>
-                ) : (
-                    summary.installments_total > 0 && (
-                        <p className="mb-2 text-sm font-semibold text-gray-800">
-                            <span className="text-green-700">{summary.installments_paid || 0} Paid</span>
-                            <span className="text-gray-400"> / </span>
-                            <span className="text-red-600">{summary.installments_pending || 0} Pending</span>
-                            <span className="ml-2 text-xs font-normal text-gray-500">
-                                of {summary.installments_total} installments
-                            </span>
+                {(interestTotal > 0 || interestPaid > 0) && (
+                    <div className="mb-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
+                            Interest — paid out of whole interest
                         </p>
-                    )
+                        <p className="mt-1 text-base font-bold text-gray-900 sm:text-lg">
+                            <span className="text-green-700">{formatCurrency(interestPaid)}</span>
+                            <span className="font-medium text-gray-500"> paid out of </span>
+                            <span>{formatCurrency(interestTotal)}</span>
+                        </p>
+                        <p className="mt-1 text-xs text-gray-600">
+                            {interestPct}% of whole interest
+                            {interestPending > 0
+                                ? ` · ${formatCurrency(interestPending)} still pending`
+                                : ' · all billed interest paid'}
+                        </p>
+                        <div className="mt-2 h-2 w-full rounded-full bg-orange-100 overflow-hidden">
+                            <div
+                                className="h-full rounded-full bg-green-500 transition-all"
+                                style={{ width: `${interestPct}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {!isBullet && summary.installments_total > 0 && (
+                    <p className="mb-2 text-sm font-semibold text-gray-800">
+                        <span className="text-green-700">{summary.installments_paid || 0} Paid</span>
+                        <span className="text-gray-400"> / </span>
+                        <span className="text-red-600">{summary.installments_pending || 0} Pending</span>
+                        <span className="ml-2 text-xs font-normal text-gray-500">
+                            of {summary.installments_total} installments
+                        </span>
+                    </p>
+                )}
+
+                {isBullet && (
+                    <p className="mb-2 text-sm text-gray-600">
+                        Open-ended loan — interest accrues monthly on outstanding principal.
+                    </p>
                 )}
 
                 <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
                     <div
                         className="h-full rounded-full bg-green-500 transition-all"
-                        style={{ width: `${completedPct}%` }}
+                        style={{ width: `${isBullet && interestTotal > 0 ? interestPct : completedPct}%` }}
                     />
                 </div>
-                <p className="mt-1 text-xs text-gray-500">{completedPct}% completed</p>
+                <p className="mt-1 text-xs text-gray-500">
+                    {isBullet && interestTotal > 0
+                        ? `${interestPct}% of whole interest paid`
+                        : `${completedPct}% overall completed`}
+                </p>
             </div>
 
             {isBullet ? (

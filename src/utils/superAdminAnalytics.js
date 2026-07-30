@@ -12,6 +12,12 @@ export const SUPER_ADMIN_NAV = [
         icon: 'trending',
     },
     {
+        id: 'jobs',
+        name: 'Jobs',
+        path: '/super-admin/jobs',
+        icon: 'clock',
+    },
+    {
         id: 'chit-fund',
         name: 'Chit Fund',
         path: '/super-admin/chit-fund-analytics',

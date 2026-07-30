@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
     FiBarChart2,
+    FiClock,
     FiGrid,
     FiLogOut,
     FiMenu,
@@ -11,6 +12,7 @@ import {
 import { useHistory, useLocation } from 'react-router-dom';
 import { useUserContext } from '../../context/user_context';
 import { SUPER_ADMIN_NAV } from '../../utils/superAdminAnalytics';
+import { SUPER_ADMIN_PHONE } from '../../utils/superAdminUtils';
 import MyTreasureBrand from '../MyTreasureBrand';
 
 const navIcons = {
@@ -18,6 +20,7 @@ const navIcons = {
     users: FiUsers,
     chart: FiBarChart2,
     trending: FiTrendingUp,
+    clock: FiClock,
 };
 
 const SuperAdminShell = ({
@@ -49,6 +52,9 @@ const SuperAdminShell = ({
         <>
             <div className="border-b border-white/10 px-5 py-6">
                 <MyTreasureBrand subtitle="Super Admin" inverse />
+                <p className="mt-3 text-xs font-medium tracking-wide text-slate-400">
+                    Admin phone · <span className="text-white">{SUPER_ADMIN_PHONE}</span>
+                </p>
             </div>
 
             <nav className="flex-1 space-y-1 px-3 py-4">

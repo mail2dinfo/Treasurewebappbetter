@@ -387,16 +387,16 @@ const PersonalLoanLoansPage = () => {
                                             Loan Amount
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Disbursed Date
+                                        </th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Outstanding
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Progress
+                                            Int Pay Status
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Mode
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Disbursed Date
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Status
@@ -424,6 +424,9 @@ const PersonalLoanLoansPage = () => {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {formatCurrency(loan.principal_amount)}
                                             </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                {formatDate(loan.disbursed_date)}
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <div className="text-sm font-medium text-gray-900">
                                                     {formatCurrency(loan.total_outstanding)}
@@ -437,60 +440,44 @@ const PersonalLoanLoansPage = () => {
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 {(() => {
                                                     const s = loan.repayment_summary || {};
-                                                    if (loan.loan_mode === 'INTEREST_ONLY') {
-                                                        const principalPending = Number(
-                                                            s.principal_pending != null
-                                                                ? s.principal_pending
-                                                                : loan.outstanding_principal || 0
-                                                        );
-                                                        const rate = parseFloat(loan.interest_rate) || 0;
-                                                        const monthly = Number(
-                                                            s.monthly_interest != null
-                                                                ? s.monthly_interest
-                                                                : Math.round((principalPending * rate / 100 + Number.EPSILON) * 100) / 100
-                                                        );
-                                                        const pct = Number(s.completed_percent || 0);
+                                                    const interestPaid = Number(s.interest_paid || 0);
+                                                    const interestPending = Number(
+                                                        s.interest_pending != null
+                                                            ? s.interest_pending
+                                                            : loan.outstanding_interest || 0
+                                                    );
+                                                    const interestTotal = Number(
+                                                        s.interest_total != null
+                                                            ? s.interest_total
+                                                            : interestPaid + interestPending
+                                                    );
+
+                                                    // Interest: paid out of whole interest only
+                                                    if (interestTotal > 0 || interestPaid > 0 || interestPending > 0) {
                                                         return (
-                                                            <div className="min-w-[150px]">
-                                                                <div className="text-sm font-semibold text-gray-900">
-                                                                    <span className="text-orange-700">₹{monthly.toLocaleString('en-IN')} / mo</span>
-                                                                </div>
-                                                                <p className="text-[11px] text-gray-500 mt-0.5">
-                                                                    Principal {formatCurrency(principalPending)}
-                                                                </p>
-                                                                <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
-                                                                    <div
-                                                                        className="h-full rounded-full bg-green-500"
-                                                                        style={{ width: `${Math.min(100, pct)}%` }}
-                                                                    />
-                                                                </div>
-                                                                <p className="mt-1 text-[11px] text-gray-500">{pct}% repaid</p>
+                                                            <div className="min-w-[120px] text-sm font-semibold tabular-nums leading-snug">
+                                                                <span className="text-green-700">
+                                                                    {formatCurrency(interestPaid)}
+                                                                </span>
+                                                                <span className="mx-1 text-gray-400">/</span>
+                                                                <span className="text-gray-800">
+                                                                    {formatCurrency(interestTotal)}
+                                                                </span>
                                                             </div>
                                                         );
                                                     }
+
                                                     const paid = Number(s.installments_paid || 0);
                                                     const pending = Number(s.installments_pending || 0);
                                                     const total = Number(s.installments_total || (paid + pending));
-                                                    const pct = Number(s.completed_percent || 0);
                                                     if (!total) {
                                                         return <span className="text-sm text-gray-400">—</span>;
                                                     }
                                                     return (
-                                                        <div className="min-w-[140px]">
-                                                            <div className="text-sm font-semibold text-gray-900">
-                                                                <span className="text-green-700">{paid} Paid</span>
-                                                                <span className="text-gray-400"> / </span>
-                                                                <span className="text-red-600">{pending} Pending</span>
-                                                            </div>
-                                                            <div className="mt-1.5 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
-                                                                <div
-                                                                    className="h-full rounded-full bg-green-500"
-                                                                    style={{ width: `${Math.min(100, pct)}%` }}
-                                                                />
-                                                            </div>
-                                                            <p className="mt-1 text-[11px] text-gray-500">
-                                                                {pct}% · {total} installment{total === 1 ? '' : 's'}
-                                                            </p>
+                                                        <div className="text-sm font-semibold text-gray-900">
+                                                            <span className="text-green-700">{paid} Paid</span>
+                                                            <span className="text-gray-400"> / </span>
+                                                            <span className="text-red-600">{pending} Pending</span>
                                                         </div>
                                                     );
                                                 })()}
@@ -499,9 +486,6 @@ const PersonalLoanLoansPage = () => {
                                                 <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                                     {getPlLoanModeLabel(loan.loan_mode)}
                                                 </span>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {formatDate(loan.disbursed_date)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusBadge(loan.status)}`}>
@@ -721,7 +705,7 @@ const PersonalLoanLoansPage = () => {
                                 {selectedLoanDetails.receipts && selectedLoanDetails.receipts.length > 0 && (
                                     <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 rounded-lg mb-6 border border-green-200">
                                         <h3 className="text-lg font-semibold mb-3 text-gray-900">Payment Summary</h3>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                                             <div>
                                                 <p className="text-xs text-gray-600">Total Payments</p>
                                                 <p className="text-lg font-bold text-gray-900">
@@ -732,18 +716,19 @@ const PersonalLoanLoansPage = () => {
                                                 <p className="text-xs text-gray-600">Total Principal Paid</p>
                                                 <p className="text-lg font-bold text-green-600">
                                                     {formatCurrency(
-                                                        selectedLoanDetails.receipts.reduce((sum, r) => 
+                                                        selectedLoanDetails.receipts.reduce((sum, r) =>
                                                             sum + parseFloat(r.principal_paid || 0), 0
                                                         )
                                                     )}
                                                 </p>
                                             </div>
-                                            {selectedLoanDetails.loan_mode === 'INTEREST_ONLY' && (
+                                            {selectedLoanDetails.loan_mode !== 'INTEREST_FREE' && (
                                                 <div>
                                                     <p className="text-xs text-gray-600">Total Interest Paid</p>
                                                     <p className="text-lg font-bold text-orange-600">
                                                         {formatCurrency(
-                                                            selectedLoanDetails.receipts.reduce((sum, r) => 
+                                                            selectedLoanDetails.repayment_summary?.interest_paid
+                                                            ?? selectedLoanDetails.receipts.reduce((sum, r) =>
                                                                 sum + parseFloat(r.interest_paid || 0), 0
                                                             )
                                                         )}
@@ -756,6 +741,18 @@ const PersonalLoanLoansPage = () => {
                                                     {formatCurrency(selectedLoanDetails.outstanding_principal)}
                                                 </p>
                                             </div>
+                                            {selectedLoanDetails.loan_mode !== 'INTEREST_FREE' && (
+                                                <div>
+                                                    <p className="text-xs text-gray-600">Outstanding Interest</p>
+                                                    <p className="text-lg font-bold text-orange-700">
+                                                        {formatCurrency(
+                                                            selectedLoanDetails.repayment_summary?.interest_pending
+                                                            ?? selectedLoanDetails.outstanding_interest
+                                                            ?? 0
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
