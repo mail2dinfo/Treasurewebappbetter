@@ -1,24 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { FiX, FiAlertTriangle, FiDollarSign, FiCalendar, FiCreditCard } from 'react-icons/fi';
 import { usePersonalLoanContext } from '../../context/personalLoan/PersonalLoanContext';
 import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
 
+const formatCurrency = (amount) =>
+    new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 2,
+    }).format(amount || 0);
+
+const formatDate = (dateString) => {
+    if (!dateString) return '—';
+    const raw = String(dateString).slice(0, 10);
+    const [y, m, d] = raw.split('-').map(Number);
+    if (y && m && d) {
+        return new Date(y, m - 1, d).toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        });
+    }
+    return new Date(dateString).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    });
+};
+
 const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
-    const { forecloseLoan, fetchLedgerAccounts } = usePersonalLoanContext();
+    const { forecloseLoan, getForeclosurePreview, fetchLedgerAccounts } = usePersonalLoanContext();
     const { user } = useUserContext();
     const [isLoading, setIsLoading] = useState(false);
+    const [isPreviewLoading, setIsPreviewLoading] = useState(false);
     const [error, setError] = useState('');
     const [ledgerAccounts, setLedgerAccounts] = useState([]);
+    const [settlement, setSettlement] = useState(null);
     const [formData, setFormData] = useState({
         paymentDate: new Date().toISOString().split('T')[0],
-        paymentMode: '', // Will be ledger account ID
+        paymentMode: '',
     });
     const [errors, setErrors] = useState({});
-
-    useEffect(() => {
-        loadLedgerAccounts();
-    }, []);
 
     const loadLedgerAccounts = async () => {
         try {
@@ -32,29 +55,49 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
             if (data.results) {
                 setLedgerAccounts(data.results);
             }
-        } catch (error) {
-            console.error('Error loading ledger accounts:', error);
+        } catch (loadError) {
+            console.error('Error loading ledger accounts:', loadError);
         }
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            maximumFractionDigits: 2,
-        }).format(amount || 0);
-    };
+    const loadPreview = useCallback(async (paymentDate) => {
+        if (!loan?.id || !paymentDate) return;
+        setIsPreviewLoading(true);
+        setError('');
+        try {
+            const result = await getForeclosurePreview(loan.id, paymentDate);
+            if (result.success) {
+                setSettlement(result.data?.settlement || null);
+            } else {
+                setSettlement(null);
+                setError(result.error || 'Failed to load settlement');
+            }
+        } catch (previewError) {
+            setSettlement(null);
+            setError(previewError.message || 'Failed to load settlement');
+        } finally {
+            setIsPreviewLoading(false);
+        }
+        // getForeclosurePreview is recreated each render from context — intentionally omit
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loan?.id]);
 
-    const totalOutstanding = (parseFloat(loan.outstanding_principal || 0) + parseFloat(loan.outstanding_interest || 0));
+    useEffect(() => {
+        loadLedgerAccounts();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        loadPreview(formData.paymentDate);
+    }, [formData.paymentDate, loadPreview]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
+        setFormData((prev) => ({
             ...prev,
-            [name]: value
+            [name]: value,
         }));
         if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
+            setErrors((prev) => ({ ...prev, [name]: '' }));
         }
     };
 
@@ -70,12 +113,17 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
         return Object.keys(newErrors).length === 0;
     };
 
+    const totalClose = Number(settlement?.total_foreclosure_amount || 0);
+
     const handleForeclose = async () => {
         if (!validate()) {
             return;
         }
 
-        if (!window.confirm(`Are you sure you want to foreclose this loan? This will mark all outstanding receivables as paid.`)) {
+        if (!window.confirm(
+            `Foreclose this loan for ${formatCurrency(totalClose)}? `
+            + 'All pending dues will be settled and no further interest dues will be created.'
+        )) {
             return;
         }
 
@@ -83,8 +131,7 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
         setError('');
 
         try {
-            // Get the selected ledger account name for paymentMode
-            const selectedAccount = ledgerAccounts.find(a => a.id === formData.paymentMode);
+            const selectedAccount = ledgerAccounts.find((a) => a.id === formData.paymentMode);
             const paymentModeName = selectedAccount ? selectedAccount.account_name : '';
 
             const result = await forecloseLoan({
@@ -95,7 +142,6 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
             });
 
             if (result.success) {
-                // Refresh ledger accounts to update balances
                 await fetchLedgerAccounts();
                 if (onSuccess) onSuccess(result.data);
                 if (onClose) onClose();
@@ -112,13 +158,13 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                {/* Header */}
-                <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+                <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 bg-white z-10">
                     <div className="flex items-center">
                         <FiAlertTriangle className="w-6 h-6 text-red-600 mr-2" />
                         <h2 className="text-2xl font-bold text-gray-900">Foreclose Loan</h2>
                     </div>
                     <button
+                        type="button"
                         onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
@@ -126,7 +172,6 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                     </button>
                 </div>
 
-                {/* Content */}
                 <div className="p-6">
                     {error && (
                         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
@@ -134,54 +179,21 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                         </div>
                     )}
 
-                    <div className="mb-6">
-                        <p className="text-gray-700 mb-4">
-                            This action will foreclose the loan and mark all outstanding receivables as paid. 
-                            This cannot be undone.
-                        </p>
-
-                        {/* Loan Info */}
-                        <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                            <h3 className="font-semibold text-gray-900 mb-3">Loan Details</h3>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Subscriber:</span>
-                                    <span className="font-medium">{loan.subscriber?.pl_cust_name || 'N/A'}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Principal Amount:</span>
-                                    <span className="font-medium">{formatCurrency(loan.principal_amount)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Outstanding Principal:</span>
-                                    <span className="font-medium text-red-600">{formatCurrency(loan.outstanding_principal)}</span>
-                                </div>
-                                {loan.loan_mode === 'INTEREST_ONLY' && loan.outstanding_interest > 0 && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Outstanding Interest:</span>
-                                        <span className="font-medium text-orange-600">{formatCurrency(loan.outstanding_interest)}</span>
-                                    </div>
-                                )}
-                                <div className="flex justify-between pt-2 border-t border-gray-200">
-                                    <span className="text-gray-900 font-semibold">Total Outstanding:</span>
-                                    <span className="text-red-600 font-bold text-lg">{formatCurrency(totalOutstanding)}</span>
-                                </div>
-                            </div>
+                    <div className="mb-4 bg-gray-50 p-4 rounded-lg text-sm space-y-2">
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Subscriber</span>
+                            <span className="font-medium">{loan.subscriber?.pl_cust_name || 'N/A'}</span>
                         </div>
-
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                            <p className="text-sm text-yellow-800">
-                                <strong>Note:</strong> After foreclosure, the loan status will be changed to FORECLOSED 
-                                and all pending receivables will be marked as PAID.
-                            </p>
+                        <div className="flex justify-between">
+                            <span className="text-gray-600">Original principal</span>
+                            <span className="font-medium">{formatCurrency(loan.principal_amount)}</span>
                         </div>
                     </div>
 
-                    {/* Payment Date */}
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             <FiCalendar className="inline w-4 h-4 mr-1" />
-                            Payment Date *
+                            Closing date *
                         </label>
                         <input
                             type="date"
@@ -195,13 +207,15 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                         {errors.paymentDate && (
                             <p className="mt-1 text-sm text-red-600">{errors.paymentDate}</p>
                         )}
+                        <p className="mt-1 text-xs text-gray-500">
+                            Settlement recalculates when you change this date (includes pro-rata days to close).
+                        </p>
                     </div>
 
-                    {/* Payment Method (Ledger Account) */}
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                             <FiCreditCard className="inline w-4 h-4 mr-1" />
-                            Payment Method (Ledger Account) *
+                            Payment method (Ledger Account) *
                         </label>
                         <select
                             name="paymentMode"
@@ -212,31 +226,211 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                             }`}
                         >
                             <option value="">Select Payment Method (Ledger Account)</option>
-                            {ledgerAccounts.map(account => (
+                            {ledgerAccounts.map((account) => (
                                 <option key={account.id} value={account.id}>
-                                    {account.account_name} (Balance: ₹{parseFloat(account.current_balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                    {account.account_name} (Balance: ₹
+                                    {parseFloat(account.current_balance || 0).toLocaleString('en-IN', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                    })}
+                                    )
                                 </option>
                             ))}
                         </select>
                         {errors.paymentMode && (
                             <p className="mt-1 text-sm text-red-600">{errors.paymentMode}</p>
                         )}
-                        <p className="mt-1 text-xs text-gray-500">
-                            Select the ledger account where the foreclosure payment will be deposited. Only accounts created by you are shown.
-                        </p>
                     </div>
 
-                    {/* Summary */}
-                    <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                        <h3 className="font-semibold text-gray-900 mb-2">Foreclosure Summary</h3>
-                        <div className="space-y-1 text-sm text-gray-600">
-                            <p><strong>Total Outstanding:</strong> {formatCurrency(totalOutstanding)}</p>
-                            <p><strong>Payment Date:</strong> {new Date(formData.paymentDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                            <p><strong>Payment Method:</strong> {ledgerAccounts.find(a => a.id === formData.paymentMode)?.account_name || 'Not selected'}</p>
+                    <div className="rounded-xl border border-red-200 bg-red-50/40 mb-4 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-red-100 flex items-center justify-between">
+                            <h3 className="font-semibold text-gray-900">Settlement split</h3>
+                            {isPreviewLoading && (
+                                <span className="text-xs text-gray-500">Calculating…</span>
+                            )}
                         </div>
+
+                        {!settlement && !isPreviewLoading ? (
+                            <p className="px-4 py-6 text-sm text-gray-500 text-center">
+                                Settlement details unavailable.
+                            </p>
+                        ) : settlement ? (
+                            <div className="p-4 space-y-4 text-sm">
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                                        1. Principal
+                                    </p>
+                                    <div className="flex justify-between rounded-lg bg-white border border-gray-200 px-3 py-2">
+                                        <span className="text-gray-700">Outstanding principal</span>
+                                        <span className="font-semibold text-red-700">
+                                            {formatCurrency(settlement.principal?.amount)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                                        2. Pending interest dues
+                                    </p>
+                                    {(settlement.dues || []).length === 0 ? (
+                                        <p className="rounded-lg bg-white border border-gray-200 px-3 py-2 text-gray-500">
+                                            No billed interest dues pending
+                                        </p>
+                                    ) : (
+                                        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                                            <table className="min-w-full text-sm">
+                                                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                                                    <tr>
+                                                        <th className="px-3 py-2 text-left">Due date</th>
+                                                        <th className="px-3 py-2 text-left">Inst #</th>
+                                                        <th className="px-3 py-2 text-right">Pending</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {settlement.dues.map((due) => (
+                                                        <tr key={due.id}>
+                                                            <td className="px-3 py-2 text-gray-700">
+                                                                {formatDate(due.due_date)}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-gray-500">
+                                                                {due.installment_no != null ? due.installment_no : '—'}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-right font-medium text-orange-700">
+                                                                {formatCurrency(due.pending_amount)}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                                <tfoot className="bg-gray-50 border-t border-gray-200">
+                                                    <tr>
+                                                        <td className="px-3 py-2 font-semibold text-gray-700" colSpan={2}>
+                                                            All dues total
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right font-bold text-orange-800">
+                                                            {formatCurrency(settlement.dues_total)}
+                                                        </td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                                        3. Pro-rata (pending days to close)
+                                    </p>
+                                    {settlement.prorata ? (
+                                        <div className="rounded-lg bg-white border border-orange-200 px-3 py-3 space-y-1">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-700">
+                                                    {formatDate(settlement.prorata.from_date)}
+                                                    {' → '}
+                                                    {formatDate(settlement.prorata.to_date)}
+                                                </span>
+                                                <span className="font-semibold text-orange-700">
+                                                    {formatCurrency(settlement.prorata.amount)}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-gray-500">
+                                                {settlement.prorata.days_held}/{settlement.prorata.cycle_days} days
+                                                {' '}of monthly interest {formatCurrency(settlement.prorata.monthly_interest)}
+                                                {' '}on outstanding principal
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <p className="rounded-lg bg-white border border-gray-200 px-3 py-2 text-gray-500">
+                                            {settlement.loan_mode === 'INTEREST_FREE'
+                                                ? 'Interest-free loan — no pro-rata'
+                                                : 'No pending days — closing on/after last due with no extra hold period'}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {(settlement.waived || []).length > 0 && (
+                                    <div>
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                                            4. Future interest waived (not collected)
+                                        </p>
+                                        <div className="rounded-lg border border-slate-200 bg-slate-50 overflow-hidden">
+                                            <table className="min-w-full text-sm">
+                                                <thead className="bg-slate-100 text-xs uppercase text-slate-500">
+                                                    <tr>
+                                                        <th className="px-3 py-2 text-left">Due date</th>
+                                                        <th className="px-3 py-2 text-left">Inst #</th>
+                                                        <th className="px-3 py-2 text-right">Waived</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-100 bg-white">
+                                                    {settlement.waived.map((due) => (
+                                                        <tr key={due.id}>
+                                                            <td className="px-3 py-2 text-slate-700">
+                                                                {formatDate(due.due_date)}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-slate-500">
+                                                                {due.installment_no != null ? due.installment_no : '—'}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-right font-medium text-slate-600 line-through">
+                                                                {formatCurrency(due.pending_amount)}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                                <tfoot className="bg-slate-100 border-t border-slate-200">
+                                                    <tr>
+                                                        <td className="px-3 py-2 font-semibold text-slate-700" colSpan={2}>
+                                                            Waived total (status: WAIVED)
+                                                        </td>
+                                                        <td className="px-3 py-2 text-right font-bold text-slate-800">
+                                                            {formatCurrency(settlement.waived_total)}
+                                                        </td>
+                                                    </tr>
+                                                </tfoot>
+                                            </table>
+                                        </div>
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            These rows are marked WAIVED — not paid by the subscriber and not in the receipt.
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="rounded-lg border-2 border-red-300 bg-white px-4 py-3 space-y-2">
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>Principal</span>
+                                        <span>{formatCurrency(settlement.principal?.amount)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>+ All dues (collected)</span>
+                                        <span>{formatCurrency(settlement.dues_total)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>+ Pro-rata</span>
+                                        <span>{formatCurrency(settlement.prorata?.amount || 0)}</span>
+                                    </div>
+                                    {(settlement.waived_total || 0) > 0 && (
+                                        <div className="flex justify-between text-slate-500">
+                                            <span>− Future interest waived</span>
+                                            <span>{formatCurrency(settlement.waived_total)} (not charged)</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between pt-2 border-t border-red-200">
+                                        <span className="font-bold text-gray-900">
+                                            Total foreclosure amount
+                                        </span>
+                                        <span className="font-bold text-lg text-red-700">
+                                            {formatCurrency(settlement.total_foreclosure_amount)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <p className="text-xs text-gray-500">
+                                    After foreclosure the loan is FORECLOSED. Collected amounts appear on the receipt;
+                                    waived future interest stays on the loan as status WAIVED for reporting.
+                                </p>
+                            </div>
+                        ) : null}
                     </div>
 
-                    {/* Actions */}
                     <div className="flex gap-4">
                         <button
                             type="button"
@@ -246,8 +440,9 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                             Cancel
                         </button>
                         <button
+                            type="button"
                             onClick={handleForeclose}
-                            disabled={isLoading || totalOutstanding <= 0}
+                            disabled={isLoading || isPreviewLoading || totalClose <= 0}
                             className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                         >
                             {isLoading ? (
@@ -255,7 +450,7 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                             ) : (
                                 <>
                                     <FiDollarSign className="w-5 h-5 mr-2" />
-                                    Foreclose Loan
+                                    Settle {formatCurrency(totalClose)}
                                 </>
                             )}
                         </button>

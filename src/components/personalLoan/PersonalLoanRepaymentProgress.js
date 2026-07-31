@@ -24,6 +24,7 @@ const formatDate = (dateString) => {
 
 const statusBadge = (status) => {
     if (status === 'PAID') return 'bg-green-100 text-green-800';
+    if (status === 'WAIVED') return 'bg-slate-200 text-slate-700';
     if (status === 'PARTIAL') return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
 };
@@ -71,7 +72,9 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
                 due_type: r.due_type,
                 due_date: r.due_date,
                 original: parseFloat(r.original_amount != null ? r.original_amount : r.due_amount || 0),
-                pending: r.status === 'PAID' ? 0 : parseFloat(r.due_amount || 0),
+                pending: (r.status === 'PENDING' || r.status === 'PARTIAL')
+                    ? parseFloat(r.due_amount || 0)
+                    : 0,
                 status: r.status,
             }))
             .sort((a, b) => {

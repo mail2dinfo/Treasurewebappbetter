@@ -692,6 +692,36 @@ export function PersonalLoanProvider({ children }) {
         }
     };
 
+    // Preview foreclosure settlement (principal + each due + pro-rata)
+    const getForeclosurePreview = async (loanId, paymentDate) => {
+        try {
+            const token = user?.results?.token;
+            if (!token) throw new Error('Authentication token not found');
+
+            const qs = paymentDate
+                ? `?paymentDate=${encodeURIComponent(paymentDate)}`
+                : '';
+            const res = await fetch(
+                `${API_BASE_URL}/pl/loans/${loanId}/foreclosure-preview${qs}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            const result = await res.json();
+            if (!res.ok) {
+                throw new Error(result.message || 'Failed to load foreclosure preview');
+            }
+            return { success: true, data: result.results };
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message || 'Failed to load foreclosure preview',
+            };
+        }
+    };
+
     // Foreclose loan
     const forecloseLoan = async (foreclosureData) => {
         try {
@@ -1262,6 +1292,7 @@ export function PersonalLoanProvider({ children }) {
         getLoanById,
         deleteLoan,
         forecloseLoan,
+        getForeclosurePreview,
         collectPayment,
         fetchReceivablesByLoan,
         fetchReceipts,
