@@ -45,8 +45,19 @@ const PersonalLoanAgreementPDF = ({
     schedule = [],
     modeLabel,
 }) => {
-    const previewRows = schedule.slice(0, 24);
+    const isBullet = loan?.loan_mode === 'INTEREST_ONLY';
+    const isInterestFree = loan?.loan_mode === 'INTEREST_FREE';
+    const showSchedule = !isBullet && !isInterestFree && Array.isArray(schedule) && schedule.length > 0;
+    const previewRows = showSchedule ? schedule.slice(0, 24) : [];
     const companyName = companyData?.company_name || companyData?.name || 'Personal Loan';
+
+    const interestLabel = (() => {
+        if (loan?.interest_rate == null) return 'N/A';
+        const rate = parseFloat(loan.interest_rate);
+        if (isBullet) return `${rate}% per month`;
+        if (isInterestFree) return '0% (Interest-Free)';
+        return `${rate}% per year`;
+    })();
 
     return (
         <Document>
@@ -62,16 +73,53 @@ const PersonalLoanAgreementPDF = ({
                 <View style={styles.row}><Text style={styles.label}>Loan ID</Text><Text style={styles.value}>{loan?.id || 'N/A'}</Text></View>
                 <View style={styles.row}><Text style={styles.label}>Mode</Text><Text style={styles.value}>{modeLabel || getPlLoanModeLabel(loan?.loan_mode)}</Text></View>
                 <View style={styles.row}><Text style={styles.label}>Principal</Text><Text style={styles.value}>{formatMoney(loan?.principal_amount)}</Text></View>
-                <View style={styles.row}><Text style={styles.label}>Interest Rate</Text><Text style={styles.value}>{loan?.interest_rate != null ? `${loan.interest_rate}%` : 'N/A'}</Text></View>
-                <View style={styles.row}><Text style={styles.label}>Tenure</Text><Text style={styles.value}>{loan?.tenure_months ? `${loan.tenure_months} months` : 'N/A'}</Text></View>
+                <View style={styles.row}><Text style={styles.label}>Interest Rate</Text><Text style={styles.value}>{interestLabel}</Text></View>
+                <View style={styles.row}>
+                    <Text style={styles.label}>Tenure</Text>
+                    <Text style={styles.value}>
+                        {isBullet || isInterestFree
+                            ? 'Open-ended (no fixed tenure)'
+                            : (loan?.tenure_months ? `${loan.tenure_months} months` : 'N/A')}
+                    </Text>
+                </View>
                 <View style={styles.row}><Text style={styles.label}>Disbursed Date</Text><Text style={styles.value}>{formatDate(loan?.disbursed_date)}</Text></View>
+                {isBullet && loan?.interest_due_day != null && (
+                    <View style={styles.row}>
+                        <Text style={styles.label}>Collection Due Day</Text>
+                        <Text style={styles.value}>{String(loan.interest_due_day)} of each month</Text>
+                    </View>
+                )}
 
                 <Text style={styles.sectionTitle}>Borrower</Text>
                 <View style={styles.row}><Text style={styles.label}>Name</Text><Text style={styles.value}>{subscriber?.pl_cust_name || 'N/A'}</Text></View>
                 <View style={styles.row}><Text style={styles.label}>Phone</Text><Text style={styles.value}>{subscriber?.pl_cust_phone || 'N/A'}</Text></View>
                 <View style={styles.row}><Text style={styles.label}>Address</Text><Text style={styles.value}>{subscriber?.pl_cust_address || 'N/A'}</Text></View>
 
-                {previewRows.length > 0 && (
+                {isBullet && (
+                    <>
+                        <Text style={styles.sectionTitle}>Interest and Repayment</Text>
+                        <Text style={styles.term}>
+                            This is an open-ended interest-only (bullet) loan. No installment schedule is created at disbursement.
+                        </Text>
+                        <Text style={styles.term}>
+                            Monthly interest matures each full month from the disbursement date on outstanding principal. The collection due day is only for when collection is scheduled — it does not change interest periods or amounts.
+                        </Text>
+                        <Text style={styles.term}>
+                            Foreclosure / early close: outstanding principal + any billed unpaid interest + pro-rata interest for days held since the last due date.
+                        </Text>
+                    </>
+                )}
+
+                {isInterestFree && (
+                    <>
+                        <Text style={styles.sectionTitle}>Repayment</Text>
+                        <Text style={styles.term}>
+                            Interest-free loan. Borrower repays the principal amount. No installment interest schedule applies.
+                        </Text>
+                    </>
+                )}
+
+                {showSchedule && (
                     <>
                         <Text style={styles.sectionTitle}>Repayment Schedule</Text>
                         <View style={styles.tableHeader}>
@@ -99,8 +147,12 @@ const PersonalLoanAgreementPDF = ({
                 )}
 
                 <View style={styles.terms}>
-                    <Text style={styles.sectionTitle}>Terms & Conditions</Text>
-                    <Text style={styles.term}>1. Borrower agrees to repay as per the selected loan/collection mode and schedule.</Text>
+                    <Text style={styles.sectionTitle}>Terms and Conditions</Text>
+                    <Text style={styles.term}>
+                        {isBullet
+                            ? '1. Borrower agrees to pay monthly interest when due and repay principal as agreed; foreclosure uses billed dues plus pro-rata days held.'
+                            : '1. Borrower agrees to repay as per the selected loan/collection mode and schedule.'}
+                    </Text>
                     <Text style={styles.term}>2. Delayed payments may attract follow-up and additional charges as per company policy.</Text>
                     <Text style={styles.term}>{`3. This agreement is subject to the terms of ${companyName} / Personal Loan division.`}</Text>
                     <Text style={styles.term}>4. Borrower confirms the details above are correct and accepts the repayment obligation.</Text>

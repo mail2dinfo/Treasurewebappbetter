@@ -17,9 +17,12 @@ import {
 } from '../../utils/personalLoanModes';
 import {
     buildPersonalLoanSchedulePreview,
+    getCollectionDueDayOptions,
     getFirstInterestDueDate,
     summarizeSchedule,
+    validateCollectionDueDay,
 } from '../../utils/personalLoanSchedule';
+import { resolveCompanyLogoForPdf } from '../../utils/pdfLogo';
 import PersonalLoanAgreementPDF from './PDF/PersonalLoanAgreementPDF';
 
 const formatCurrency = (v) =>
@@ -43,6 +46,7 @@ const PersonalLoanLoanDisbursementForm = ({ onClose, onSuccess }) => {
     const [showModeHelp, setShowModeHelp] = useState(false);
     const [disbursedLoan, setDisbursedLoan] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
+    const [pdfLogo, setPdfLogo] = useState(null);
     const [agreementFile, setAgreementFile] = useState(null);
     const [agreementPreview, setAgreementPreview] = useState(null);
     const [isUploadingAgreement, setIsUploadingAgreement] = useState(false);
@@ -83,11 +87,38 @@ const PersonalLoanLoanDisbursementForm = ({ onClose, onSuccess }) => {
         [formData.disbursedDate, formData.interestDueDay]
     );
 
+    const collectionDueDayOptions = useMemo(
+        () => getCollectionDueDayOptions(formData.disbursedDate),
+        [formData.disbursedDate]
+    );
+
+    // When disbursement date changes, keep due day only if still in the 5-day window
+    useEffect(() => {
+        if (!needsInterest || !formData.disbursedDate) return;
+        const allowed = new Set(collectionDueDayOptions.map((o) => String(o.day)));
+        if (formData.interestDueDay && !allowed.has(String(formData.interestDueDay))) {
+            setFormData((prev) => ({ ...prev, interestDueDay: '' }));
+        }
+    }, [formData.disbursedDate, collectionDueDayOptions, needsInterest]); // eslint-disable-line react-hooks/exhaustive-deps
+
     useEffect(() => {
         if (subscribers.length === 0) fetchSubscribers();
         if (ledgerAccounts.length === 0) fetchLedgerAccounts();
         if (fetchCompanies && (!companies || companies.length === 0)) fetchCompanies();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        let cancelled = false;
+        const loadLogo = async () => {
+            const plCompany = companies?.[0];
+            const chitFundCompany = user?.results?.userCompany?.[0];
+            const source = plCompany || chitFundCompany || {};
+            const logo = await resolveCompanyLogoForPdf(source);
+            if (!cancelled) setPdfLogo(logo);
+        };
+        loadLogo();
+        return () => { cancelled = true; };
+    }, [companies, user]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -107,12 +138,12 @@ const PersonalLoanLoanDisbursementForm = ({ onClose, onSuccess }) => {
             if (!formData.interestRate || parseFloat(formData.interestRate) <= 0) {
                 newErrors.interestRate = 'Interest rate is required';
             }
-            if (
-                !formData.interestDueDay
-                || parseInt(formData.interestDueDay, 10) < 1
-                || parseInt(formData.interestDueDay, 10) > 31
-            ) {
-                newErrors.interestDueDay = 'Valid collection due day (1-31) is required';
+            const dueDayError = validateCollectionDueDay(
+                formData.disbursedDate,
+                formData.interestDueDay
+            );
+            if (dueDayError) {
+                newErrors.interestDueDay = dueDayError;
             }
         }
         if (needsTenure && (!formData.tenureMonths || parseInt(formData.tenureMonths, 10) < 1)) {
@@ -164,21 +195,20 @@ const PersonalLoanLoanDisbursementForm = ({ onClose, onSuccess }) => {
         const plCompany = companies?.[0];
         const chitFundCompany = user?.results?.userCompany?.[0];
         if (plCompany) {
-            const logo =
-                plCompany.company_logo_base64format
-                || plCompany.company_logo_s3_image
-                || plCompany.company_logo
-                || null;
             return {
                 company_name: plCompany.company_name || 'Personal Loan Company',
                 name: plCompany.company_name || 'Personal Loan Company',
-                company_logo_base64format: logo,
-                logo_base64format: logo,
-                company_logo: logo,
+                company_logo_base64format: pdfLogo,
+                logo_base64format: pdfLogo,
+                company_logo: pdfLogo,
                 contact_no: plCompany.contact_no || '',
                 phone: plCompany.contact_no || '',
                 address: plCompany.address || '',
                 street_address: plCompany.address || '',
+                city: plCompany.city || '',
+                state: plCompany.state || '',
+                zipcode: plCompany.zipcode || '',
+                country: plCompany.country || '',
                 email: plCompany.email || '',
                 registration_no: plCompany.registration_no || '',
                 company_since: plCompany.company_since || '',
@@ -188,8 +218,9 @@ const PersonalLoanLoanDisbursementForm = ({ onClose, onSuccess }) => {
             return {
                 company_name: chitFundCompany.name || 'Company',
                 name: chitFundCompany.name || 'Company',
-                company_logo_base64format: chitFundCompany.logo_base64format || null,
-                logo_base64format: chitFundCompany.logo_base64format || null,
+                company_logo_base64format: pdfLogo,
+                logo_base64format: pdfLogo,
+                company_logo: pdfLogo,
                 phone: chitFundCompany.phone || 'N/A',
                 contact_no: chitFundCompany.phone || 'N/A',
                 street_address: chitFundCompany.street_address || '',
@@ -201,7 +232,12 @@ const PersonalLoanLoanDisbursementForm = ({ onClose, onSuccess }) => {
                 company_since: chitFundCompany.company_since || '',
             };
         }
-        return { name: 'Personal Loan', company_name: 'Personal Loan' };
+        return {
+            name: 'Personal Loan',
+            company_name: 'Personal Loan',
+            company_logo_base64format: pdfLogo,
+            logo_base64format: pdfLogo,
+        };
     };
 
     const loanForPdf = disbursedLoan?.loan || {
@@ -209,6 +245,7 @@ const PersonalLoanLoanDisbursementForm = ({ onClose, onSuccess }) => {
         loan_mode: formData.loanMode,
         principal_amount: formData.principalAmount,
         interest_rate: formData.interestRate,
+        interest_due_day: formData.interestDueDay,
         tenure_months: formData.tenureMonths,
         disbursed_date: formData.disbursedDate,
     };
@@ -421,38 +458,21 @@ MyTreasure Personal Loan Team
                             </div>
 
                             {needsInterest && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <FiPercent className="inline w-4 h-4 mr-1" /> {selectedMode.rateLabel} *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="interestRate"
-                                            value={formData.interestRate}
-                                            onChange={handleChange}
-                                            min="0"
-                                            step="0.01"
-                                            className={`w-full px-4 py-2 border rounded-lg ${errors.interestRate ? 'border-red-500' : 'border-gray-300'}`}
-                                        />
-                                        {errors.interestRate && <p className="mt-1 text-sm text-red-600">{errors.interestRate}</p>}
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            <FiCalendar className="inline w-4 h-4 mr-1" /> Collection Due Day (1-31) *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            name="interestDueDay"
-                                            value={formData.interestDueDay}
-                                            onChange={handleChange}
-                                            min="1"
-                                            max="31"
-                                            className={`w-full px-4 py-2 border rounded-lg ${errors.interestDueDay ? 'border-red-500' : 'border-gray-300'}`}
-                                        />
-                                        {errors.interestDueDay && <p className="mt-1 text-sm text-red-600">{errors.interestDueDay}</p>}
-                                    </div>
-                                </>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <FiPercent className="inline w-4 h-4 mr-1" /> {selectedMode.rateLabel} *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        name="interestRate"
+                                        value={formData.interestRate}
+                                        onChange={handleChange}
+                                        min="0"
+                                        step="0.01"
+                                        className={`w-full px-4 py-2 border rounded-lg ${errors.interestRate ? 'border-red-500' : 'border-gray-300'}`}
+                                    />
+                                    {errors.interestRate && <p className="mt-1 text-sm text-red-600">{errors.interestRate}</p>}
+                                </div>
                             )}
 
                             {needsTenure && (
@@ -483,7 +503,44 @@ MyTreasure Personal Loan Team
                                     onChange={handleChange}
                                     className={`w-full px-4 py-2 border rounded-lg ${errors.disbursedDate ? 'border-red-500' : 'border-gray-300'}`}
                                 />
+                                {errors.disbursedDate && <p className="mt-1 text-sm text-red-600">{errors.disbursedDate}</p>}
                             </div>
+
+                            {needsInterest && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        <FiCalendar className="inline w-4 h-4 mr-1" /> Collection Due Day *
+                                    </label>
+                                    <select
+                                        name="interestDueDay"
+                                        value={formData.interestDueDay}
+                                        onChange={handleChange}
+                                        disabled={!formData.disbursedDate || collectionDueDayOptions.length === 0}
+                                        className={`w-full px-4 py-2 border rounded-lg ${errors.interestDueDay ? 'border-red-500' : 'border-gray-300'} disabled:bg-gray-100`}
+                                    >
+                                        <option value="">
+                                            {formData.disbursedDate
+                                                ? 'Select collection day'
+                                                : 'Select disbursement date first'}
+                                        </option>
+                                        {collectionDueDayOptions.map((opt) => (
+                                            <option key={opt.day} value={opt.value}>
+                                                {opt.label} (day {opt.day})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {errors.interestDueDay && <p className="mt-1 text-sm text-red-600">{errors.interestDueDay}</p>}
+                                    {!errors.interestDueDay && formData.disbursedDate && collectionDueDayOptions.length > 0 && (
+                                        <p className="mt-1 text-xs text-gray-500">
+                                            Used only for collection scheduling — not for interest calculation.
+                                            Interest matures in full months from the disbursement date; pick one of 5 collection days after that month.
+                                            {firstInterestDueDate
+                                                ? ` First collection ${firstInterestDueDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}.`
+                                                : ''}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -547,9 +604,10 @@ MyTreasure Personal Loan Team
                                         </p>
                                         {needsInterest ? (
                                             <p className="text-lg font-bold text-red-700">
-                                                {parseFloat(formData.interestRate || 0).toFixed(2)}%
-                                                <span className="ml-1 text-xs font-medium text-gray-500">
-                                                    {formData.loanMode === 'INTEREST_ONLY' ? '(monthly)' : '(annual)'}
+                                                {parseFloat(formData.interestRate || 0)}%
+                                                {' '}
+                                                <span className="text-sm font-medium text-gray-600">
+                                                    {formData.loanMode === 'INTEREST_ONLY' ? 'per month' : 'per year'}
                                                 </span>
                                             </p>
                                         ) : (
@@ -575,20 +633,8 @@ MyTreasure Personal Loan Team
                                             </strong>
                                         </p>
                                         <p>
-                                            <span className="text-gray-500">Interest %:</span>{' '}
-                                            <strong>{parseFloat(formData.interestRate || 0).toFixed(2)}% / month</strong>
-                                        </p>
-                                        <p>
-                                            <span className="text-gray-500">To close anytime:</span>{' '}
-                                            <strong>
-                                                {formatCurrency(
-                                                    parseFloat(formData.principalAmount || 0)
-                                                    + (scheduleSummary.monthlyInterest
-                                                        ?? (parseFloat(formData.principalAmount || 0)
-                                                            * (parseFloat(formData.interestRate || 0) / 100)))
-                                                )}
-                                            </strong>
-                                            <span className="text-gray-500"> (principal + 1 month interest)</span>
+                                            <span className="text-gray-500">Int %:</span>{' '}
+                                            <strong>{parseFloat(formData.interestRate || 0)}% per month</strong>
                                         </p>
                                         <p><span className="text-gray-500">Timeline:</span> <strong>Open-ended (no fixed tenure)</strong></p>
                                     </>
@@ -638,7 +684,10 @@ MyTreasure Personal Loan Team
                                         <li>Subscriber can keep paying only interest while holding the principal — no fixed end date.</li>
                                         <li>Any payment settles interest first; leftover amount reduces principal.</li>
                                         <li>After principal reduces, next month’s interest is calculated on the new outstanding principal.</li>
-                                        <li>Pay full principal + current interest anytime to close the loan.</li>
+                                        <li>
+                                            To foreclose: pay outstanding principal + any billed interest dues + pro-rata interest
+                                            for days since the last due (e.g. close after 15 days → 15 days’ interest, not a full month).
+                                        </li>
                                     </ul>
                                 </div>
                             )}
@@ -656,7 +705,7 @@ MyTreasure Personal Loan Team
                             {formData.loanMode === 'INTEREST_ONLY' ? (
                                 <div className="rounded-xl border border-gray-200 overflow-hidden">
                                     <div className="bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                                        Closing illustration (current principal)
+                                        Monthly interest (on current principal)
                                     </div>
                                     <table className="min-w-full text-sm">
                                         <thead className="bg-white">
@@ -671,7 +720,7 @@ MyTreasure Personal Loan Team
                                                 <td className="px-3 py-2 text-right font-semibold">{formatCurrency(formData.principalAmount)}</td>
                                             </tr>
                                             <tr>
-                                                <td className="px-3 py-2">Monthly interest ({parseFloat(formData.interestRate || 0).toFixed(2)}%)</td>
+                                                <td className="px-3 py-2">Full-month interest ({parseFloat(formData.interestRate || 0).toFixed(2)}%)</td>
                                                 <td className="px-3 py-2 text-right font-semibold text-orange-700">
                                                     {formatCurrency(
                                                         scheduleSummary.monthlyInterest
@@ -680,19 +729,11 @@ MyTreasure Personal Loan Team
                                                     )}
                                                 </td>
                                             </tr>
-                                            <tr className="bg-red-50/50">
-                                                <td className="px-3 py-2 font-semibold">Pay to close now</td>
-                                                <td className="px-3 py-2 text-right font-bold text-red-700">
-                                                    {formatCurrency(
-                                                        parseFloat(formData.principalAmount || 0)
-                                                        + (scheduleSummary.monthlyInterest
-                                                            ?? (parseFloat(formData.principalAmount || 0)
-                                                                * (parseFloat(formData.interestRate || 0) / 100)))
-                                                    )}
-                                                </td>
-                                            </tr>
                                         </tbody>
                                     </table>
+                                    <p className="border-t border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                                        Foreclosure settlement uses principal + billed dues + pro-rata for days held — not automatically one full month of interest.
+                                    </p>
                                 </div>
                             ) : (
                             <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -802,8 +843,18 @@ MyTreasure Personal Loan Team
                                     <p><span className="text-gray-500">Phone:</span> <strong>{selectedSubscriber?.pl_cust_phone}</strong></p>
                                     <p><span className="text-gray-500">Mode:</span> <strong>{getPlLoanModeLabel(formData.loanMode)}</strong></p>
                                     <p><span className="text-gray-500">Principal:</span> <strong>{formatCurrency(formData.principalAmount)}</strong></p>
-                                    <p><span className="text-gray-500">Total payable:</span> <strong>{formatCurrency(scheduleSummary.totalPayable)}</strong></p>
-                                    <p><span className="text-gray-500">Installments:</span> <strong>{scheduleSummary.count}</strong></p>
+                                    {needsTenure && (
+                                        <>
+                                            <p><span className="text-gray-500">Total payable:</span> <strong>{formatCurrency(scheduleSummary.totalPayable)}</strong></p>
+                                            <p><span className="text-gray-500">Installments:</span> <strong>{scheduleSummary.count}</strong></p>
+                                        </>
+                                    )}
+                                    {formData.loanMode === 'INTEREST_ONLY' && (
+                                        <p>
+                                            <span className="text-gray-500">Int %:</span>{' '}
+                                            <strong>{parseFloat(formData.interestRate || 0)}% per month</strong>
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="text-xs text-gray-600 space-y-1 border-t border-gray-100 pt-3">
                                     <p>1. Borrower agrees to repay as per the selected loan mode and schedule.</p>
@@ -819,7 +870,11 @@ MyTreasure Personal Loan Team
                                             loan={loanForPdf}
                                             subscriber={selectedSubscriber}
                                             companyData={getCompanyDataForPDF()}
-                                            schedule={schedulePreview}
+                                            schedule={
+                                                formData.loanMode === 'INTEREST_ONLY' || formData.loanMode === 'INTEREST_FREE'
+                                                    ? []
+                                                    : schedulePreview
+                                            }
                                             modeLabel={getPlLoanModeLabel(formData.loanMode)}
                                         />
                                     }

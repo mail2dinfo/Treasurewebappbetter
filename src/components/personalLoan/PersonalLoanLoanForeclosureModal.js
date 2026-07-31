@@ -281,7 +281,8 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                                             <table className="min-w-full text-sm">
                                                 <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                                                     <tr>
-                                                        <th className="px-3 py-2 text-left">Due date</th>
+                                                        <th className="px-3 py-2 text-left">Collection date</th>
+                                                        <th className="px-3 py-2 text-left">Interest period</th>
                                                         <th className="px-3 py-2 text-left">Inst #</th>
                                                         <th className="px-3 py-2 text-right">Pending</th>
                                                     </tr>
@@ -289,8 +290,13 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                                                 <tbody className="divide-y divide-gray-100">
                                                     {settlement.dues.map((due) => (
                                                         <tr key={due.id}>
-                                                            <td className="px-3 py-2 text-gray-700">
+                                                            <td className="px-3 py-2 text-gray-700 whitespace-nowrap">
                                                                 {formatDate(due.due_date)}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-gray-600">
+                                                                {due.period_from && due.period_to
+                                                                    ? `${formatDate(due.period_from)} → ${formatDate(due.period_to)}`
+                                                                    : '—'}
                                                             </td>
                                                             <td className="px-3 py-2 text-gray-500">
                                                                 {due.installment_no != null ? due.installment_no : '—'}
@@ -303,7 +309,7 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                                                 </tbody>
                                                 <tfoot className="bg-gray-50 border-t border-gray-200">
                                                     <tr>
-                                                        <td className="px-3 py-2 font-semibold text-gray-700" colSpan={2}>
+                                                        <td className="px-3 py-2 font-semibold text-gray-700" colSpan={3}>
                                                             All dues total
                                                         </td>
                                                         <td className="px-3 py-2 text-right font-bold text-orange-800">
@@ -318,24 +324,27 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
 
                                 <div>
                                     <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-                                        3. Pro-rata (pending days to close)
+                                        3. Pro-rata (from last interest anniversary → close)
                                     </p>
                                     {settlement.prorata ? (
                                         <div className="rounded-lg bg-white border border-orange-200 px-3 py-3 space-y-1">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-700">
-                                                    {formatDate(settlement.prorata.from_date)}
-                                                    {' → '}
-                                                    {formatDate(settlement.prorata.to_date)}
-                                                </span>
-                                                <span className="font-semibold text-orange-700">
+                                            <div className="flex justify-between gap-3">
+                                                <div>
+                                                    <p className="text-xs text-gray-500 mb-0.5">Interest period</p>
+                                                    <span className="text-gray-800 font-medium">
+                                                        {formatDate(settlement.prorata.period_from || settlement.prorata.from_date)}
+                                                        {' → '}
+                                                        {formatDate(settlement.prorata.period_to || settlement.prorata.to_date)}
+                                                    </span>
+                                                </div>
+                                                <span className="font-semibold text-orange-700 whitespace-nowrap">
                                                     {formatCurrency(settlement.prorata.amount)}
                                                 </span>
                                             </div>
                                             <p className="text-xs text-gray-500">
                                                 {settlement.prorata.days_held}/{settlement.prorata.cycle_days} days
                                                 {' '}of monthly interest {formatCurrency(settlement.prorata.monthly_interest)}
-                                                {' '}on outstanding principal
+                                                {' '}on outstanding principal (based on disbursement month, not collection day).
                                             </p>
                                         </div>
                                     ) : (
@@ -356,7 +365,8 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                                             <table className="min-w-full text-sm">
                                                 <thead className="bg-slate-100 text-xs uppercase text-slate-500">
                                                     <tr>
-                                                        <th className="px-3 py-2 text-left">Due date</th>
+                                                        <th className="px-3 py-2 text-left">Collection date</th>
+                                                        <th className="px-3 py-2 text-left">Interest period</th>
                                                         <th className="px-3 py-2 text-left">Inst #</th>
                                                         <th className="px-3 py-2 text-right">Waived</th>
                                                     </tr>
@@ -364,8 +374,13 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                                                 <tbody className="divide-y divide-slate-100 bg-white">
                                                     {settlement.waived.map((due) => (
                                                         <tr key={due.id}>
-                                                            <td className="px-3 py-2 text-slate-700">
+                                                            <td className="px-3 py-2 text-slate-700 whitespace-nowrap">
                                                                 {formatDate(due.due_date)}
+                                                            </td>
+                                                            <td className="px-3 py-2 text-slate-600">
+                                                                {due.period_from && due.period_to
+                                                                    ? `${formatDate(due.period_from)} → ${formatDate(due.period_to)}`
+                                                                    : '—'}
                                                             </td>
                                                             <td className="px-3 py-2 text-slate-500">
                                                                 {due.installment_no != null ? due.installment_no : '—'}
@@ -378,7 +393,7 @@ const PersonalLoanLoanForeclosureModal = ({ loan, onClose, onSuccess }) => {
                                                 </tbody>
                                                 <tfoot className="bg-slate-100 border-t border-slate-200">
                                                     <tr>
-                                                        <td className="px-3 py-2 font-semibold text-slate-700" colSpan={2}>
+                                                        <td className="px-3 py-2 font-semibold text-slate-700" colSpan={3}>
                                                             Waived total (status: WAIVED)
                                                         </td>
                                                         <td className="px-3 py-2 text-right font-bold text-slate-800">

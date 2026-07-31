@@ -643,6 +643,8 @@ export function PersonalLoanProvider({ children }) {
             }
 
             dispatch({ type: 'ADD_LOAN', payload: result.results.loan });
+            // Refresh list so subscriber + outstanding always match API join
+            await fetchLoans();
             // Keep ledger accounts/entries in sync after cash-out disbursement
             await refreshLedgerDataRef.current();
             dispatch({ type: 'SET_LOADING', payload: false });

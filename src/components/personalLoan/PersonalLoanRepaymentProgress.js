@@ -1,11 +1,19 @@
 import React, { useMemo } from 'react';
 import { getPlLoanModeLabel } from '../../utils/personalLoanModes';
+import { getBulletInterestPeriod } from '../../utils/personalLoanSchedule';
 
 const formatCurrency = (value) =>
     `₹${parseFloat(value || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
 const formatDate = (dateString) => {
     if (!dateString) return '—';
+    if (dateString instanceof Date && !Number.isNaN(dateString.getTime())) {
+        return dateString.toLocaleDateString('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        });
+    }
     const raw = String(dateString).slice(0, 10);
     const [y, m, d] = raw.split('-').map(Number);
     if (y && m && d) {
@@ -62,11 +70,11 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
 
     /**
      * Bullet dues — strictly the receivables stored in the database.
-     * Never add a projected/expected due here: a due exists only once it is created.
+     * Int-Period = disbursement anniversary window (not collection due day).
      */
     const bulletDues = useMemo(() => {
         if (!isBullet) return [];
-        return (loan?.receivables || [])
+        const rows = (loan?.receivables || [])
             .map((r) => ({
                 id: r.id,
                 due_type: r.due_type,
@@ -83,7 +91,21 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
                 }
                 return String(a.due_date || '').localeCompare(String(b.due_date || ''));
             });
-    }, [isBullet, loan?.receivables]);
+
+        let interestIndex = 0;
+        return rows.map((row) => {
+            if (row.due_type !== 'INTEREST') {
+                return { ...row, period_from: null, period_to: null };
+            }
+            const period = getBulletInterestPeriod(loan?.disbursed_date, interestIndex);
+            interestIndex += 1;
+            return {
+                ...row,
+                period_from: period?.from || null,
+                period_to: period?.to || null,
+            };
+        });
+    }, [isBullet, loan?.receivables, loan?.disbursed_date]);
 
     // Close = outstanding principal + interest actually billed and still pending
     const closeAmount = Number(
@@ -232,6 +254,7 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
                     <h4 className="text-sm font-semibold text-gray-900 mb-2">Outstanding dues</h4>
                     <p className="text-xs text-gray-500 mb-2">
                         No fixed tenure. Interest accrues monthly on remaining principal; principal can be repaid anytime.
+                        Int-Period is based on the disbursement date (not the collection due date).
                     </p>
                     <div className="overflow-x-auto rounded-xl border border-gray-200">
                         <table className="min-w-full text-sm">
@@ -239,6 +262,7 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
                                 <tr>
                                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Type</th>
                                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Due date</th>
+                                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Int-Period</th>
                                     <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Original</th>
                                     <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Pending</th>
                                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Status</th>
@@ -247,7 +271,7 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
                             <tbody className="divide-y divide-gray-100 bg-white">
                                 {bulletDues.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-3 py-4 text-center text-gray-500">
+                                        <td colSpan={6} className="px-3 py-4 text-center text-gray-500">
                                             No outstanding dues
                                         </td>
                                     </tr>
@@ -263,8 +287,13 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
                                                     {row.due_type}
                                                 </span>
                                             </td>
-                                            <td className="px-3 py-2 text-gray-700">
+                                            <td className="px-3 py-2 text-gray-700 whitespace-nowrap">
                                                 {formatDate(row.due_date)}
+                                            </td>
+                                            <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
+                                                {row.period_from && row.period_to
+                                                    ? `${formatDate(row.period_from)} → ${formatDate(row.period_to)}`
+                                                    : '—'}
                                             </td>
                                             <td className="px-3 py-2 text-right text-gray-800">
                                                 {formatCurrency(row.original)}
@@ -283,7 +312,7 @@ const PersonalLoanRepaymentProgress = ({ loan }) => {
                             </tbody>
                             <tfoot className="bg-gray-50 border-t border-gray-200">
                                 <tr>
-                                    <td className="px-3 py-2 text-xs font-semibold text-gray-600" colSpan={3}>
+                                    <td className="px-3 py-2 text-xs font-semibold text-gray-600" colSpan={4}>
                                         Amount to close (principal + interest due)
                                     </td>
                                     <td className="px-3 py-2 text-right text-sm font-bold text-indigo-800">

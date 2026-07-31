@@ -15,6 +15,7 @@ import PersonalLoanAgreementPDF from '../../components/personalLoan/PDF/Personal
 import PersonalLoanRepaymentProgress from '../../components/personalLoan/PersonalLoanRepaymentProgress';
 import { getPlLoanModeLabel } from '../../utils/personalLoanModes';
 import { buildPersonalLoanSchedulePreview } from '../../utils/personalLoanSchedule';
+import { resolveCompanyLogoForPdf } from '../../utils/pdfLogo';
 
 const PersonalLoanLoansPage = () => {
     const location = useLocation();
@@ -34,6 +35,7 @@ const PersonalLoanLoansPage = () => {
     const [isUploadingAgreement, setIsUploadingAgreement] = useState(false);
     const [uploadError, setUploadError] = useState(null);
     const [uploadSuccess, setUploadSuccess] = useState(false);
+    const [pdfLogo, setPdfLogo] = useState(null);
     const hasFetchedRef = useRef(false);
 
     // Fetch loans and companies when component mounts
@@ -44,6 +46,18 @@ const PersonalLoanLoansPage = () => {
         }
         hasFetchedRef.current = true;
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        let cancelled = false;
+        const loadLogo = async () => {
+            const plCompany = companies?.[0];
+            const chitFundCompany = user?.results?.userCompany?.[0];
+            const logo = await resolveCompanyLogoForPdf(plCompany || chitFundCompany || {});
+            if (!cancelled) setPdfLogo(logo);
+        };
+        loadLogo();
+        return () => { cancelled = true; };
+    }, [companies, user]);
 
     // Fetch loans when route changes (user navigates back to this page)
     useEffect(() => {
@@ -123,23 +137,18 @@ const PersonalLoanLoansPage = () => {
 
     const displayLoans = activeTab === 'ACTIVE' ? activeLoans : closedLoans;
 
-    // Get company data for PDF (PL company fields + base64 logo for header)
+    // Get company data for PDF (PL company fields + resolved base64 logo)
     const getCompanyDataForPDF = () => {
         const plCompany = companies?.[0];
         const chitFundCompany = user?.results?.userCompany?.[0];
 
         if (plCompany) {
-            const logo =
-                plCompany.company_logo_base64format
-                || plCompany.company_logo_s3_image
-                || plCompany.company_logo
-                || null;
             return {
                 company_name: plCompany.company_name || 'Personal Loan Company',
                 name: plCompany.company_name || 'Personal Loan Company',
-                company_logo_base64format: logo,
-                logo_base64format: logo,
-                company_logo: logo,
+                company_logo_base64format: pdfLogo,
+                logo_base64format: pdfLogo,
+                company_logo: pdfLogo,
                 contact_no: plCompany.contact_no || '',
                 phone: plCompany.contact_no || '',
                 address: plCompany.address || '',
@@ -155,13 +164,12 @@ const PersonalLoanLoansPage = () => {
         }
 
         if (chitFundCompany) {
-            const logo = chitFundCompany.logo_base64format || chitFundCompany.logo || null;
             return {
                 company_name: chitFundCompany.name || 'Company',
                 name: chitFundCompany.name || 'Company',
-                company_logo_base64format: logo,
-                logo_base64format: logo,
-                company_logo: logo,
+                company_logo_base64format: pdfLogo,
+                logo_base64format: pdfLogo,
+                company_logo: pdfLogo,
                 contact_no: chitFundCompany.phone || '',
                 phone: chitFundCompany.phone || '',
                 address: chitFundCompany.street_address || '',
@@ -179,7 +187,8 @@ const PersonalLoanLoansPage = () => {
         return {
             company_name: 'Personal Loan Company',
             name: 'Personal Loan Company',
-            logo_base64format: null,
+            company_logo_base64format: pdfLogo,
+            logo_base64format: pdfLogo,
             phone: '',
             contact_no: '',
             address: '',
@@ -692,8 +701,8 @@ const PersonalLoanLoansPage = () => {
                                         <div>
                                             <p className="text-sm text-gray-500">Interest rate</p>
                                             <p className="text-sm font-semibold">
-                                                {selectedLoanDetails.interest_rate}%
-                                                {selectedLoanDetails.loan_mode === 'INTEREST_ONLY' ? ' / month' : ' / year'}
+                                                {parseFloat(selectedLoanDetails.interest_rate)}%
+                                                {selectedLoanDetails.loan_mode === 'INTEREST_ONLY' ? ' per month' : ' per year'}
                                             </p>
                                         </div>
                                     )}

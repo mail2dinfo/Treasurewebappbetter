@@ -61,12 +61,28 @@ const styles = StyleSheet.create({
 const PersonalLoanPDFHeader = ({ companyData, reportTitle, reportDate }) => {
     const c = companyData || {};
 
-    const logo =
+    const rawLogo =
         c.company_logo_base64format
         || c.logo_base64format
         || c.company_logo_s3_image
         || c.company_logo
         || null;
+
+    const logo = (() => {
+        if (!rawLogo || typeof rawLogo !== 'string') return null;
+        const v = rawLogo.trim();
+        const lower = v.toLowerCase();
+        if (!v || lower.startsWith('default-')) return null;
+        if (
+            lower.startsWith('data:image')
+            || lower.startsWith('http://')
+            || lower.startsWith('https://')
+            || lower.startsWith('blob:')
+        ) {
+            return v;
+        }
+        return null;
+    })();
 
     const companyName =
         c.company_name
@@ -85,7 +101,11 @@ const PersonalLoanPDFHeader = ({ companyData, reportTitle, reportDate }) => {
 
     return (
         <View style={styles.headerContainer}>
-            {logo ? <Image style={styles.logo} src={logo} /> : <View style={{ width: 60 }} />}
+            {logo ? (
+                <Image style={styles.logo} src={logo} />
+            ) : (
+                <View style={{ width: 60 }} />
+            )}
             <View style={styles.companyInfo}>
                 <Text style={styles.companyName}>{companyName}</Text>
                 {companyAddress ? <Text style={styles.companyAddress}>{companyAddress}</Text> : null}
