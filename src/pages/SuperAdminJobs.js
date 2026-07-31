@@ -46,6 +46,16 @@ const formatDateTime = (value) => {
     });
 };
 
+const parseJobDetails = (details) => {
+    if (!details) return null;
+    if (typeof details === 'object') return details;
+    try {
+        return JSON.parse(details);
+    } catch {
+        return { raw: String(details) };
+    }
+};
+
 const SuperAdminJobs = () => {
     const history = useHistory();
     const { user } = useUserContext();
@@ -58,6 +68,7 @@ const SuperAdminJobs = () => {
     const [statusCounts, setStatusCounts] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [expandedJobId, setExpandedJobId] = useState(null);
 
     const queryPath = useMemo(() => {
         const params = new URLSearchParams();
@@ -147,7 +158,7 @@ const SuperAdminJobs = () => {
                                 note: 'Safety net for Interest Only loans — creates missing monthly interest dues and new month dues when due day arrives.',
                             },
                             {
-                                time: '09:00',
+                                time: '01:00',
                                 name: 'billing_cycle_daily',
                                 app: 'BILLING',
                                 note: 'Checks active SaaS subscriptions and creates the next billing cycle when the previous cycle window allows it.',
@@ -290,40 +301,104 @@ const SuperAdminJobs = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 bg-white">
-                                    {jobs.map((job) => (
-                                        <tr key={job.id} className="align-top hover:bg-slate-50/80">
-                                            <td className="px-4 py-3 font-mono text-xs text-slate-600">
-                                                <div className="max-w-[9rem] break-all">{job.id}</div>
-                                                <div className="mt-1 text-[10px] uppercase text-slate-400">
-                                                    {job.application || '—'}
-                                                </div>
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-slate-700">
-                                                <div className="font-medium">{formatDate(job.date)}</div>
-                                                <div className="text-[11px] text-slate-400">
-                                                    {formatDateTime(job.started_at)}
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 font-medium text-slate-800">
-                                                {job.job_name || '—'}
-                                            </td>
-                                            <td className="max-w-md px-4 py-3 text-slate-600">
-                                                <p className="line-clamp-3 text-xs leading-relaxed sm:text-sm">
-                                                    {job.description || '—'}
-                                                </p>
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-3">
-                                                <span
-                                                    className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                                                        STATUS_STYLES[String(job.status || '').toUpperCase()]
-                                                        || 'bg-slate-100 text-slate-700 border-slate-200'
-                                                    }`}
-                                                >
-                                                    {job.status || '—'}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {jobs.map((job) => {
+                                        const details = parseJobDetails(job.details);
+                                        const errors = Array.isArray(details?.errors) ? details.errors : [];
+                                        const isExpanded = expandedJobId === job.id;
+                                        const isFailed = String(job.status || '').toUpperCase() === 'FAILED';
+                                        return (
+                                            <React.Fragment key={job.id}>
+                                                <tr className="align-top hover:bg-slate-50/80">
+                                                    <td className="px-4 py-3 font-mono text-xs text-slate-600">
+                                                        <div className="max-w-[9rem] break-all">{job.id}</div>
+                                                        <div className="mt-1 text-[10px] uppercase text-slate-400">
+                                                            {job.application || '—'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">
+                                                        <div className="font-medium">{formatDate(job.date)}</div>
+                                                        <div className="text-[11px] text-slate-400">
+                                                            {formatDateTime(job.started_at)}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-3 font-medium text-slate-800">
+                                                        {job.job_name || '—'}
+                                                    </td>
+                                                    <td className="max-w-md px-4 py-3 text-slate-600">
+                                                        <p className="line-clamp-3 text-xs leading-relaxed sm:text-sm">
+                                                            {job.description || '—'}
+                                                        </p>
+                                                        {(isFailed || errors.length > 0 || details) && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setExpandedJobId(isExpanded ? null : job.id)
+                                                                }
+                                                                className="mt-2 text-xs font-semibold text-red-700 hover:underline"
+                                                            >
+                                                                {isExpanded ? 'Hide details' : 'Show error details'}
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-4 py-3">
+                                                        <span
+                                                            className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                                                                STATUS_STYLES[String(job.status || '').toUpperCase()]
+                                                                || 'bg-slate-100 text-slate-700 border-slate-200'
+                                                            }`}
+                                                        >
+                                                            {job.status || '—'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                                {isExpanded && (
+                                                    <tr className="bg-red-50/40">
+                                                        <td colSpan={5} className="px-4 py-3">
+                                                            {errors.length > 0 ? (
+                                                                <div className="space-y-2">
+                                                                    <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
+                                                                        Subscription errors ({errors.length})
+                                                                    </p>
+                                                                    <ul className="space-y-2">
+                                                                        {errors.map((err, idx) => (
+                                                                            <li
+                                                                                key={`${err.subscription_id || idx}-${idx}`}
+                                                                                className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs text-slate-700"
+                                                                            >
+                                                                                <p>
+                                                                                    <span className="font-semibold">membership:</span>{' '}
+                                                                                    {err.membership_id ?? '—'}
+                                                                                    {' · '}
+                                                                                    <span className="font-semibold">app:</span>{' '}
+                                                                                    {err.app_code || '—'}
+                                                                                </p>
+                                                                                <p className="mt-1 font-mono text-[11px] text-red-700 break-words">
+                                                                                    {err.reason || JSON.stringify(err)}
+                                                                                </p>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                </div>
+                                                            ) : (
+                                                                <pre className="overflow-x-auto rounded-lg bg-slate-900 p-3 text-[11px] text-slate-100">
+                                                                    {JSON.stringify(details, null, 2)}
+                                                                </pre>
+                                                            )}
+                                                            {details && (
+                                                                <p className="mt-2 text-[11px] text-slate-500">
+                                                                    created: {details.created_count ?? details.created?.length ?? 0}
+                                                                    {' · '}
+                                                                    skipped: {details.skipped_count ?? details.skipped?.length ?? 0}
+                                                                    {' · '}
+                                                                    errors: {details.errors_count ?? errors.length}
+                                                                </p>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

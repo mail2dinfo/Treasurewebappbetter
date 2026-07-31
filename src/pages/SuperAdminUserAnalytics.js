@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiLogIn, FiRefreshCw, FiSearch, FiUserCheck, FiUsers } from 'react-icons/fi';
+import { FiEye, FiLogIn, FiRefreshCw, FiSearch, FiUserCheck, FiUsers, FiX } from 'react-icons/fi';
 import { useHistory } from 'react-router-dom';
 import { useUserContext } from '../context/user_context';
 import { fetchSuperAdminApi } from '../utils/superAdminApi';
@@ -29,6 +29,24 @@ const parseAccountNames = (accountNames = '') =>
         .map((name) => name.trim())
         .filter(Boolean);
 
+const formatDate = (value) => {
+    if (!value) return '—';
+    const raw = String(value).slice(0, 10);
+    const d = new Date(`${raw}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return raw;
+    return d.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    });
+};
+
+const formatHours = (value) => {
+    const n = Number(value || 0);
+    if (!Number.isFinite(n) || n <= 0) return '0.00';
+    return n.toFixed(2);
+};
+
 const AccountBadges = ({ accountNames = '' }) => {
     const accounts = parseAccountNames(accountNames);
 
@@ -52,6 +70,113 @@ const AccountBadges = ({ accountNames = '' }) => {
     );
 };
 
+const LoginDetailsModal = ({ open, onClose, userRow, details, isLoading, error }) => {
+    if (!open) return null;
+
+    const days = details?.days || [];
+    const totals = details?.totals || { login_times: 0, hours_spent: 0 };
+
+    return (
+        <div className="fixed inset-0 z-[80] flex items-end justify-center p-0 sm:items-center sm:p-4">
+            <button
+                type="button"
+                className="absolute inset-0 border-0 bg-black/50"
+                aria-label="Close"
+                onClick={onClose}
+            />
+            <div className="relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
+                <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                    <div className="min-w-0">
+                        <h3 className="text-lg font-semibold text-slate-900">Login details</h3>
+                        <p className="mt-0.5 truncate text-sm text-slate-500">
+                            {userRow?.display_name || 'User'}
+                            {userRow?.phone ? ` · ${userRow.phone}` : ''}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        aria-label="Close"
+                    >
+                        <FiX className="h-5 w-5" />
+                    </button>
+                </div>
+
+                <div className="overflow-y-auto px-5 py-4">
+                    {isLoading ? (
+                        <div className="flex justify-center py-12">
+                            <Loading size="lg" />
+                        </div>
+                    ) : error ? (
+                        <p className="text-sm text-red-600">{error}</p>
+                    ) : (
+                        <>
+                            <div className="mb-4 grid grid-cols-2 gap-3">
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                        Total logins (range)
+                                    </p>
+                                    <p className="mt-1 text-xl font-bold text-slate-900">
+                                        {totals.login_times}
+                                    </p>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                        Hours spent (range)
+                                    </p>
+                                    <p className="mt-1 text-xl font-bold text-slate-900">
+                                        {formatHours(totals.hours_spent)}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {details?.note && (
+                                <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                    {details.note}
+                                </p>
+                            )}
+
+                            {days.length === 0 ? (
+                                <p className="py-8 text-center text-sm text-slate-500">
+                                    No date-wise session data yet for this user.
+                                </p>
+                            ) : (
+                                <div className="overflow-hidden rounded-xl border border-slate-200">
+                                    <table className="min-w-full text-left text-sm">
+                                        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                                            <tr>
+                                                <th className="px-4 py-3 font-semibold">Date</th>
+                                                <th className="px-4 py-3 text-right font-semibold">No of times</th>
+                                                <th className="px-4 py-3 text-right font-semibold">Hours spent</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 bg-white">
+                                            {days.map((row) => (
+                                                <tr key={String(row.date)} className="hover:bg-slate-50/80">
+                                                    <td className="px-4 py-3 font-medium text-slate-800">
+                                                        {formatDate(row.date)}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right tabular-nums text-slate-700">
+                                                        {row.login_times}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right tabular-nums text-slate-700">
+                                                        {formatHours(row.hours_spent)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const SuperAdminUserAnalytics = () => {
     const history = useHistory();
     const { user } = useUserContext();
@@ -60,6 +185,10 @@ const SuperAdminUserAnalytics = () => {
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [accountFilter, setAccountFilter] = useState('all');
+    const [detailsUser, setDetailsUser] = useState(null);
+    const [detailsData, setDetailsData] = useState(null);
+    const [detailsLoading, setDetailsLoading] = useState(false);
+    const [detailsError, setDetailsError] = useState(null);
 
     const fetchReport = useCallback(async () => {
         setIsLoading(true);
@@ -133,6 +262,30 @@ const SuperAdminUserAnalytics = () => {
             activeUsers,
         };
     }, [report?.total_users, users]);
+
+    const openDetails = async (row) => {
+        setDetailsUser(row);
+        setDetailsData(null);
+        setDetailsError(null);
+        setDetailsLoading(true);
+        try {
+            const data = await fetchSuperAdminApi(
+                `/super-admin/analytics/user-analytics/users/${row.user_id}/login-details?days=90`,
+                user?.results?.token
+            );
+            setDetailsData(data.data);
+        } catch (fetchError) {
+            setDetailsError(fetchError.message);
+        } finally {
+            setDetailsLoading(false);
+        }
+    };
+
+    const closeDetails = () => {
+        setDetailsUser(null);
+        setDetailsData(null);
+        setDetailsError(null);
+    };
 
     const refreshButton = (
         <button
@@ -243,8 +396,16 @@ const SuperAdminUserAnalytics = () => {
                                                     {row.login_count}
                                                 </span>
                                             </div>
-                                            <div className="mt-2 pl-9">
+                                            <div className="mt-2 flex items-center justify-between gap-2 pl-9">
                                                 <AccountBadges accountNames={row.account_names} />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openDetails(row)}
+                                                    className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
+                                                >
+                                                    <FiEye className="h-3.5 w-3.5" />
+                                                    View details
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
@@ -272,6 +433,9 @@ const SuperAdminUserAnalytics = () => {
                                                     </th>
                                                     <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                                                         Logins
+                                                    </th>
+                                                    <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                                        Actions
                                                     </th>
                                                 </tr>
                                             </thead>
@@ -310,6 +474,16 @@ const SuperAdminUserAnalytics = () => {
                                                                 {row.login_count}
                                                             </span>
                                                         </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openDetails(row)}
+                                                                className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100"
+                                                            >
+                                                                <FiEye className="h-4 w-4" />
+                                                                View details
+                                                            </button>
+                                                        </td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -326,6 +500,7 @@ const SuperAdminUserAnalytics = () => {
                                                         )}{' '}
                                                         logins
                                                     </td>
+                                                    <td />
                                                 </tr>
                                             </tfoot>
                                         </table>
@@ -336,6 +511,15 @@ const SuperAdminUserAnalytics = () => {
                     </SuperAdminPanel>
                 )}
             </div>
+
+            <LoginDetailsModal
+                open={Boolean(detailsUser)}
+                onClose={closeDetails}
+                userRow={detailsUser}
+                details={detailsData}
+                isLoading={detailsLoading}
+                error={detailsError}
+            />
         </SuperAdminShell>
     );
 };

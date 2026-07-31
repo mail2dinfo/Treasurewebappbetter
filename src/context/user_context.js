@@ -1,21 +1,70 @@
-import React, { createContext, useState, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useState, useContext, useReducer, useEffect, useRef } from 'react';
 import reducer from '../reducers/user_reducer'
 import { SIDEBAR_CLOSE, SIDEBAR_OPEN } from '../actions'
 import { clearAllAuthStorage } from '../utils/clearAuthStorage'
+import { API_BASE_URL } from '../utils/apiConfig'
+
 const initialState = {
   isSidebarOpen: false,
 }
 const UserContext = createContext();
+const HEARTBEAT_MS = 3 * 60 * 1000; // every 3 minutes
 
 export const useUserContext = () => {
   return useContext(UserContext);
 };
 
 export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // Store user details here
+  const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // Add loading state
-  const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole')); // Store user role here
+  const [isLoading, setIsLoading] = useState(false);
+  const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole'));
+  const heartbeatRef = useRef(null);
+
+  const persistSessionId = (sessionId) => {
+    if (!sessionId) return;
+    localStorage.setItem('login_session_id', sessionId);
+  };
+
+  const sendSessionHeartbeat = async (token) => {
+    if (!token) return;
+    try {
+      const sessionId = localStorage.getItem('login_session_id');
+      const res = await fetch(`${API_BASE_URL}/users/session/heartbeat`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const nextId = data?.results?.login_session_id;
+      if (nextId) persistSessionId(nextId);
+    } catch (error) {
+      // Non-blocking analytics path
+      console.warn('Session heartbeat failed:', error.message || error);
+    }
+  };
+
+  const endSessionOnServer = async (token) => {
+    const sessionId = localStorage.getItem('login_session_id');
+    if (!token || !sessionId) return;
+    try {
+      await fetch(`${API_BASE_URL}/users/session/end`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+        keepalive: true,
+      });
+    } catch (_) {
+      /* ignore */
+    }
+  };
 
   // Initialize user from localStorage on app start
   useEffect(() => {
@@ -34,7 +83,6 @@ export const UserProvider = ({ children }) => {
             localStorage.setItem('userRole', restoredRole);
           }
         }
-        console.log('User restored from localStorage:', userData);
       } catch (error) {
         console.error('Error parsing saved user data:', error);
         clearAllAuthStorage();
@@ -42,21 +90,49 @@ export const UserProvider = ({ children }) => {
     }
   }, []);
 
+  // Heartbeat while logged in (powers hours spent)
+  useEffect(() => {
+    if (!isLoggedIn || !user?.results?.token) {
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+      return undefined;
+    }
+
+    const token = user.results.token;
+    sendSessionHeartbeat(token);
+    heartbeatRef.current = setInterval(() => {
+      sendSessionHeartbeat(token);
+    }, HEARTBEAT_MS);
+
+    return () => {
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
+      }
+    };
+  }, [isLoggedIn, user?.results?.token]);
+
   const login = (userData) => {
     setUser(userData);
     setIsLoggedIn(true);
-    // Save to localStorage
     localStorage.setItem('user', JSON.stringify(userData));
     if (userData.results?.token) {
       localStorage.setItem('token', userData.results.token);
     }
+    const sessionId = userData.results?.login_session_id;
+    if (sessionId) {
+      persistSessionId(sessionId);
+    }
   };
 
   const logout = () => {
+    const token = user?.results?.token || localStorage.getItem('token');
+    endSessionOnServer(token);
     setUser(null);
     setIsLoggedIn(false);
     setUserRole(null);
-    // Clear every auth/portal session so the next user cannot inherit this one
     clearAllAuthStorage();
   };
 
@@ -72,11 +148,9 @@ export const UserProvider = ({ children }) => {
         user_image: responseData.results.user_image,
       },
     });
-
   };
 
   const updateUserCompany = (newUserCompany) => {
-
     setUser({
       ...user,
       results: {
@@ -84,15 +158,7 @@ export const UserProvider = ({ children }) => {
         userCompany: newUserCompany,
       },
     });
-
-    console.log('After update');
-    console.log(user);
   };
-  useEffect(() => {
-    console.log('After update');
-    console.log(user);
-  }, [user]);
-
 
   const [state, dispatch] = useReducer(reducer, initialState)
 
@@ -104,7 +170,6 @@ export const UserProvider = ({ children }) => {
     dispatch({ type: SIDEBAR_CLOSE })
   }
 
-  // Function to update user role (for future role selection)
   const updateUserRole = (role) => {
     setUserRole(role);
     if (role) {

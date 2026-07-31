@@ -6,6 +6,7 @@ export const AUTH_STORAGE_KEYS = [
   'user',
   'token',
   'userRole',
+  'login_session_id',
   'platform_active_context',
   'subscriber_token',
   'subscriber_user',
