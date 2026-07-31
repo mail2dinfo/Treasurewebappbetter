@@ -41,10 +41,22 @@ const formatDate = (value) => {
     });
 };
 
+/** Convert decimal hours → "20 mins" / "1 hr 20 mins" */
 const formatHours = (value) => {
-    const n = Number(value || 0);
-    if (!Number.isFinite(n) || n <= 0) return '0.00';
-    return n.toFixed(2);
+    const hours = Number(value || 0);
+    if (!Number.isFinite(hours) || hours <= 0) return '0 mins';
+
+    const totalMinutes = Math.round(hours * 60);
+    if (totalMinutes < 1) return '< 1 min';
+    if (totalMinutes < 60) {
+        return `${totalMinutes} min${totalMinutes === 1 ? '' : 's'}`;
+    }
+
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    const hourPart = `${h} hr${h === 1 ? '' : 's'}`;
+    if (m === 0) return hourPart;
+    return `${hourPart} ${m} min${m === 1 ? '' : 's'}`;
 };
 
 const AccountBadges = ({ accountNames = '' }) => {
@@ -123,7 +135,7 @@ const LoginDetailsModal = ({ open, onClose, userRow, details, isLoading, error }
                                 </div>
                                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
                                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                                        Hours spent (range)
+                                        Time spent (range)
                                     </p>
                                     <p className="mt-1 text-xl font-bold text-slate-900">
                                         {formatHours(totals.hours_spent)}
@@ -148,7 +160,7 @@ const LoginDetailsModal = ({ open, onClose, userRow, details, isLoading, error }
                                             <tr>
                                                 <th className="px-4 py-3 font-semibold">Date</th>
                                                 <th className="px-4 py-3 text-right font-semibold">No of times</th>
-                                                <th className="px-4 py-3 text-right font-semibold">Hours spent</th>
+                                                <th className="px-4 py-3 text-right font-semibold">Time spent</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 bg-white">
@@ -434,18 +446,19 @@ const SuperAdminUserAnalytics = () => {
                                                     <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                                                         Logins
                                                     </th>
-                                                    <th className="px-6 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                                    <th className="sticky right-0 z-10 bg-slate-50 px-4 py-3.5 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.12)]">
                                                         Actions
                                                     </th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100 bg-white">
-                                                {filteredUsers.map((row, index) => (
+                                                {filteredUsers.map((row, index) => {
+                                                    const rowBg =
+                                                        index % 2 === 1 ? 'bg-slate-50/40' : 'bg-white';
+                                                    return (
                                                     <tr
                                                         key={row.user_id}
-                                                        className={`transition hover:bg-red-50/40 ${
-                                                            index % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'
-                                                        }`}
+                                                        className={`transition hover:bg-red-50/40 ${rowBg}`}
                                                     >
                                                         <td className="px-6 py-4 text-sm font-medium text-slate-400">
                                                             {index + 1}
@@ -474,18 +487,23 @@ const SuperAdminUserAnalytics = () => {
                                                                 {row.login_count}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 text-center">
+                                                        <td
+                                                            className={`sticky right-0 z-10 px-4 py-4 text-center shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.12)] ${
+                                                                index % 2 === 1 ? 'bg-slate-50' : 'bg-white'
+                                                            }`}
+                                                        >
                                                             <button
                                                                 type="button"
                                                                 onClick={() => openDetails(row)}
-                                                                className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100"
+                                                                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700 hover:bg-red-100"
                                                             >
                                                                 <FiEye className="h-4 w-4" />
                                                                 View details
                                                             </button>
                                                         </td>
                                                     </tr>
-                                                ))}
+                                                    );
+                                                })}
                                             </tbody>
                                             <tfoot>
                                                 <tr className="border-t border-slate-200 bg-slate-50">
@@ -500,7 +518,7 @@ const SuperAdminUserAnalytics = () => {
                                                         )}{' '}
                                                         logins
                                                     </td>
-                                                    <td />
+                                                    <td className="sticky right-0 bg-slate-50 px-4 py-3 shadow-[-6px_0_8px_-6px_rgba(15,23,42,0.12)]" />
                                                 </tr>
                                             </tfoot>
                                         </table>

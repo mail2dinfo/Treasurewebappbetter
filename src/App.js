@@ -4,6 +4,7 @@ import { ScrollToTop, SignUp, VerifyOTP, Login, ForgetPassword } from './compone
 import { LandingPage, AppSelectionPage } from './pages';
 import SuperAdminHome from './pages/SuperAdminHome';
 import SuperAdminUserAnalytics from './pages/SuperAdminUserAnalytics';
+import SuperAdminUserOnline from './pages/SuperAdminUserOnline';
 import SuperAdminChitFundAnalytics from './pages/SuperAdminChitFundAnalytics';
 import SuperAdminDailyFinanceAnalytics from './pages/SuperAdminDailyFinanceAnalytics';
 import SuperAdminBilling from './pages/SuperAdminBilling';
@@ -53,6 +54,7 @@ function App() {
                     <Switch>
                         {/* Super Admin Portal */}
                         <PrivateRoute exact path="/super-admin/user-analytics" component={SuperAdminUserAnalytics} />
+                        <PrivateRoute exact path="/super-admin/user-online" component={SuperAdminUserOnline} />
                         <PrivateRoute exact path="/super-admin/billing" component={SuperAdminBilling} />
                         <PrivateRoute exact path="/super-admin/jobs" component={SuperAdminJobs} />
                         <PrivateRoute exact path="/super-admin/chit-fund-analytics" component={SuperAdminChitFundAnalytics} />

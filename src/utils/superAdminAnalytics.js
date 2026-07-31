@@ -6,6 +6,12 @@ export const SUPER_ADMIN_NAV = [
         icon: 'users',
     },
     {
+        id: 'user-online',
+        name: 'User Online',
+        path: '/super-admin/user-online',
+        icon: 'online',
+    },
+    {
         id: 'billing',
         name: 'Billing Control',
         path: '/super-admin/billing',
@@ -37,6 +43,13 @@ export const SUPER_ADMIN_ANALYTICS = [
         name: 'User Analytics',
         description: 'Login activity for all MyTreasure users (shared across apps)',
         path: '/super-admin/user-analytics',
+        isActive: true,
+    },
+    {
+        id: 'user-online',
+        name: 'User Online',
+        description: 'Who is currently logged in and active in the portal',
+        path: '/super-admin/user-online',
         isActive: true,
     },
     {

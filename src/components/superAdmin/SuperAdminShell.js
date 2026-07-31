@@ -7,6 +7,7 @@ import {
     FiMenu,
     FiTrendingUp,
     FiUsers,
+    FiWifi,
     FiX,
 } from 'react-icons/fi';
 import { useHistory, useLocation } from 'react-router-dom';
@@ -18,6 +19,7 @@ import MyTreasureBrand from '../MyTreasureBrand';
 const navIcons = {
     home: FiGrid,
     users: FiUsers,
+    online: FiWifi,
     chart: FiBarChart2,
     trending: FiTrendingUp,
     clock: FiClock,
