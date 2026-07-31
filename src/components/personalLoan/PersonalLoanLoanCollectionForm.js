@@ -34,7 +34,6 @@ const PersonalLoanLoanCollectionForm = ({ loan, onClose, onSuccess }) => {
     const { user } = useUserContext();
     const [isLoading, setIsLoading] = useState(false);
     const [receivables, setReceivables] = useState([]);
-    const [allReceivables, setAllReceivables] = useState([]);
     const [errors, setErrors] = useState({});
     const [ledgerAccounts, setLedgerAccounts] = useState([]);
 
@@ -61,7 +60,6 @@ const PersonalLoanLoanCollectionForm = ({ loan, onClose, onSuccess }) => {
             const all = result.data || [];
             const pendingReceivables = all.filter((r) => r.status !== 'PAID' && parseFloat(r.due_amount) > 0);
             setReceivables(pendingReceivables);
-            setAllReceivables(all);
 
             if (INSTALLMENT_MODES.includes(loan?.loan_mode)) {
                 const firstInst = pendingReceivables
@@ -106,61 +104,17 @@ const PersonalLoanLoanCollectionForm = ({ loan, onClose, onSuccess }) => {
         const monthlyInterest = round2(principalDue * (rate / 100));
         const isResidual = principalDue > 0 && principalDue < 1;
 
-        // Holding interest on principal BEFORE payment, from last due → payment date
-        const payDate = formData.paymentDate || new Date().toISOString().slice(0, 10);
-        const interestRows = (allReceivables || []).filter((r) => r.due_type === 'INTEREST');
-        const pay = new Date(`${payDate}T00:00:00`);
-        const anchors = interestRows
-            .map((r) => (r.due_date ? new Date(`${String(r.due_date).slice(0, 10)}T00:00:00`) : null))
-            .filter((d) => d && !Number.isNaN(d.getTime()) && d.getTime() <= pay.getTime())
-            .sort((a, b) => a - b);
-        let holdingAccrual = null;
-        if (anchors.length && principalDue >= 1 && rate > 0) {
-            const from = anchors[anchors.length - 1];
-            const daysHeld = Math.round((pay - from) / (24 * 60 * 60 * 1000));
-            if (daysHeld > 0) {
-                const next = new Date(from);
-                next.setMonth(next.getMonth() + 1);
-                const dueDay = Math.min(Math.max(parseInt(loan.interest_due_day, 10) || 1, 1), 31);
-                const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
-                next.setDate(Math.min(dueDay, lastDay));
-                const cycleDays = Math.max(Math.round((next - from) / (24 * 60 * 60 * 1000)), 1);
-                const monthly = round2(principalDue * (rate / 100));
-                const amount = round2(monthly * (daysHeld / cycleDays));
-                const payKey = payDate.slice(0, 10);
-                const alreadyBilledToday = interestRows.some(
-                    (r) => r.due_date && String(r.due_date).slice(0, 10) === payKey
-                );
-                if (amount >= 0.01 && !alreadyBilledToday) {
-                    holdingAccrual = {
-                        amount,
-                        daysHeld,
-                        cycleDays,
-                        fromDate: from.toISOString().slice(0, 10),
-                        toDate: payKey,
-                        monthlyInterest: monthly,
-                    };
-                }
-            }
-        }
-
-        const holdingInterest = holdingAccrual?.amount || 0;
-        const interestDue = isResidual
-            ? pendingInterest
-            : round2(pendingInterest + holdingInterest);
-
+        // Dues come only from receivables — nothing is charged before it is billed.
         return {
             principalDue,
-            interestDue,
+            interestDue: pendingInterest,
             monthlyInterest,
             pendingInterest,
-            holdingAccrual,
-            holdingInterest,
             rate,
             isResidual,
-            closeAmount: round2(principalDue + interestDue),
+            closeAmount: round2(principalDue + pendingInterest),
         };
-    }, [isBulletMode, receivables, allReceivables, loan, formData.paymentDate]);
+    }, [isBulletMode, receivables, loan]);
 
     const installments = useMemo(() => {
         if (!isInstallmentMode) return [];
@@ -433,32 +387,14 @@ const PersonalLoanLoanCollectionForm = ({ loan, onClose, onSuccess }) => {
                             <ul className="list-disc pl-5 space-y-1">
                                 <li>Interest is settled first from the received amount.</li>
                                 <li>Any leftover amount reduces outstanding principal.</li>
-                                <li>
-                                    Mid-cycle principal payment: interest from last due date to today is charged on the
-                                    principal held so far (before this payment), not on the reduced balance.
-                                </li>
-                                <li>Next month’s full interest (on due day) uses the new principal after this payment.</li>
+                                <li>Only interest already billed on a due date is collected — nothing is charged in advance.</li>
+                                <li>Next month’s interest (on due day) uses the new principal after this payment.</li>
                                 <li>
                                     To close now, collect{' '}
                                     <strong>{formatCurrency(bulletSummary.closeAmount)}</strong>
                                     {' '}(principal + interest due).
                                 </li>
                             </ul>
-                            {bulletSummary.holdingAccrual && (
-                                <div className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs text-orange-950">
-                                    Holding interest on{' '}
-                                    <strong>{formatCurrency(bulletSummary.principalDue)}</strong>
-                                    {' '}from {bulletSummary.holdingAccrual.fromDate} → {bulletSummary.holdingAccrual.toDate}
-                                    {' '}({bulletSummary.holdingAccrual.daysHeld}/{bulletSummary.holdingAccrual.cycleDays} days)
-                                    {' '}= <strong>{formatCurrency(bulletSummary.holdingInterest)}</strong>
-                                    {bulletSummary.pendingInterest > 0 && (
-                                        <>
-                                            {' '}+ billed pending{' '}
-                                            <strong>{formatCurrency(bulletSummary.pendingInterest)}</strong>
-                                        </>
-                                    )}
-                                </div>
-                            )}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                                 <div className="rounded-lg bg-white/80 p-2">
                                     <p className="text-xs text-gray-500">Interest due</p>
