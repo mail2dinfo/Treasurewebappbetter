@@ -47,6 +47,22 @@ const applyFinalAdjustment = (rows, originalPrincipal) => {
     return { rows, adjusted: false, principalGap: 0 };
 };
 
+/**
+ * First INTEREST_ONLY due date: always the due day in the month AFTER disbursement,
+ * mirroring buildInterestDueDates on the backend.
+ */
+export const getFirstInterestDueDate = (disbursedDate, dueDay) => {
+    const day = parseInt(dueDay, 10);
+    if (!disbursedDate || !day || day < 1 || day > 31) return null;
+
+    // Parse YYYY-MM-DD as a local date; new Date(string) would shift it by timezone.
+    const [year, month] = String(disbursedDate).slice(0, 10).split('-').map(Number);
+    if (!year || !month) return null;
+
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    return new Date(year, month, Math.min(day, lastDay));
+};
+
 export const buildPersonalLoanSchedulePreview = ({
     loanMode,
     principal,

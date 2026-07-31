@@ -15,7 +15,11 @@ import {
     plLoanModeNeedsInterest,
     plLoanModeNeedsTenure,
 } from '../../utils/personalLoanModes';
-import { buildPersonalLoanSchedulePreview, summarizeSchedule } from '../../utils/personalLoanSchedule';
+import {
+    buildPersonalLoanSchedulePreview,
+    getFirstInterestDueDate,
+    summarizeSchedule,
+} from '../../utils/personalLoanSchedule';
 import PersonalLoanAgreementPDF from './PDF/PersonalLoanAgreementPDF';
 
 const formatCurrency = (v) =>
@@ -73,6 +77,11 @@ const PersonalLoanLoanDisbursementForm = ({ onClose, onSuccess }) => {
         [formData]
     );
     const scheduleSummary = useMemo(() => summarizeSchedule(schedulePreview), [schedulePreview]);
+
+    const firstInterestDueDate = useMemo(
+        () => getFirstInterestDueDate(formData.disbursedDate, formData.interestDueDay),
+        [formData.disbursedDate, formData.interestDueDay]
+    );
 
     useEffect(() => {
         if (subscribers.length === 0) fetchSubscribers();
@@ -612,6 +621,19 @@ MyTreasure Personal Loan Team
                                         <li>
                                             Monthly interest is charged on outstanding principal
                                             ({parseFloat(formData.interestRate || 0).toFixed(2)}% per month).
+                                        </li>
+                                        <li>
+                                            First interest due:{' '}
+                                            <strong>
+                                                {firstInterestDueDate
+                                                    ? firstInterestDueDate.toLocaleDateString('en-IN', {
+                                                        day: '2-digit',
+                                                        month: 'short',
+                                                        year: 'numeric',
+                                                    })
+                                                    : 'set a collection due day'}
+                                            </strong>
+                                            {' '}— dues are created only once that date arrives.
                                         </li>
                                         <li>Subscriber can keep paying only interest while holding the principal — no fixed end date.</li>
                                         <li>Any payment settles interest first; leftover amount reduces principal.</li>
