@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { FiSettings, FiUsers, FiUser, FiMapPin, FiGrid } from 'react-icons/fi';
+import { FiSettings, FiUsers, FiUser, FiMapPin, FiGrid, FiCoffee } from 'react-icons/fi';
 import PersonalSettings from '../../components/PersonalSettings';
 import PlatformEmployeesPage from '../PlatformEmployeesPage';
 import HostelManagementHostelsPage from './HostelManagementHostelsPage';
 import HostelManagementFloorsRoomsPage from './HostelManagementFloorsRoomsPage';
+import HostelManagementMealMenuPage from './HostelManagementMealMenuPage';
 import { useHmPermission } from '../../components/hostelManagement/useHmPermission';
 import { HM_NAV_ANY } from '../../utils/hmPermissionCatalog';
 
@@ -21,6 +22,13 @@ const ALL_MENU_ITEMS = [
     description: 'Floors, rooms and beds setup',
     icon: FiGrid,
     featureKeys: HM_NAV_ANY.floorsRooms,
+  },
+  {
+    id: 'meal-menu',
+    label: 'Meal menu',
+    description: 'Breakfast, lunch, dinner & juices items',
+    icon: FiCoffee,
+    featureKeys: HM_NAV_ANY.foodReport,
   },
   {
     id: 'employees',
@@ -56,7 +64,10 @@ const HostelManagementAdminSettingsPage = () => {
     ? selectedMenu
     : (menuItems[0]?.id || 'employees');
 
-  const isWide = activeMenu === 'employees' || activeMenu === 'hostels' || activeMenu === 'floors-rooms';
+  const isWide = activeMenu === 'employees'
+    || activeMenu === 'hostels'
+    || activeMenu === 'floors-rooms'
+    || activeMenu === 'meal-menu';
 
   return (
     <div className="min-h-[calc(100vh-7rem)] bg-[#f8f9fa] antialiased">
@@ -71,7 +82,7 @@ const HostelManagementAdminSettingsPage = () => {
                 Admin Settings
               </h1>
               <p className="mt-1 text-sm text-[#888]">
-                Setup hostels, floors &amp; rooms, employees, and your profile
+                Setup hostels, meal menu, floors &amp; rooms, employees, and your profile
               </p>
             </div>
           </div>
@@ -137,6 +148,7 @@ const HostelManagementAdminSettingsPage = () => {
             >
               {activeMenu === 'hostels' && <HostelManagementHostelsPage embedded />}
               {activeMenu === 'floors-rooms' && <HostelManagementFloorsRoomsPage />}
+              {activeMenu === 'meal-menu' && <HostelManagementMealMenuPage />}
               {activeMenu === 'personalsettings' && <PersonalSettings />}
               {activeMenu === 'employees' && (
                 <PlatformEmployeesPage

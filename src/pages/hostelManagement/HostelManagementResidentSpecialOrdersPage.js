@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useHostelManagement } from '../../context/hostelManagement/HostelManagementContext';
 
@@ -10,30 +10,62 @@ const STATUS_STYLE = {
   DELIVERED: 'bg-green-100 text-green-800',
 };
 
+const MEAL_SLOT_KEYS = new Set(['breakfast', 'lunch', 'dinner']);
+
 const emptyForm = {
   mealSlot: 'LUNCH',
   mealDate: toDate(new Date()),
+  itemId: '',
   itemName: '',
   notes: '',
   quantity: '1',
 };
 
 /**
- * Resident places special kitchen orders and tracks status.
+ * Resident places special kitchen orders (juices / extras from meal menu) and tracks status.
  */
 const HostelManagementResidentSpecialOrdersPage = () => {
-  const { myResidentProfile, createSpecialOrder, mySpecialOrders } = useHostelManagement();
+  const {
+    myResidentProfile,
+    createSpecialOrder,
+    mySpecialOrders,
+    fetchMealMenu,
+  } = useHostelManagement();
   const [resident, setResident] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [menuCategories, setMenuCategories] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const specialItems = useMemo(() => {
+    const rows = [];
+    (menuCategories || []).forEach((cat) => {
+      const slot = String(cat.slot_key || 'custom').toLowerCase();
+      if (MEAL_SLOT_KEYS.has(slot)) return;
+      (cat.items || [])
+        .filter((it) => it.status !== 0)
+        .forEach((it) => {
+          rows.push({
+            id: it.id,
+            name: it.name,
+            categoryName: cat.name,
+            slotKey: slot,
+          });
+        });
+    });
+    return rows;
+  }, [menuCategories]);
 
   const load = async () => {
     setLoading(true);
     try {
       const profile = await myResidentProfile();
-      if (profile.success) setResident(profile.data);
+      if (profile.success) {
+        setResident(profile.data);
+        const menu = await fetchMealMenu(profile.data?.parent_membership_id);
+        if (menu.success) setMenuCategories(menu.data?.categories || []);
+      }
       const list = await mySpecialOrders();
       if (list.success) setOrders(list.data || []);
     } finally {
@@ -45,15 +77,25 @@ const HostelManagementResidentSpecialOrdersPage = () => {
     load();
   }, []);
 
+  const onItemPick = (itemId) => {
+    const picked = specialItems.find((it) => it.id === itemId);
+    setForm((prev) => ({
+      ...prev,
+      itemId,
+      itemName: picked ? picked.name : '',
+    }));
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
-    if (!form.itemName.trim()) return toast.error('Enter item / dish name');
+    const name = form.itemName.trim();
+    if (!name) return toast.error('Select an item from the menu');
     setSubmitting(true);
     try {
       const result = await createSpecialOrder({
         mealSlot: form.mealSlot,
         mealDate: form.mealDate,
-        itemName: form.itemName.trim(),
+        itemName: name,
         notes: form.notes.trim() || null,
         quantity: Number(form.quantity) || 1,
         source: 'RESIDENT',
@@ -73,7 +115,7 @@ const HostelManagementResidentSpecialOrdersPage = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Special orders</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Request extras from the kitchen. Track NEW → In process → Delivered.
+          Order juices and other extras from the hostel menu. Breakfast / Lunch / Dinner stay under week meal availability.
         </p>
         {resident && (
           <p className="text-xs text-gray-400 mt-1">
@@ -90,9 +132,9 @@ const HostelManagementResidentSpecialOrdersPage = () => {
           value={form.mealSlot}
           onChange={(e) => setForm({ ...form, mealSlot: e.target.value })}
         >
-          <option value="BREAKFAST">Breakfast</option>
-          <option value="LUNCH">Lunch</option>
-          <option value="DINNER">Dinner</option>
+          <option value="BREAKFAST">With Breakfast</option>
+          <option value="LUNCH">With Lunch</option>
+          <option value="DINNER">With Dinner</option>
         </select>
         <input
           type="date"
@@ -101,13 +143,24 @@ const HostelManagementResidentSpecialOrdersPage = () => {
           value={form.mealDate}
           onChange={(e) => setForm({ ...form, mealDate: e.target.value })}
         />
-        <input
+        <select
           className="border rounded-lg px-3 py-2 md:col-span-2"
-          placeholder="Item / dish *"
           required
-          value={form.itemName}
-          onChange={(e) => setForm({ ...form, itemName: e.target.value })}
-        />
+          value={form.itemId}
+          onChange={(e) => onItemPick(e.target.value)}
+        >
+          <option value="">Select juice / extra item *</option>
+          {specialItems.map((it) => (
+            <option key={it.id} value={it.id}>
+              {it.categoryName} — {it.name}
+            </option>
+          ))}
+        </select>
+        {specialItems.length === 0 && (
+          <p className="md:col-span-2 text-xs text-amber-700">
+            No special-order items yet. Ask the hostel to add Juices or other categories under Admin Settings → Meal menu.
+          </p>
+        )}
         <input
           className="border rounded-lg px-3 py-2"
           type="number"
@@ -125,7 +178,7 @@ const HostelManagementResidentSpecialOrdersPage = () => {
         />
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || specialItems.length === 0}
           className="md:col-span-2 bg-[#d62828] text-white rounded-lg py-2.5 font-semibold hover:bg-red-700 disabled:opacity-60"
         >
           {submitting ? 'Placing…' : 'Place special order'}

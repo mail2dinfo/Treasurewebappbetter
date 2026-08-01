@@ -36,16 +36,29 @@ const statusLabel = (status) => {
   return status || '—';
 };
 
+const emptyMealDay = (d) => ({
+  meal_date: d,
+  weekday: WEEKDAYS[new Date(d).getDay()],
+  breakfast: 'NOT_AVAILABLE',
+  lunch: 'NOT_AVAILABLE',
+  dinner: 'NOT_AVAILABLE',
+  breakfast_item_id: null,
+  lunch_item_id: null,
+  dinner_item_id: null,
+  juice_item_id: null,
+});
+
 const HostelManagementResidentPortal = () => {
   const {
     myResidentProfile, myReceivables, submitPayment,
-    getWeekMeals, upsertWeekMeals,
+    getWeekMeals, upsertWeekMeals, fetchMealMenu,
   } = useHostelManagement();
 
   const [resident, setResident] = useState(null);
   const [dues, setDues] = useState([]);
   const [weekStart, setWeekStart] = useState(mondayOf());
   const [weekMeals, setWeekMeals] = useState([]);
+  const [menuCategories, setMenuCategories] = useState([]);
   const [payForm, setPayForm] = useState({
     receivableId: '', amount: '', transactionRef: '', paymentDate: toDate(new Date()),
   });
@@ -61,6 +74,9 @@ const HostelManagementResidentPortal = () => {
     setHostelPayInfo(profile.data?.hostel || null);
     const recv = await myReceivables(profile.data.id);
     if (recv.success) setDues(recv.data || []);
+
+    const menu = await fetchMealMenu(profile.data?.parent_membership_id);
+    if (menu.success) setMenuCategories(menu.data?.categories || []);
   };
 
   useEffect(() => { load(); }, []);
@@ -82,13 +98,14 @@ const HostelManagementResidentPortal = () => {
         for (let i = 0; i < 7; i++) {
           const d = addDays(weekStart, i);
           const existing = rows.find((r) => r.meal_date === d);
-          filled.push(existing || {
-            meal_date: d,
-            weekday: WEEKDAYS[new Date(d).getDay()],
-            breakfast: 'NOT_AVAILABLE',
-            lunch: 'NOT_AVAILABLE',
-            dinner: 'NOT_AVAILABLE',
-          });
+          filled.push(existing
+            ? {
+              ...emptyMealDay(d),
+              ...existing,
+              meal_date: d,
+              weekday: existing.weekday || WEEKDAYS[new Date(d).getDay()],
+            }
+            : emptyMealDay(d));
         }
         setWeekMeals(filled);
       }
@@ -97,6 +114,28 @@ const HostelManagementResidentPortal = () => {
   }, [resident, weekStart]);
 
   const stay = resident?.stay || {};
+  const joinDate = resident?.join_date ? String(resident.join_date).slice(0, 10) : null;
+  const checkoutDate = resident?.checkout_date ? String(resident.checkout_date).slice(0, 10) : null;
+
+  const itemsBySlot = useMemo(() => {
+    const map = { breakfast: [], lunch: [], dinner: [] };
+    (menuCategories || []).forEach((cat) => {
+      const key = String(cat.slot_key || '').toLowerCase();
+      if (!map[key]) return;
+      const items = (cat.items || []).filter((it) => it.status !== 0);
+      map[key] = [...map[key], ...items];
+    });
+    return map;
+  }, [menuCategories]);
+
+  const isMealDateEditable = (mealDate) => {
+    const d = String(mealDate || '').slice(0, 10);
+    if (!d) return false;
+    if (joinDate && d < joinDate) return false;
+    if (checkoutDate && d > checkoutDate) return false;
+    return true;
+  };
+
   const sortedDues = useMemo(
     () => [...(dues || [])].sort((a, b) => String(b.billing_period_start || '').localeCompare(String(a.billing_period_start || ''))),
     [dues]
@@ -111,19 +150,46 @@ const HostelManagementResidentPortal = () => {
   }, [dues]);
 
   const setMeal = (idx, meal, value) => {
-    setWeekMeals((prev) => prev.map((row, i) => (i === idx ? { ...row, [meal]: value } : row)));
+    setWeekMeals((prev) => prev.map((row, i) => {
+      if (i !== idx) return row;
+      if (!isMealDateEditable(row.meal_date)) return row;
+      const next = { ...row, [meal]: value };
+      if (value !== 'AVAILABLE') {
+        next[`${meal}_item_id`] = null;
+      }
+      return next;
+    }));
+  };
+
+  const setMealItem = (idx, field, value) => {
+    setWeekMeals((prev) => prev.map((row, i) => {
+      if (i !== idx) return row;
+      if (!isMealDateEditable(row.meal_date)) return row;
+      return { ...row, [field]: value || null };
+    }));
   };
 
   const saveMeals = async () => {
     if (!resident) return;
+    const editableDays = weekMeals.filter((d) => isMealDateEditable(d.meal_date));
+    if (editableDays.length === 0) {
+      toast.error(joinDate
+        ? `Meal availability starts from your join date (${joinDate})`
+        : 'No editable meal days in this week');
+      return;
+    }
     const result = await upsertWeekMeals({
       hostelId: resident.hostel_id,
       residentId: resident.id,
-      days: weekMeals.map((d) => ({
+      days: editableDays.map((d) => ({
         mealDate: d.meal_date,
         breakfast: d.breakfast,
         lunch: d.lunch,
         dinner: d.dinner,
+        breakfastItemId: d.breakfast === 'AVAILABLE' ? d.breakfast_item_id : null,
+        lunchItemId: d.lunch === 'AVAILABLE' ? d.lunch_item_id : null,
+        dinnerItemId: d.dinner === 'AVAILABLE' ? d.dinner_item_id : null,
+        juiceItemId: null,
       })),
     });
     if (result.success) toast.success('Meal week saved');
@@ -366,7 +432,15 @@ const HostelManagementResidentPortal = () => {
         <div className="flex flex-wrap justify-between gap-2">
           <div>
             <h2 className="font-bold text-lg">Week meal availability</h2>
-            <p className="text-xs text-gray-500">Default = Not available. Mark Available only if you will eat.</p>
+            <p className="text-xs text-gray-500">
+              Breakfast, Lunch, Dinner only. Mark Available and pick the dish. Juices and extras go under Special orders.
+            </p>
+            {joinDate && (
+              <p className="text-xs text-blue-700 mt-1">
+                Meals can be marked from your join date ({joinDate}) onward
+                {checkoutDate ? ` until ${checkoutDate}` : ''}.
+              </p>
+            )}
           </div>
           <input type="date" className="border rounded-lg px-2 py-1 text-sm" value={weekStart} onChange={(e) => setWeekStart(e.target.value)} />
         </div>
@@ -381,23 +455,54 @@ const HostelManagementResidentPortal = () => {
               </tr>
             </thead>
             <tbody>
-              {weekMeals.map((day, idx) => (
-                <tr key={day.meal_date} className="border-t">
-                  <td className="px-2 py-2 font-medium whitespace-nowrap">{day.weekday}<br /><span className="text-gray-400">{day.meal_date}</span></td>
-                  {['breakfast', 'lunch', 'dinner'].map((meal) => (
-                    <td key={meal} className="px-2 py-2">
-                      <select
-                        className="border rounded px-1 py-1"
-                        value={day[meal]}
-                        onChange={(e) => setMeal(idx, meal, e.target.value)}
-                      >
-                        <option value="NOT_AVAILABLE">Not available</option>
-                        <option value="AVAILABLE">Available</option>
-                      </select>
+              {weekMeals.map((day, idx) => {
+                const editable = isMealDateEditable(day.meal_date);
+                return (
+                  <tr key={day.meal_date} className={`border-t ${editable ? '' : 'bg-gray-50 text-gray-400'}`}>
+                    <td className="px-2 py-2 font-medium whitespace-nowrap align-top">
+                      {day.weekday}<br />
+                      <span className={editable ? 'text-gray-400' : 'text-gray-300'}>{day.meal_date}</span>
+                      {!editable && (
+                        <p className="text-[10px] font-normal text-gray-400 mt-0.5">
+                          {joinDate && String(day.meal_date) < joinDate ? 'Before join date' : 'Not in stay'}
+                        </p>
+                      )}
                     </td>
-                  ))}
-                </tr>
-              ))}
+                    {['breakfast', 'lunch', 'dinner'].map((meal) => {
+                      const itemField = `${meal}_item_id`;
+                      const options = itemsBySlot[meal] || [];
+                      return (
+                        <td key={meal} className="px-2 py-2 align-top space-y-1 min-w-[8.5rem]">
+                          <select
+                            className={`border rounded px-1 py-1 w-full ${editable ? '' : 'bg-gray-100 cursor-not-allowed'}`}
+                            value={editable ? day[meal] : 'NOT_AVAILABLE'}
+                            disabled={!editable}
+                            onChange={(e) => setMeal(idx, meal, e.target.value)}
+                          >
+                            <option value="NOT_AVAILABLE">Not available</option>
+                            <option value="AVAILABLE">Available</option>
+                          </select>
+                          {editable && day[meal] === 'AVAILABLE' && options.length > 0 && (
+                            <select
+                              className="border rounded px-1 py-1 w-full"
+                              value={day[itemField] || ''}
+                              onChange={(e) => setMealItem(idx, itemField, e.target.value)}
+                            >
+                              <option value="">Select item…</option>
+                              {options.map((it) => (
+                                <option key={it.id} value={it.id}>{it.name}</option>
+                              ))}
+                            </select>
+                          )}
+                          {editable && day[meal] === 'AVAILABLE' && options.length === 0 && (
+                            <p className="text-[10px] text-amber-700">No menu items yet</p>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

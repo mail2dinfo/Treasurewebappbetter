@@ -375,6 +375,36 @@ export function HostelManagementProvider({ children }) {
     return api(`/hm/meals/week?resident_id=${residentId}&start_date=${startDate}`);
   }, [api]);
 
+  const fetchMealMenu = useCallback(async (parentMembershipId) => {
+    const mid = parentMembershipId || getAuth()?.membershipId;
+    if (!mid) return { success: false, error: 'Membership ID not found' };
+    return api(`/hm/meal-menu?parent_membership_id=${mid}`);
+  }, [api, getAuth]);
+
+  const createMealCategory = useCallback((payload) => (
+    api('/hm/meal-menu/categories', { method: 'POST', body: JSON.stringify(payload) })
+  ), [api]);
+
+  const updateMealCategory = useCallback((id, payload) => (
+    api(`/hm/meal-menu/categories/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+  ), [api]);
+
+  const deleteMealCategory = useCallback((id) => (
+    api(`/hm/meal-menu/categories/${id}`, { method: 'DELETE' })
+  ), [api]);
+
+  const createMealItem = useCallback((payload) => (
+    api('/hm/meal-menu/items', { method: 'POST', body: JSON.stringify(payload) })
+  ), [api]);
+
+  const updateMealItem = useCallback((id, payload) => (
+    api(`/hm/meal-menu/items/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+  ), [api]);
+
+  const deleteMealItem = useCallback((id) => (
+    api(`/hm/meal-menu/items/${id}`, { method: 'DELETE' })
+  ), [api]);
+
   const fetchDashboard = useCallback(async () => {
     const { membershipId } = getAuth();
     const result = await api(`/hm/dashboard?parent_membership_id=${membershipId}`);
@@ -466,6 +496,13 @@ export function HostelManagementProvider({ children }) {
     updateSpecialOrderStatus,
     upsertWeekMeals,
     getWeekMeals,
+    fetchMealMenu,
+    createMealCategory,
+    updateMealCategory,
+    deleteMealCategory,
+    createMealItem,
+    updateMealItem,
+    deleteMealItem,
     fetchDashboard,
     myResidentProfile,
     myReceivables,
