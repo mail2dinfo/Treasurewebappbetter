@@ -250,6 +250,7 @@ export function HostelManagementProvider({ children }) {
     if (opts.outstandingOnly) q.set('outstanding_only', '1');
     if (opts.status) q.set('status', opts.status);
     if (opts.residentId) q.set('resident_id', opts.residentId);
+    if (opts.rentPlan) q.set('rent_plan', opts.rentPlan);
     // Skip global loading flag when fetching for a specific resident (bed history)
     if (!opts.residentId) dispatch({ type: 'SET_LOADING', payload: true });
     const result = await api(`/hm/receivables?${q}`);
@@ -360,11 +361,15 @@ export function HostelManagementProvider({ children }) {
     api('/hm/special-orders/mine')
   ), [api]);
 
-  const updateSpecialOrderStatus = useCallback(async (id, status) => (
+  const updateSpecialOrderStatus = useCallback(async (id, status, extra = {}) => (
     api(`/hm/special-orders/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...extra }),
     })
+  ), [api]);
+
+  const cancelSpecialOrder = useCallback(async (id) => (
+    api(`/hm/special-orders/${id}/cancel`, { method: 'POST', body: JSON.stringify({}) })
   ), [api]);
 
   const upsertWeekMeals = useCallback(async (payload) => {
@@ -405,9 +410,11 @@ export function HostelManagementProvider({ children }) {
     api(`/hm/meal-menu/items/${id}`, { method: 'DELETE' })
   ), [api]);
 
-  const fetchDashboard = useCallback(async () => {
+  const fetchDashboard = useCallback(async (hostelId = null) => {
     const { membershipId } = getAuth();
-    const result = await api(`/hm/dashboard?parent_membership_id=${membershipId}`);
+    const q = new URLSearchParams({ parent_membership_id: membershipId });
+    if (hostelId) q.set('hostel_id', hostelId);
+    const result = await api(`/hm/dashboard?${q}`);
     if (result.success) dispatch({ type: 'SET_DASHBOARD', payload: result.data });
     return result;
   }, [api, getAuth]);
@@ -494,6 +501,7 @@ export function HostelManagementProvider({ children }) {
     createSpecialOrder,
     mySpecialOrders,
     updateSpecialOrderStatus,
+    cancelSpecialOrder,
     upsertWeekMeals,
     getWeekMeals,
     fetchMealMenu,

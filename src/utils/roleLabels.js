@@ -52,7 +52,9 @@ export const getLoggedInRoleLabel = ({
     if (platform?.isOwner) return 'Owner';
 
     const path = String(pathname || '');
-    if (path.includes('/kitchen')) return 'Kitchen Staff';
+    if (path.includes('/kitchenstaff') || path.includes('/kitchen')) return 'Kitchen Staff';
+    if (path.includes('/receptionist')) return 'Receptionist';
+    if (path.includes('/resident')) return 'Resident';
     if (path.includes('/manager')) return 'Manager';
     if (path.includes('/collector')) return 'Collector';
     if (path.includes('/accountant')) return 'Accountant';

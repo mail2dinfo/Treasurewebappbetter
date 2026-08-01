@@ -1,16 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { FiDownload, FiFileText } from 'react-icons/fi';
 import { useHostelManagement } from '../../context/hostelManagement/HostelManagementContext';
-import HostelSelector from '../../components/hostelManagement/HostelSelector';
 import HostelOutstandingReportPDF from '../../components/hostelManagement/PDF/HostelOutstandingReportPDF';
 import HostelReceiptPDF from '../../components/hostelManagement/PDF/HostelReceiptPDF';
 import { buildHostelBillProps } from '../../utils/hostelBillProps';
-
-const currentMonth = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-};
 
 const monthInputToLabel = (ym) => {
   if (!ym) return 'All months';
@@ -18,37 +13,72 @@ const monthInputToLabel = (ym) => {
   return new Date(y, m - 1, 1).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
 };
 
+const modeLabel = (mode) => {
+  if (!mode) return 'All modes (Monthly / Daily / Adhoc)';
+  return mode;
+};
+
+/**
+ * Outstanding list: default = all hostels, all months, all rent modes, pending only.
+ * Query: ?hostel_id=&month=YYYY-MM&mode=MONTHLY|DAILY|ADHOC&outstanding=1
+ */
 const HostelManagementOutstandingPage = () => {
+  const location = useLocation();
   const {
-    selectedHostelId,
     hostels,
+    fetchHostels,
     fetchReceivables,
+    setSelectedHostelId,
   } = useHostelManagement();
 
-  const [month, setMonth] = useState(currentMonth());
-  const [outstandingOnly, setOutstandingOnly] = useState(true);
+  const query = useMemo(() => new URLSearchParams(location.search || ''), [location.search]);
+
+  const [hostelId, setHostelId] = useState(() => query.get('hostel_id') || '');
+  // Default: overall pending (all months)
+  const [month, setMonth] = useState(() => query.get('month') || '');
+  const [rentMode, setRentMode] = useState(() => String(query.get('mode') || '').toUpperCase());
+  const [outstandingOnly, setOutstandingOnly] = useState(() => {
+    const q = query.get('outstanding');
+    if (q === '0' || q === 'false') return false;
+    return true;
+  });
   const [rows, setRows] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    fetchHostels();
+  }, []);
+
+  useEffect(() => {
+    const hid = query.get('hostel_id') || '';
+    const m = query.get('month');
+    const mode = String(query.get('mode') || '').toUpperCase();
+    const out = query.get('outstanding');
+    setHostelId(hid);
+    if (m !== null) setMonth(m || '');
+    if (mode) setRentMode(mode);
+    if (out === '0' || out === 'false') setOutstandingOnly(false);
+    else if (out === '1' || out === 'true' || hid || location.search) setOutstandingOnly(true);
+    if (hid) setSelectedHostelId(hid);
+  }, [query, location.search, setSelectedHostelId]);
+
   const hostelName = useMemo(() => {
-    const h = (hostels || []).find((x) => x.id === selectedHostelId);
+    if (!hostelId) return 'All hostels';
+    const h = (hostels || []).find((x) => x.id === hostelId);
     return h?.hostel_name || h?.name || 'Hostel';
-  }, [hostels, selectedHostelId]);
+  }, [hostels, hostelId]);
 
   const monthLabel = monthInputToLabel(month);
+  const showHostel = !hostelId;
 
   const load = async () => {
-    if (!selectedHostelId) {
-      setRows([]);
-      setSummary(null);
-      return;
-    }
     setLoading(true);
     try {
-      const result = await fetchReceivables(selectedHostelId, {
+      const result = await fetchReceivables(hostelId || null, {
         month: month || undefined,
         outstandingOnly,
+        rentPlan: rentMode || undefined,
       });
       if (result?.success) {
         setRows(result.data || []);
@@ -70,9 +100,9 @@ const HostelManagementOutstandingPage = () => {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedHostelId, month, outstandingOnly]);
+  }, [hostelId, month, rentMode, outstandingOnly]);
 
-  const pdfFileName = `hostel-outstanding-${month || 'all'}.pdf`;
+  const pdfFileName = `hostel-outstanding-${hostelId || 'all'}-${month || 'all-months'}-${rentMode || 'all-modes'}.pdf`;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
@@ -80,14 +110,30 @@ const HostelManagementOutstandingPage = () => {
         <div>
           <h1 className="text-2xl font-bold">Outstanding Report</h1>
           <p className="text-sm text-gray-500">
-            Month, tenant, phone, total, paid and due — download report or receipt PDF.
+            Overall pending dues by default. Filter by hostel, month, and rent mode. Download PDF includes all modes unless filtered.
           </p>
         </div>
-        <HostelSelector />
       </div>
 
       <div className="bg-white border rounded-xl p-4 flex flex-wrap gap-3 items-end justify-between">
         <div className="flex flex-wrap gap-3 items-end">
+          <label className="text-sm">
+            <span className="block text-xs text-gray-500 mb-1">Hostel</span>
+            <select
+              className="border rounded-lg px-3 py-2 min-w-[10rem]"
+              value={hostelId}
+              onChange={(e) => {
+                const v = e.target.value;
+                setHostelId(v);
+                setSelectedHostelId(v || null);
+              }}
+            >
+              <option value="">All hostels</option>
+              {(hostels || []).map((h) => (
+                <option key={h.id} value={h.id}>{h.hostel_name}</option>
+              ))}
+            </select>
+          </label>
           <label className="text-sm">
             <span className="block text-xs text-gray-500 mb-1">Month</span>
             <input
@@ -104,6 +150,19 @@ const HostelManagementOutstandingPage = () => {
           >
             All months
           </button>
+          <label className="text-sm">
+            <span className="block text-xs text-gray-500 mb-1">Mode</span>
+            <select
+              className="border rounded-lg px-3 py-2"
+              value={rentMode}
+              onChange={(e) => setRentMode(e.target.value)}
+            >
+              <option value="">All modes</option>
+              <option value="MONTHLY">Monthly</option>
+              <option value="DAILY">Daily</option>
+              <option value="ADHOC">Adhoc</option>
+            </select>
+          </label>
           <label className="inline-flex items-center gap-2 text-sm py-2">
             <input
               type="checkbox"
@@ -118,7 +177,7 @@ const HostelManagementOutstandingPage = () => {
           <button
             type="button"
             onClick={load}
-            disabled={loading || !selectedHostelId}
+            disabled={loading}
             className="border rounded-lg px-4 py-2 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50"
           >
             {loading ? 'Loading…' : 'Refresh'}
@@ -128,8 +187,10 @@ const HostelManagementOutstandingPage = () => {
               <HostelOutstandingReportPDF
                 hostelName={hostelName}
                 monthLabel={monthLabel}
+                modeLabel={modeLabel(rentMode)}
                 rows={rows}
                 summary={summary || {}}
+                showHostel={showHostel}
               />
             )}
             fileName={pdfFileName}
@@ -164,10 +225,12 @@ const HostelManagementOutstandingPage = () => {
       )}
 
       <div className="bg-white border rounded-xl overflow-x-auto">
-        <table className="w-full text-sm min-w-[720px]">
+        <table className="w-full text-sm min-w-[860px]">
           <thead className="bg-gray-50 text-left">
             <tr>
+              {showHostel && <th className="px-3 py-3">Hostel</th>}
               <th className="px-3 py-3">Month</th>
+              <th className="px-3 py-3">Mode</th>
               <th className="px-3 py-3">St. Dt</th>
               <th className="px-3 py-3">Ed. Dt</th>
               <th className="px-3 py-3">Tenant name</th>
@@ -215,7 +278,11 @@ const HostelManagementOutstandingPage = () => {
                 : `due-${r.resident_name || r.id}-${r.month_key || 'bill'}.pdf`;
               return (
                 <tr key={r.id} className="border-t">
+                  {showHostel && (
+                    <td className="px-3 py-3 text-xs whitespace-nowrap">{r.hostel_name || '—'}</td>
+                  )}
                   <td className="px-3 py-3 whitespace-nowrap">{r.month_label || '—'}</td>
+                  <td className="px-3 py-3 text-xs font-medium">{r.rent_plan || '—'}</td>
                   <td className="px-3 py-3 text-xs whitespace-nowrap">
                     {r.billing_period_start
                       ? new Date(r.billing_period_start).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -251,9 +318,7 @@ const HostelManagementOutstandingPage = () => {
           </tbody>
         </table>
         {!loading && rows.length === 0 && (
-          <p className="p-6 text-gray-500">
-            {selectedHostelId ? 'No dues for this filter.' : 'Select a hostel to view outstanding report.'}
-          </p>
+          <p className="p-6 text-gray-500">No dues for this filter.</p>
         )}
         {loading && <p className="p-6 text-gray-500">Loading…</p>}
       </div>

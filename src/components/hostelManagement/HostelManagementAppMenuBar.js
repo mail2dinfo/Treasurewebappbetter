@@ -16,6 +16,7 @@ import {
 import {
   HM_BASE_PATH,
   getHostelManagementMenuItems,
+  useHmBasePath,
 } from './hostelManagementMenuItems';
 import { useHmPermission } from './useHmPermission';
 
@@ -34,9 +35,11 @@ const MENU_ICONS = {
   adminsettings: FiSettings,
 };
 
-const HostelManagementAppMenuBar = ({ basePath = HM_BASE_PATH }) => {
+const HostelManagementAppMenuBar = ({ basePath: basePathProp }) => {
   const location = useLocation();
-    const { nav, isOwner } = useHmPermission();
+  const contextBasePath = useHmBasePath();
+  const basePath = basePathProp || contextBasePath || HM_BASE_PATH;
+  const { nav, isOwner } = useHmPermission();
   const items = getHostelManagementMenuItems(basePath).filter((item) => {
     if (item.id === 'billing') return false;
     if (!item.navKey) return isOwner;

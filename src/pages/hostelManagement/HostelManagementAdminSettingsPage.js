@@ -7,6 +7,7 @@ import HostelManagementFloorsRoomsPage from './HostelManagementFloorsRoomsPage';
 import HostelManagementMealMenuPage from './HostelManagementMealMenuPage';
 import { useHmPermission } from '../../components/hostelManagement/useHmPermission';
 import { HM_NAV_ANY } from '../../utils/hmPermissionCatalog';
+import { useHmBasePath } from '../../components/hostelManagement/hostelManagementMenuItems';
 
 const ALL_MENU_ITEMS = [
   {
@@ -48,6 +49,7 @@ const ALL_MENU_ITEMS = [
 
 const HostelManagementAdminSettingsPage = () => {
   const { enforceAccess, roleCode, canAny } = useHmPermission();
+  const basePath = useHmBasePath();
   const managerMode = Boolean(enforceAccess && roleCode === 'MANAGER');
 
   const menuItems = useMemo(
@@ -155,7 +157,7 @@ const HostelManagementAdminSettingsPage = () => {
                   appScope="HOSTEL_MANAGEMENT"
                   managerMode={managerMode}
                   embedded
-                  backPath="/hostel-management/user/adminsettings"
+                  backPath={`${basePath}/adminsettings`}
                   pageTitle={managerMode ? 'Hostel Employees' : 'Hostel Employees & Access'}
                 />
               )}

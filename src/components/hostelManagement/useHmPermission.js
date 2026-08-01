@@ -15,6 +15,7 @@ export const useHmPermission = () => {
     && appCode === 'HOSTEL_MANAGEMENT'
     && ['MANAGER', 'RECEPTIONIST', 'KITCHEN_STAFF'].includes(roleCode)
   );
+  const isHmOpsRole = ['MANAGER', 'RECEPTIONIST', 'KITCHEN_STAFF'].includes(roleCode);
 
   const can = useCallback((featureKey) => {
     if (!enforceAccess) return true;
@@ -36,14 +37,15 @@ export const useHmPermission = () => {
     receivables: canAny(HM_NAV_ANY.receivables),
     outstanding: canAny(HM_NAV_ANY.outstanding),
     payments: canAny(HM_NAV_ANY.payments),
-    foodReport: canAny(HM_NAV_ANY.foodReport),
-    specialOrders: canAny(HM_NAV_ANY.specialOrders),
+    foodReport: canAny(HM_NAV_ANY.foodReport) || roleCode === 'KITCHEN_STAFF',
+    // Owner + Manager / Receptionist / Kitchen Staff always see Special Orders
+    specialOrders: !enforceAccess || isHmOpsRole || canAny(HM_NAV_ANY.specialOrders),
     turfs: canAny(HM_NAV_ANY.turfs),
     shuttleCourts: canAny(HM_NAV_ANY.shuttleCourts),
     ledger: canAny(HM_NAV_ANY.ledger),
     employees: canAny(HM_NAV_ANY.employees),
     adminSettings: canAny(HM_NAV_ANY.adminSettings),
-  }), [canAny]);
+  }), [canAny, enforceAccess, isHmOpsRole, roleCode]);
 
   return {
     enforceAccess,
@@ -51,6 +53,7 @@ export const useHmPermission = () => {
     canAny,
     nav,
     isOwner: Boolean(platform?.isOwner) && !enforceAccess,
+    isHmOpsRole,
     roleCode,
   };
 };

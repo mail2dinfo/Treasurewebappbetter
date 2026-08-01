@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { FiCoffee, FiPlus, FiTrash2 } from 'react-icons/fi';
+import { FiCheck, FiCoffee, FiEdit2, FiPlus, FiTrash2, FiX } from 'react-icons/fi';
 import { useHostelManagement } from '../../context/hostelManagement/HostelManagementContext';
 import { useUserContext } from '../../context/user_context';
 
@@ -19,6 +19,7 @@ const HostelManagementMealMenuPage = () => {
     createMealCategory,
     deleteMealCategory,
     createMealItem,
+    updateMealItem,
     deleteMealItem,
   } = useHostelManagement();
 
@@ -26,8 +27,11 @@ const HostelManagementMealMenuPage = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [showAddCategory, setShowAddCategory] = useState(false);
   const [categoryForm, setCategoryForm] = useState({ name: '', slotKey: 'custom' });
-  const [itemForm, setItemForm] = useState({ name: '', description: '' });
+  const [itemForm, setItemForm] = useState({ name: '', description: '', price: '' });
+  const [editingItemId, setEditingItemId] = useState('');
+  const [editForm, setEditForm] = useState({ name: '', description: '', price: '' });
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -74,8 +78,9 @@ const HostelManagementMealMenuPage = () => {
       toast.error(result.error || 'Failed to add category');
       return;
     }
-    toast.success('Category added');
+    toast.success('Category created — now add items under it');
     setCategoryForm({ name: '', slotKey: 'custom' });
+    setShowAddCategory(false);
     await load();
     if (result.data?.id) setSelectedCategoryId(result.data.id);
   };
@@ -99,11 +104,15 @@ const HostelManagementMealMenuPage = () => {
   const addItem = async (e) => {
     e.preventDefault();
     if (!selectedCategoryId) {
-      toast.error('Select a category first');
+      toast.error('Choose a category first');
       return;
     }
     if (!itemForm.name.trim()) {
       toast.error('Item name is required');
+      return;
+    }
+    if (itemForm.price === '' || Number(itemForm.price) < 0) {
+      toast.error('Enter a valid price');
       return;
     }
     setSaving(true);
@@ -112,14 +121,15 @@ const HostelManagementMealMenuPage = () => {
       categoryId: selectedCategoryId,
       name: itemForm.name.trim(),
       description: itemForm.description.trim() || null,
+      price: Number(itemForm.price) || 0,
     });
     setSaving(false);
     if (!result.success) {
       toast.error(result.error || 'Failed to add item');
       return;
     }
-    toast.success('Item added');
-    setItemForm({ name: '', description: '' });
+    toast.success(`Item added under ${selectedCategory?.name || 'category'}`);
+    setItemForm({ name: '', description: '', price: '' });
     await load();
   };
 
@@ -131,6 +141,51 @@ const HostelManagementMealMenuPage = () => {
       return;
     }
     toast.success('Item deleted');
+    if (editingItemId === item.id) {
+      setEditingItemId('');
+      setEditForm({ name: '', description: '', price: '' });
+    }
+    await load();
+  };
+
+  const startEditItem = (item) => {
+    setEditingItemId(item.id);
+    setEditForm({
+      name: item.name || '',
+      description: item.description || '',
+      price: item.price != null ? String(item.price) : '0',
+    });
+  };
+
+  const cancelEditItem = () => {
+    setEditingItemId('');
+    setEditForm({ name: '', description: '', price: '' });
+  };
+
+  const saveEditItem = async (e) => {
+    e.preventDefault();
+    if (!editingItemId) return;
+    if (!editForm.name.trim()) {
+      toast.error('Item name is required');
+      return;
+    }
+    if (editForm.price === '' || Number.isNaN(Number(editForm.price)) || Number(editForm.price) < 0) {
+      toast.error('Enter a valid price');
+      return;
+    }
+    setSaving(true);
+    const result = await updateMealItem(editingItemId, {
+      name: editForm.name.trim(),
+      description: editForm.description.trim() || null,
+      price: Number(editForm.price) || 0,
+    });
+    setSaving(false);
+    if (!result.success) {
+      toast.error(result.error || 'Failed to update item');
+      return;
+    }
+    toast.success('Item updated');
+    cancelEditItem();
     await load();
   };
 
@@ -146,131 +201,236 @@ const HostelManagementMealMenuPage = () => {
         </span>
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Meal menu</h2>
-          <p className="text-sm text-gray-500">
-            Breakfast / Lunch / Dinner items are used in week meal availability.
-            Juices and other categories are for resident special orders.
-            New memberships get Breakfast, Lunch, Dinner, and Juices by default.
-          </p>
         </div>
       </div>
 
       {loading ? (
         <p className="text-sm text-gray-500">Loading meal menu…</p>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="rounded-xl border border-gray-200 p-4 space-y-4">
-            <h3 className="font-semibold text-gray-900">Categories</h3>
-            <ul className="space-y-2">
-              {categories.map((cat) => (
-                <li key={cat.id}>
+        <div className="space-y-4">
+          {/* Step 1 */}
+          <section className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="font-semibold text-gray-900 normal-case">Step 1: Choose a category</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddCategory((v) => !v)}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#d62828] border border-red-200 rounded-lg px-3 py-1.5 hover:bg-red-50"
+              >
+                <FiPlus className="h-4 w-4" />
+                {showAddCategory ? 'Close' : 'New category'}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => {
+                const active = selectedCategoryId === cat.id;
+                return (
                   <button
+                    key={cat.id}
                     type="button"
-                    onClick={() => setSelectedCategoryId(cat.id)}
-                    className={`w-full text-left rounded-lg border px-3 py-2 flex items-center justify-between gap-2 ${
-                      selectedCategoryId === cat.id
-                        ? 'border-red-400 bg-red-50'
-                        : 'border-gray-200 hover:border-red-200'
+                    onClick={() => {
+                      setSelectedCategoryId(cat.id);
+                      cancelEditItem();
+                    }}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition ${
+                      active
+                        ? 'border-[#d62828] bg-red-50 text-red-800 ring-2 ring-red-100'
+                        : 'border-gray-200 text-gray-700 hover:border-red-200'
                     }`}
                   >
-                    <span>
-                      <span className="font-medium text-gray-900">{cat.name}</span>
-                      <span className="ml-2 text-[11px] uppercase text-gray-400">{cat.slot_key}</span>
-                      {cat.is_system && (
-                        <span className="ml-2 text-[10px] font-semibold text-blue-700">DEFAULT</span>
-                      )}
-                      <span className="block text-xs text-gray-500">
-                        {(cat.items || []).length} item{(cat.items || []).length === 1 ? '' : 's'}
-                      </span>
+                    <span>{cat.name}</span>
+                    <span className={`text-[11px] rounded-full px-1.5 py-0.5 ${active ? 'bg-white text-red-700' : 'bg-gray-100 text-gray-500'}`}>
+                      {(cat.items || []).length}
                     </span>
-                    {!cat.is_system && (
-                      <button
-                        type="button"
-                        className="text-red-600 hover:text-red-800 p-1"
-                        title="Delete category"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeCategory(cat);
-                        }}
-                      >
-                        <FiTrash2 className="h-4 w-4" />
-                      </button>
-                    )}
                   </button>
-                </li>
-              ))}
-            </ul>
+                );
+              })}
+              {categories.length === 0 && (
+                <p className="text-sm text-gray-500">No categories yet — create one below.</p>
+              )}
+            </div>
 
-            <form onSubmit={addCategory} className="border-t pt-3 space-y-2">
-              <p className="text-xs font-semibold uppercase text-gray-500">Add category</p>
-              <input
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                placeholder="Category name"
-                value={categoryForm.name}
-                onChange={(e) => setCategoryForm((p) => ({ ...p, name: e.target.value }))}
-              />
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                value={categoryForm.slotKey}
-                onChange={(e) => setCategoryForm((p) => ({ ...p, slotKey: e.target.value }))}
-              >
-                {SLOT_OPTIONS.map((o) => (
-                  <option key={o.id} value={o.id}>{o.label}</option>
-                ))}
-              </select>
-              <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex items-center gap-2 rounded-lg bg-red-600 text-white px-3 py-2 text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
-              >
-                <FiPlus /> Add category
-              </button>
-            </form>
-          </div>
+            {showAddCategory && (
+              <form onSubmit={addCategory} className="rounded-lg border border-dashed border-red-200 bg-red-50/40 p-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <input
+                  className="border rounded-lg px-3 py-2 text-sm bg-white sm:col-span-1"
+                  placeholder="Category name (e.g. Snacks)"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm((p) => ({ ...p, name: e.target.value }))}
+                  autoFocus
+                />
+                <select
+                  className="border rounded-lg px-3 py-2 text-sm bg-white"
+                  value={categoryForm.slotKey}
+                  onChange={(e) => setCategoryForm((p) => ({ ...p, slotKey: e.target.value }))}
+                >
+                  {SLOT_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>{o.label}</option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 text-white px-3 py-2 text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                >
+                  <FiPlus /> Create category
+                </button>
+              </form>
+            )}
+          </section>
 
-          <div className="rounded-xl border border-gray-200 p-4 space-y-4">
-            <h3 className="font-semibold text-gray-900">
-              Items{selectedCategory ? ` · ${selectedCategory.name}` : ''}
-            </h3>
+          {/* Step 2 */}
+          <section className="rounded-xl border border-gray-200 bg-white p-4 space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h3 className="font-semibold text-gray-900 normal-case">
+                  {selectedCategory
+                    ? `Step 2: Choose an item under “${selectedCategory.name}”`
+                    : 'Step 2: Choose an item'}
+                </h3>
+                {selectedCategory && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Add new items or edit price for existing ones in this category.
+                  </p>
+                )}
+              </div>
+              {selectedCategory && !selectedCategory.is_system && (
+                <button
+                  type="button"
+                  onClick={() => removeCategory(selectedCategory)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:text-red-800"
+                >
+                  <FiTrash2 className="h-3.5 w-3.5" /> Delete category
+                </button>
+              )}
+            </div>
+
             {!selectedCategory ? (
-              <p className="text-sm text-gray-500">Select a category to manage items.</p>
+              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
+                Step 1 first — choose a category above.
+              </div>
             ) : (
               <>
-                <ul className="space-y-2 max-h-72 overflow-y-auto">
+                <ul className="space-y-2 max-h-64 overflow-y-auto">
                   {(selectedCategory.items || []).length === 0 && (
-                    <li className="text-sm text-gray-500">No items yet — add what you prepare.</li>
+                    <li className="rounded-lg border border-dashed border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                      No items in <strong>{selectedCategory.name}</strong> yet — add the first dish/price below.
+                    </li>
                   )}
                   {(selectedCategory.items || []).map((item) => (
                     <li
                       key={item.id}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 px-3 py-2"
+                      className="rounded-lg border border-gray-100 px-3 py-2.5"
                     >
-                      <span>
-                        <span className="font-medium text-gray-900">{item.name}</span>
-                        {item.description && (
-                          <span className="block text-xs text-gray-500">{item.description}</span>
-                        )}
-                      </span>
-                      <button
-                        type="button"
-                        className="text-red-600 hover:text-red-800 p-1"
-                        onClick={() => removeItem(item)}
-                      >
-                        <FiTrash2 className="h-4 w-4" />
-                      </button>
+                      {editingItemId === item.id ? (
+                        <form onSubmit={saveEditItem} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <input
+                            className="border rounded-lg px-3 py-2 text-sm"
+                            value={editForm.name}
+                            onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+                            placeholder="Item name"
+                            autoFocus
+                          />
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500">₹</span>
+                            <input
+                              className="w-full border rounded-lg pl-7 pr-3 py-2 text-sm"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={editForm.price}
+                              onChange={(e) => setEditForm((p) => ({ ...p, price: e.target.value }))}
+                              placeholder="Price"
+                              required
+                            />
+                          </div>
+                          <input
+                            className="border rounded-lg px-3 py-2 text-sm sm:col-span-2"
+                            value={editForm.description}
+                            onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
+                            placeholder="Short note (optional)"
+                          />
+                          <div className="sm:col-span-2 flex flex-wrap gap-2">
+                            <button
+                              type="submit"
+                              disabled={saving}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                            >
+                              <FiCheck className="h-4 w-4" /> Save
+                            </button>
+                            <button
+                              type="button"
+                              disabled={saving}
+                              onClick={cancelEditItem}
+                              className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                            >
+                              <FiX className="h-4 w-4" /> Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                          <span>
+                            <span className="font-medium text-gray-900">{item.name}</span>
+                            <span className="ml-2 text-sm font-semibold text-gray-800">
+                              ₹{Number(item.price || 0).toLocaleString('en-IN')}
+                            </span>
+                            {item.description && (
+                              <span className="block text-xs text-gray-500">{item.description}</span>
+                            )}
+                          </span>
+                          <span className="flex items-center gap-0.5 shrink-0">
+                            <button
+                              type="button"
+                              className="text-gray-600 hover:text-[#d62828] p-1.5"
+                              onClick={() => startEditItem(item)}
+                              title="Edit name / price"
+                            >
+                              <FiEdit2 className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              className="text-red-600 hover:text-red-800 p-1.5"
+                              onClick={() => removeItem(item)}
+                              title="Delete item"
+                            >
+                              <FiTrash2 className="h-4 w-4" />
+                            </button>
+                          </span>
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>
 
-                <form onSubmit={addItem} className="border-t pt-3 space-y-2">
-                  <p className="text-xs font-semibold uppercase text-gray-500">Add item</p>
+                <form
+                  onSubmit={addItem}
+                  className="rounded-lg border border-gray-200 bg-gray-50 p-3 grid grid-cols-1 sm:grid-cols-2 gap-2"
+                >
+                  <p className="sm:col-span-2 text-xs font-semibold text-gray-600">
+                    New item in <span className="text-[#d62828]">{selectedCategory.name}</span>
+                  </p>
                   <input
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
                     placeholder="Item name (e.g. Idli)"
                     value={itemForm.name}
                     onChange={(e) => setItemForm((p) => ({ ...p, name: e.target.value }))}
                   />
                   <input
-                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Price (₹) *"
+                    value={itemForm.price}
+                    onChange={(e) => setItemForm((p) => ({ ...p, price: e.target.value }))}
+                    required
+                  />
+                  <input
+                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white sm:col-span-2"
                     placeholder="Short note (optional)"
                     value={itemForm.description}
                     onChange={(e) => setItemForm((p) => ({ ...p, description: e.target.value }))}
@@ -278,14 +438,14 @@ const HostelManagementMealMenuPage = () => {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-lg bg-red-600 text-white px-3 py-2 text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                    className="sm:col-span-2 inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 text-white px-3 py-2.5 text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
                   >
-                    <FiPlus /> Add item
+                    <FiPlus /> Add item to {selectedCategory.name}
                   </button>
                 </form>
               </>
             )}
-          </div>
+          </section>
         </div>
       )}
     </div>

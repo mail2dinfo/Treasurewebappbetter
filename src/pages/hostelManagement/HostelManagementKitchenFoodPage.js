@@ -193,8 +193,8 @@ const HostelManagementKitchenFoodPage = () => {
 };
 
 const KITCHEN_LINKS = [
-  { to: '/hostel-management/kitchen/food-report', label: 'Food estimation', icon: FiCoffee },
-  { to: '/hostel-management/kitchen/special-orders', label: 'Special orders', icon: FiClipboard },
+  { to: '/hostel-management/kitchenstaff/food-report', label: 'Food estimation', icon: FiCoffee },
+  { to: '/hostel-management/kitchenstaff/special-orders', label: 'Special orders', icon: FiClipboard },
 ];
 
 const capitalizeName = (value) => {
@@ -210,7 +210,7 @@ const KitchenNavbar = () => {
   const platform = usePlatformAccess();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('https://i.imgur.com/ndu6pfe.png');
-  const kitchenBrandTo = '/hostel-management/kitchen/food-report';
+  const kitchenBrandTo = '/hostel-management/kitchenstaff/food-report';
   const kitchenItems = KITCHEN_LINKS.map((item) => ({
     id: item.to,
     label: item.label,

@@ -31,9 +31,13 @@ import VehicleFinanceCollectorLayout from './components/vehicleFinance/VehicleFi
 import VehicleFinanceCustomerLayout from './components/vehicleFinance/VehicleFinanceCustomerLayout';
 import RentalManagementAdminLayout from './components/rentalManagement/RentalManagementAdminLayout';
 import RentalManagementCustomerLayout from './components/rentalManagement/RentalManagementCustomerLayout';
-import HostelManagementAdminLayout from './components/hostelManagement/HostelManagementAdminLayout';
+import HostelManagementAdminLayout, {
+  HostelManagementManagerLayout,
+  HostelManagementReceptionistLayout,
+} from './components/hostelManagement/HostelManagementAdminLayout';
 import HostelManagementResidentLayout from './components/hostelManagement/HostelManagementResidentLayout';
 import HostelManagementKitchenLayout from './components/hostelManagement/HostelManagementKitchenLayout';
+import { HM_KITCHENSTAFF_BASE_PATH } from './components/hostelManagement/hostelManagementMenuItems';
 
 // Legacy layouts for backward compatibility (can be removed later)
 import CollectorLayout from './components/collector/CollectorLayout';
@@ -104,10 +108,21 @@ function App() {
                         <Route path="/rental-management/user" component={RentalManagementAdminLayout} />
                         <Route path="/rental-management/customer" component={RentalManagementCustomerLayout} />
 
-                        {/* Hostel Management App Routes */}
+                        {/* Hostel Management App Routes (role bases like Chit Fund) */}
                         <Route path="/hostel-management/user" component={HostelManagementAdminLayout} />
+                        <Route path="/hostel-management/manager" component={HostelManagementManagerLayout} />
+                        <Route path="/hostel-management/receptionist" component={HostelManagementReceptionistLayout} />
                         <Route path="/hostel-management/resident" component={HostelManagementResidentLayout} />
-                        <Route path="/hostel-management/kitchen" component={HostelManagementKitchenLayout} />
+                        <Route path="/hostel-management/kitchenstaff" component={HostelManagementKitchenLayout} />
+                        {/* Legacy kitchen → kitchenstaff */}
+                        <Route
+                            path="/hostel-management/kitchen"
+                            render={({ location }) => (
+                                <Redirect
+                                    to={`${HM_KITCHENSTAFF_BASE_PATH}${location.pathname.replace('/hostel-management/kitchen', '') || '/food-report'}${location.search || ''}`}
+                                />
+                            )}
+                        />
 
                         {/* Legacy Routes for Backward Compatibility */}
                         <Route path="/customer" render={() => <Redirect to="/chit-fund/subscriber" />} />

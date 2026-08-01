@@ -23,7 +23,7 @@ import MyTreasureBrand from '../MyTreasureBrand';
 import FinanceHubNavButton from '../FinanceHubNavButton';
 import { useBilling } from '../../context/billing_context';
 import { getNavBillingBadge } from '../../utils/billingPaymentUtils';
-import { HM_BASE_PATH, getHostelManagementMenuItems } from './hostelManagementMenuItems';
+import { HM_BASE_PATH, getHostelManagementMenuItems, useHmBasePath } from './hostelManagementMenuItems';
 import { useHmPermission } from './useHmPermission';
 import { getLoggedInRoleLabel } from '../../utils/roleLabels';
 import { AppNavbarBurgerButton } from '../AppMobileSidebar';
@@ -86,12 +86,13 @@ const HostelManagementNavbar = () => {
   const { user, logout, userRole } = useUserContext();
   const platform = usePlatformAccess();
   const { nav, isOwner } = useHmPermission();
+  const basePath = useHmBasePath();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('https://i.imgur.com/ndu6pfe.png');
 
-  const dashboardPath = `${HM_BASE_PATH}/dashboard`;
-  const billingPath = isOwner ? `${HM_BASE_PATH}/billing` : null;
-  const menuItems = getHostelManagementMenuItems(HM_BASE_PATH).filter((item) => {
+  const dashboardPath = `${basePath}/dashboard`;
+  const billingPath = isOwner && basePath === HM_BASE_PATH ? `${HM_BASE_PATH}/billing` : null;
+  const menuItems = getHostelManagementMenuItems(basePath).filter((item) => {
     if (item.id === 'billing') return false;
     if (!item.navKey) return isOwner;
     return Boolean(nav[item.navKey]);
@@ -110,9 +111,9 @@ const HostelManagementNavbar = () => {
     const current = location.pathname || '';
     if (item.id === 'dashboard') {
       return (
-        current === HM_BASE_PATH
-        || current === `${HM_BASE_PATH}/`
-        || current === `${HM_BASE_PATH}/dashboard`
+        current === basePath
+        || current === `${basePath}/`
+        || current === `${basePath}/dashboard`
       );
     }
     if (current === item.path) return true;

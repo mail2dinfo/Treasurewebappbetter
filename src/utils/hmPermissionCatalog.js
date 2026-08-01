@@ -64,9 +64,9 @@ export const HM_GRANULAR_FEATURES = [
   { featureKey: 'hm_payment_view', displayName: 'View Submissions', category: 'Payments', defaultRoles: ['MANAGER'] },
   { featureKey: 'hm_payment_verify', displayName: 'Verify', category: 'Payments', defaultRoles: ['MANAGER'] },
 
-  { featureKey: 'hm_meals_view', displayName: 'View Food Report', category: 'Meals', defaultRoles: ['MANAGER', 'RECEPTIONIST', 'KITCHEN_STAFF'] },
-  { featureKey: 'hm_special_orders_view', displayName: 'View Special Orders', category: 'Meals', defaultRoles: ['MANAGER', 'RECEPTIONIST', 'KITCHEN_STAFF'] },
-  { featureKey: 'hm_special_orders_update', displayName: 'Update Special Orders', category: 'Meals', defaultRoles: ['MANAGER', 'KITCHEN_STAFF'] },
+  { featureKey: 'hm_meals_view', displayName: 'View Food Report', category: 'Meals', defaultRoles: ['USER', 'MANAGER', 'RECEPTIONIST', 'KITCHEN_STAFF'] },
+  { featureKey: 'hm_special_orders_view', displayName: 'View Special Orders', category: 'Meals', defaultRoles: ['USER', 'MANAGER', 'RECEPTIONIST', 'KITCHEN_STAFF'] },
+  { featureKey: 'hm_special_orders_update', displayName: 'Update Special Orders', category: 'Meals', defaultRoles: ['USER', 'MANAGER', 'RECEPTIONIST', 'KITCHEN_STAFF'] },
 
   { featureKey: 'hm_venue_view', displayName: 'View Turfs & Courts', category: 'Venues', defaultRoles: ['MANAGER', 'RECEPTIONIST'] },
   { featureKey: 'hm_venue_create', displayName: 'Create / Edit listings', category: 'Venues', defaultRoles: ['MANAGER'] },

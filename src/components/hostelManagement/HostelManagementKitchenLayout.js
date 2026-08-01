@@ -7,48 +7,51 @@ import PrivateRoute from '../../pages/PrivateRoute';
 import HostelManagementKitchenFoodPage, {
   KitchenNavbar,
 } from '../../pages/hostelManagement/HostelManagementKitchenFoodPage';
-import HostelManagementKitchenOrdersPage from '../../pages/hostelManagement/HostelManagementKitchenOrdersPage';
+import HostelManagementSpecialOrdersPage from '../../pages/hostelManagement/HostelManagementSpecialOrdersPage';
 import { useHmPermission } from './useHmPermission';
 import { HM_NAV_ANY } from '../../utils/hmPermissionCatalog';
+import {
+  HM_KITCHENSTAFF_BASE_PATH,
+  HmBasePathProvider,
+} from './hostelManagementMenuItems';
 
 const KitchenRoutes = () => {
   const { canAny, roleCode } = useHmPermission();
   const isKitchenStaff = String(roleCode || '').toUpperCase() === 'KITCHEN_STAFF';
-  // Kitchen Staff always gets Food Report + Special Orders (role package).
-  // Other roles need the matching feature grants.
   const canFood = isKitchenStaff || canAny(HM_NAV_ANY.foodReport);
   const canOrders = isKitchenStaff || canAny(HM_NAV_ANY.specialOrders);
+  const base = HM_KITCHENSTAFF_BASE_PATH;
 
   if (!canFood && !canOrders) {
     return <Redirect to="/app-selection" />;
   }
 
   const defaultPath = canFood
-    ? '/hostel-management/kitchen/food-report'
-    : '/hostel-management/kitchen/special-orders';
+    ? `${base}/food-report`
+    : `${base}/special-orders`;
 
   return (
     <Switch>
       <PrivateRoute
         exact
-        path="/hostel-management/kitchen"
-        component={canFood ? HostelManagementKitchenFoodPage : HostelManagementKitchenOrdersPage}
+        path={base}
+        component={canFood ? HostelManagementKitchenFoodPage : HostelManagementSpecialOrdersPage}
       />
       {canFood && (
         <PrivateRoute
           exact
-          path="/hostel-management/kitchen/food-report"
+          path={`${base}/food-report`}
           component={HostelManagementKitchenFoodPage}
         />
       )}
       {canOrders && (
         <PrivateRoute
           exact
-          path="/hostel-management/kitchen/special-orders"
-          component={HostelManagementKitchenOrdersPage}
+          path={`${base}/special-orders`}
+          component={HostelManagementSpecialOrdersPage}
         />
       )}
-      <Route path="/hostel-management/kitchen">
+      <Route path={base}>
         <Redirect to={defaultPath} />
       </Route>
     </Switch>
@@ -57,13 +60,15 @@ const KitchenRoutes = () => {
 
 const HostelManagementKitchenLayout = () => (
   <HostelManagementProvider>
-    <div className="min-h-screen bg-gray-50">
-      <KitchenNavbar />
-      <div className="min-h-[calc(100vh-104px)]">
-        <KitchenRoutes />
+    <HmBasePathProvider basePath={HM_KITCHENSTAFF_BASE_PATH}>
+      <div className="min-h-screen bg-gray-50">
+        <KitchenNavbar />
+        <div className="min-h-[calc(100vh-104px)]">
+          <KitchenRoutes />
+        </div>
+        <ToastContainer position="top-right" autoClose={3000} />
       </div>
-      <ToastContainer position="top-right" autoClose={3000} />
-    </div>
+    </HmBasePathProvider>
   </HostelManagementProvider>
 );
 

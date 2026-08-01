@@ -159,9 +159,9 @@ const APP_ROUTES = {
     },
     HOSTEL_MANAGEMENT: {
         USER: '/hostel-management/user/dashboard',
-        MANAGER: '/hostel-management/user/dashboard',
-        RECEPTIONIST: '/hostel-management/user/dashboard',
-        KITCHEN_STAFF: '/hostel-management/kitchen/food-report',
+        MANAGER: '/hostel-management/manager/dashboard',
+        RECEPTIONIST: '/hostel-management/receptionist/dashboard',
+        KITCHEN_STAFF: '/hostel-management/kitchenstaff/food-report',
         COLLECTOR: '/hostel-management/user/dashboard',
         ACCOUNTANT: '/hostel-management/user/dashboard',
         SUBSCRIBER: '/hostel-management/resident/dashboard',

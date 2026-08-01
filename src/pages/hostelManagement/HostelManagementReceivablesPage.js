@@ -5,6 +5,7 @@ import { FaWhatsapp } from 'react-icons/fa';
 import { useHostelManagement } from '../../context/hostelManagement/HostelManagementContext';
 import HostelSelector from '../../components/hostelManagement/HostelSelector';
 import { useHmPermission } from '../../components/hostelManagement/useHmPermission';
+import { useHmBasePath } from '../../components/hostelManagement/hostelManagementMenuItems';
 
 const HostelManagementReceivablesPage = () => {
   const {
@@ -13,6 +14,7 @@ const HostelManagementReceivablesPage = () => {
     fetchLedgerAccounts, fetchResidents, confirmPaymentSubmission, rejectPaymentSubmission,
   } = useHostelManagement();
   const { can } = useHmPermission();
+  const basePath = useHmBasePath();
   const canCreate = can('hm_receivable_create') || can('hm_receivable_manage');
   const canPay = can('hm_payment_record') || can('hm_receivable_manage');
   const canVerify = can('hm_payment_verify') || can('hm_receivable_manage');
@@ -257,7 +259,7 @@ const HostelManagementReceivablesPage = () => {
             {refreshing ? 'Refreshing…' : 'Refresh'}
           </button>
           <Link
-            to="/hostel-management/user/outstanding"
+            to={`${basePath}/outstanding`}
             className="text-sm font-semibold text-red-700 border border-red-200 bg-red-50 px-3 py-2 rounded-lg hover:bg-red-100"
           >
             Outstanding report
