@@ -22,29 +22,6 @@ const formatDate = (value) => {
   });
 };
 
-const isPhoneLike = (value, phone) => {
-  const raw = String(value || '').trim();
-  if (!raw) return true;
-  const phoneDigits = String(phone || '').replace(/\D/g, '');
-  const valueDigits = raw.replace(/\D/g, '');
-  if (phoneDigits && valueDigits && phoneDigits === valueDigits) return true;
-  if (/^[0-9+\-\s()]+$/.test(raw) && valueDigits.length >= 10) return true;
-  return false;
-};
-
-/** name → firstname+lastname → company → phone (same priority as API) */
-const resolveUnpaidDisplayName = (row = {}) => {
-  const phone = row.phone || '';
-  const fullName = [row.firstname, row.lastname].filter(Boolean).join(' ').trim();
-
-  if (row.user_name && !isPhoneLike(row.user_name, phone)) return row.user_name;
-  if (row.display_name && !isPhoneLike(row.display_name, phone)) return row.display_name;
-  if (fullName && !isPhoneLike(fullName, phone)) return fullName;
-  if (row.firstname && !isPhoneLike(row.firstname, phone)) return row.firstname;
-  if (row.company_name && !isPhoneLike(row.company_name, phone)) return row.company_name;
-  return row.display_name || phone || '—';
-};
-
 const selectClassName =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100';
 
@@ -63,51 +40,11 @@ const SuperAdminUnpaidUsers = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [unpaidData, usersData] = await Promise.all([
-        fetchSuperAdminApi('/super-admin/analytics/unpaid-users', user?.results?.token),
-        fetchSuperAdminApi(
-          '/super-admin/analytics/user-analytics/users',
-          user?.results?.token
-        ).catch(() => null),
-      ]);
-
-      const nameByUserId = new Map();
-      const nameByPhone = new Map();
-      (usersData?.data?.users || []).forEach((row) => {
-        if (row.user_id && row.display_name) {
-          nameByUserId.set(row.user_id, row.display_name);
-        }
-        const phoneKey = String(row.phone || '').replace(/\D/g, '');
-        if (phoneKey && row.display_name) {
-          nameByPhone.set(phoneKey, row.display_name);
-        }
-      });
-
-      const unpaidDues = (unpaidData?.data?.unpaid_dues || []).map((row) => {
-        const phoneKey = String(row.phone || '').replace(/\D/g, '');
-        const analyticsName =
-          nameByUserId.get(row.user_id) || nameByPhone.get(phoneKey) || null;
-
-        return {
-          ...row,
-          display_name: resolveUnpaidDisplayName({
-            ...row,
-            // Prefer the exact same name User Analytics shows for this phone/user
-            display_name: analyticsName || row.display_name,
-            user_name: row.user_name || analyticsName,
-          }),
-        };
-      });
-
-      setReport({
-        ...unpaidData.data,
-        unpaid_dues: unpaidDues,
-        unpaid_count: unpaidDues.length,
-        unpaid_total: unpaidDues.reduce(
-          (sum, row) => sum + Number(row.unpaid_amount || 0),
-          0
-        ),
-      });
+      const data = await fetchSuperAdminApi(
+        '/super-admin/analytics/unpaid-users',
+        user?.results?.token
+      );
+      setReport(data.data);
     } catch (fetchError) {
       setError(fetchError.message);
     } finally {
@@ -157,8 +94,7 @@ const SuperAdminUnpaidUsers = () => {
     unpaidDues.forEach((row) => {
       const key = row.month_label || formatDate(row.cycle_start_date);
       if (!key || key === '—' || map.has(key)) return;
-      const sortKey = String(row.cycle_start_date || '').slice(0, 7);
-      map.set(key, sortKey);
+      map.set(key, String(row.cycle_start_date || '').slice(0, 7));
     });
     return [...map.entries()]
       .map(([label, sortKey]) => ({ label, sortKey }))
@@ -183,7 +119,7 @@ const SuperAdminUnpaidUsers = () => {
 
       if (!query) return true;
 
-      return [row.display_name, row.phone, row.email, row.app_name, row.app_code, row.month_label]
+      return [row.display_name, row.phone, row.app_name, row.app_code, row.month_label, row.status]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
     });
@@ -225,7 +161,7 @@ const SuperAdminUnpaidUsers = () => {
     <SuperAdminShell
       activeId="unpaid-users"
       title="Unpaid Users"
-      subtitle="User-role accounts only · pending app subscription billing"
+      subtitle="billing_payments status = unpaid · User role only"
       actions={refreshButton}
     >
       <div className="space-y-6">
@@ -241,7 +177,7 @@ const SuperAdminUnpaidUsers = () => {
             icon={FiAlertCircle}
             label="Unpaid cycles"
             value={filteredRows.length}
-            hint="Pending / unpaid billing rows"
+            hint="status = unpaid"
             accent="amber"
           />
           <SuperAdminKpiCard
@@ -264,8 +200,8 @@ const SuperAdminUnpaidUsers = () => {
         ) : (
           <SuperAdminPanel
             flush
-            title="Amount yet to pay"
-            description="Username · Phone · App · Month · Amount (User account only)"
+            title="Unpaid users"
+            description="User · Phone · App · Month · Amount · Status"
           >
             <div className="space-y-3 border-b border-slate-100 px-4 py-4 sm:px-6">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -334,7 +270,7 @@ const SuperAdminUnpaidUsers = () => {
                       type="search"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Name, phone, app..."
+                      placeholder="Name, phone, app, status..."
                       className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-red-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
                     />
                   </div>
@@ -374,6 +310,8 @@ const SuperAdminUnpaidUsers = () => {
                             {row.app_name || row.app_code || '—'}
                             {' · '}
                             {row.month_label || formatDate(row.cycle_start_date)}
+                            {' · '}
+                            <span className="uppercase text-amber-700">{row.status || 'unpaid'}</span>
                           </p>
                         </div>
                         <span className="shrink-0 text-sm font-bold tabular-nums text-red-700">
@@ -389,7 +327,7 @@ const SuperAdminUnpaidUsers = () => {
                     <thead>
                       <tr className="border-b border-slate-200 bg-slate-50">
                         <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
-                          Username
+                          User
                         </th>
                         <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
                           Phone
@@ -401,7 +339,10 @@ const SuperAdminUnpaidUsers = () => {
                           Month
                         </th>
                         <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
-                          Amount yet to pay
+                          Amount
+                        </th>
+                        <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          Status
                         </th>
                       </tr>
                     </thead>
@@ -428,17 +369,23 @@ const SuperAdminUnpaidUsers = () => {
                           <td className="px-6 py-3.5 text-right font-semibold tabular-nums text-red-700">
                             {rs(row.unpaid_amount)}
                           </td>
+                          <td className="px-6 py-3.5">
+                            <span className="inline-flex rounded-md bg-amber-50 px-2 py-0.5 text-xs font-semibold uppercase text-amber-800 ring-1 ring-amber-200">
+                              {row.status || 'unpaid'}
+                            </span>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="border-t-2 border-slate-200 bg-slate-50 font-bold">
                         <td className="px-6 py-3" colSpan={4}>
-                          Total yet to pay
+                          Total amount
                         </td>
                         <td className="px-6 py-3 text-right tabular-nums text-red-800">
                           {rs(filteredTotal)}
                         </td>
+                        <td className="px-6 py-3" />
                       </tr>
                     </tfoot>
                   </table>
