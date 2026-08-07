@@ -22,6 +22,9 @@ const formatDate = (value) => {
   });
 };
 
+const selectClassName =
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100';
+
 const SuperAdminUnpaidUsers = () => {
   const history = useHistory();
   const { user } = useUserContext();
@@ -29,6 +32,9 @@ const SuperAdminUnpaidUsers = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userFilter, setUserFilter] = useState('all');
+  const [appFilter, setAppFilter] = useState('all');
+  const [monthFilter, setMonthFilter] = useState('all');
 
   const fetchReport = useCallback(async () => {
     setIsLoading(true);
@@ -56,15 +62,69 @@ const SuperAdminUnpaidUsers = () => {
 
   const unpaidDues = useMemo(() => report?.unpaid_dues || [], [report?.unpaid_dues]);
 
+  const userOptions = useMemo(() => {
+    const map = new Map();
+    unpaidDues.forEach((row) => {
+      if (!row.user_id || map.has(row.user_id)) return;
+      map.set(row.user_id, {
+        id: row.user_id,
+        label: row.display_name || row.phone || row.user_id,
+        phone: row.phone || '',
+      });
+    });
+    return [...map.values()].sort((a, b) =>
+      String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' })
+    );
+  }, [unpaidDues]);
+
+  const appOptions = useMemo(() => {
+    const map = new Map();
+    unpaidDues.forEach((row) => {
+      const code = row.app_code || row.app_name;
+      if (!code || map.has(code)) return;
+      map.set(code, row.app_name || row.app_code || code);
+    });
+    return [...map.entries()]
+      .map(([code, label]) => ({ code, label }))
+      .sort((a, b) => String(a.label).localeCompare(String(b.label)));
+  }, [unpaidDues]);
+
+  const monthOptions = useMemo(() => {
+    const map = new Map();
+    unpaidDues.forEach((row) => {
+      const key = row.month_label || formatDate(row.cycle_start_date);
+      if (!key || key === '—' || map.has(key)) return;
+      const sortKey = String(row.cycle_start_date || '').slice(0, 7);
+      map.set(key, sortKey);
+    });
+    return [...map.entries()]
+      .map(([label, sortKey]) => ({ label, sortKey }))
+      .sort((a, b) => String(b.sortKey).localeCompare(String(a.sortKey)));
+  }, [unpaidDues]);
+
   const filteredRows = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return unpaidDues;
-    return unpaidDues.filter((row) =>
-      [row.display_name, row.phone, row.email, row.app_name, row.app_code, row.month_label]
+
+    return unpaidDues.filter((row) => {
+      if (userFilter !== 'all' && row.user_id !== userFilter) return false;
+
+      if (appFilter !== 'all') {
+        const code = row.app_code || row.app_name;
+        if (code !== appFilter) return false;
+      }
+
+      if (monthFilter !== 'all') {
+        const month = row.month_label || formatDate(row.cycle_start_date);
+        if (month !== monthFilter) return false;
+      }
+
+      if (!query) return true;
+
+      return [row.display_name, row.phone, row.email, row.app_name, row.app_code, row.month_label]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query))
-    );
-  }, [unpaidDues, searchQuery]);
+        .some((value) => String(value).toLowerCase().includes(query));
+    });
+  }, [unpaidDues, searchQuery, userFilter, appFilter, monthFilter]);
 
   const filteredTotal = useMemo(
     () => filteredRows.reduce((sum, row) => sum + Number(row.unpaid_amount || 0), 0),
@@ -75,6 +135,16 @@ const SuperAdminUnpaidUsers = () => {
     const ids = new Set(filteredRows.map((row) => row.user_id).filter(Boolean));
     return ids.size;
   }, [filteredRows]);
+
+  const hasActiveFilters =
+    userFilter !== 'all' || appFilter !== 'all' || monthFilter !== 'all' || searchQuery.trim();
+
+  const clearFilters = () => {
+    setUserFilter('all');
+    setAppFilter('all');
+    setMonthFilter('all');
+    setSearchQuery('');
+  };
 
   const refreshButton = (
     <button
@@ -92,7 +162,7 @@ const SuperAdminUnpaidUsers = () => {
     <SuperAdminShell
       activeId="unpaid-users"
       title="Unpaid Users"
-      subtitle="Users with pending app subscription billing"
+      subtitle="User-role accounts only · pending app subscription billing"
       actions={refreshButton}
     >
       <div className="space-y-6">
@@ -101,7 +171,7 @@ const SuperAdminUnpaidUsers = () => {
             icon={FiUsers}
             label="Users with dues"
             value={uniqueUsers}
-            hint="Distinct customers"
+            hint="Distinct User accounts"
             accent="red"
           />
           <SuperAdminKpiCard
@@ -132,19 +202,93 @@ const SuperAdminUnpaidUsers = () => {
           <SuperAdminPanel
             flush
             title="Amount yet to pay"
-            description="Username with phone · App · Month · Amount"
+            description="Username · Phone · App · Month · Amount (User account only)"
           >
-            <div className="border-b border-slate-100 px-4 py-4 sm:px-6">
-              <div className="relative max-w-md">
-                <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search user, phone, app, month..."
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-red-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
-                />
+            <div className="space-y-3 border-b border-slate-100 px-4 py-4 sm:px-6">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    User
+                  </label>
+                  <select
+                    value={userFilter}
+                    onChange={(e) => setUserFilter(e.target.value)}
+                    className={selectClassName}
+                  >
+                    <option value="all">All users</option>
+                    {userOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                        {option.phone ? ` (${option.phone})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    App
+                  </label>
+                  <select
+                    value={appFilter}
+                    onChange={(e) => setAppFilter(e.target.value)}
+                    className={selectClassName}
+                  >
+                    <option value="all">All apps</option>
+                    {appOptions.map((option) => (
+                      <option key={option.code} value={option.code}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Month
+                  </label>
+                  <select
+                    value={monthFilter}
+                    onChange={(e) => setMonthFilter(e.target.value)}
+                    className={selectClassName}
+                  >
+                    <option value="all">All months</option>
+                    {monthOptions.map((option) => (
+                      <option key={option.label} value={option.label}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Search
+                  </label>
+                  <div className="relative">
+                    <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="search"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Name, phone, app..."
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-red-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-100"
+                    />
+                  </div>
+                </div>
               </div>
+
+              {hasActiveFilters && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-800 hover:underline"
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
             </div>
 
             {filteredRows.length === 0 ? (
