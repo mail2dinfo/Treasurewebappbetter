@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { FiSettings, FiUsers, FiUser, FiMapPin, FiGrid, FiCoffee } from 'react-icons/fi';
+import { FiSettings, FiUsers, FiUser, FiMapPin, FiGrid, FiCoffee, FiTag } from 'react-icons/fi';
 import PersonalSettings from '../../components/PersonalSettings';
 import PlatformEmployeesPage from '../PlatformEmployeesPage';
 import HostelManagementHostelsPage from './HostelManagementHostelsPage';
 import HostelManagementFloorsRoomsPage from './HostelManagementFloorsRoomsPage';
 import HostelManagementMealMenuPage from './HostelManagementMealMenuPage';
+import HostelManagementLedgerCategoriesPanel from './HostelManagementLedgerCategoriesPanel';
 import { useHmPermission } from '../../components/hostelManagement/useHmPermission';
 import { HM_NAV_ANY } from '../../utils/hmPermissionCatalog';
 import { useHmBasePath } from '../../components/hostelManagement/hostelManagementMenuItems';
@@ -30,6 +31,13 @@ const ALL_MENU_ITEMS = [
     description: 'Breakfast, lunch, dinner & juices items',
     icon: FiCoffee,
     featureKeys: HM_NAV_ANY.foodReport,
+  },
+  {
+    id: 'ledger-categories',
+    label: 'Categories',
+    description: 'Ledger entry categories',
+    icon: FiTag,
+    featureKeys: HM_NAV_ANY.ledger,
   },
   {
     id: 'employees',
@@ -69,7 +77,8 @@ const HostelManagementAdminSettingsPage = () => {
   const isWide = activeMenu === 'employees'
     || activeMenu === 'hostels'
     || activeMenu === 'floors-rooms'
-    || activeMenu === 'meal-menu';
+    || activeMenu === 'meal-menu'
+    || activeMenu === 'ledger-categories';
 
   return (
     <div className="min-h-[calc(100vh-7rem)] bg-[#f8f9fa] antialiased">
@@ -84,7 +93,7 @@ const HostelManagementAdminSettingsPage = () => {
                 Admin Settings
               </h1>
               <p className="mt-1 text-sm text-[#888]">
-                Setup hostels, meal menu, floors &amp; rooms, employees, and your profile
+                Setup hostels, meal menu, floors &amp; rooms, ledger categories, employees, and your profile
               </p>
             </div>
           </div>
@@ -151,6 +160,7 @@ const HostelManagementAdminSettingsPage = () => {
               {activeMenu === 'hostels' && <HostelManagementHostelsPage embedded />}
               {activeMenu === 'floors-rooms' && <HostelManagementFloorsRoomsPage />}
               {activeMenu === 'meal-menu' && <HostelManagementMealMenuPage />}
+              {activeMenu === 'ledger-categories' && <HostelManagementLedgerCategoriesPanel />}
               {activeMenu === 'personalsettings' && <PersonalSettings />}
               {activeMenu === 'employees' && (
                 <PlatformEmployeesPage

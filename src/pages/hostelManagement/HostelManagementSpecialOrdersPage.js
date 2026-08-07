@@ -47,6 +47,8 @@ const HostelManagementSpecialOrdersPage = () => {
     specialOrders,
     fetchMealMenu,
     updateSpecialOrderStatus,
+    ledgerAccounts,
+    fetchLedgerAccounts,
   } = useHostelManagement();
   const { user } = useUserContext();
   const authToken = user?.results?.token || localStorage.getItem('token') || '';
@@ -71,6 +73,7 @@ const HostelManagementSpecialOrdersPage = () => {
     notes: '',
     quantity: '1',
     transactionRef: '',
+    ledgerAccountId: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [busyId, setBusyId] = useState(null);
@@ -135,6 +138,7 @@ const HostelManagementSpecialOrdersPage = () => {
   useEffect(() => {
     if (!membershipId) return;
     reloadOrders();
+    fetchLedgerAccounts();
     fetchMealMenu(membershipId).then((result) => {
       if (result.success) setMenuCategories(result.data?.categories || []);
     });
@@ -189,6 +193,7 @@ const HostelManagementSpecialOrdersPage = () => {
         notes: form.notes.trim() || null,
         quantity: Number(form.quantity) || 1,
         transactionRef: form.transactionRef.trim() || null,
+        ledgerAccountId: form.ledgerAccountId || null,
         source: 'ADMIN',
       });
       if (result.success) {
@@ -202,6 +207,7 @@ const HostelManagementSpecialOrdersPage = () => {
           notes: '',
           quantity: '1',
           transactionRef: '',
+          ledgerAccountId: prev.ledgerAccountId,
         }));
         reloadOrders();
       } else toast.error(result.error || 'Failed');
@@ -303,6 +309,16 @@ const HostelManagementSpecialOrdersPage = () => {
             value={form.transactionRef}
             onChange={(e) => setForm({ ...form, transactionRef: e.target.value })}
           />
+          <select
+            className="border rounded-lg px-3 py-2 md:col-span-2"
+            value={form.ledgerAccountId}
+            onChange={(e) => setForm({ ...form, ledgerAccountId: e.target.value })}
+          >
+            <option value="">Ledger account (auto if empty)</option>
+            {(ledgerAccounts || []).map((a) => (
+              <option key={a.id} value={a.id}>{a.account_name}</option>
+            ))}
+          </select>
           <input
             className="border rounded-lg px-3 py-2 md:col-span-2"
             placeholder="Notes (optional)"

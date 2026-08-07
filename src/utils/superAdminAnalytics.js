@@ -6,6 +6,12 @@ export const SUPER_ADMIN_NAV = [
         icon: 'users',
     },
     {
+        id: 'unpaid-users',
+        name: 'Unpaid Users',
+        path: '/super-admin/unpaid-users',
+        icon: 'unpaid',
+    },
+    {
         id: 'user-online',
         name: 'User Online',
         path: '/super-admin/user-online',
@@ -43,6 +49,13 @@ export const SUPER_ADMIN_ANALYTICS = [
         name: 'User Analytics',
         description: 'Login activity for all MyTreasure users (shared across apps)',
         path: '/super-admin/user-analytics',
+        isActive: true,
+    },
+    {
+        id: 'unpaid-users',
+        name: 'Unpaid Users',
+        description: 'Users with pending app billing — username, phone, app, month, amount',
+        path: '/super-admin/unpaid-users',
         isActive: true,
     },
     {

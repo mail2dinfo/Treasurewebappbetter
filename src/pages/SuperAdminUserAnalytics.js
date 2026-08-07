@@ -315,7 +315,7 @@ const SuperAdminUserAnalytics = () => {
         <SuperAdminShell
             activeId="user-analytics"
             title="User Analytics"
-            subtitle="Login report for all MyTreasure users"
+            subtitle="Login activity for all MyTreasure users"
             actions={refreshButton}
         >
             <div className="space-y-6">

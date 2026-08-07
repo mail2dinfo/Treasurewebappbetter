@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+    FiAlertCircle,
     FiBarChart2,
     FiClock,
     FiGrid,
@@ -19,6 +20,7 @@ import MyTreasureBrand from '../MyTreasureBrand';
 const navIcons = {
     home: FiGrid,
     users: FiUsers,
+    unpaid: FiAlertCircle,
     online: FiWifi,
     chart: FiBarChart2,
     trending: FiTrendingUp,

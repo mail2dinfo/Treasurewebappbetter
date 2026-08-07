@@ -17,6 +17,7 @@ const initialState = {
   unpaidDetails: [],
   ledgerAccounts: [],
   ledgerEntries: [],
+  ledgerCategories: [],
   paymentSubmissions: [],
   foodReport: [],
   orgFoodReport: null,
@@ -54,6 +55,8 @@ function reducer(state, action) {
       return { ...state, ledgerAccounts: action.payload, isLoading: false };
     case 'SET_LEDGER_ENTRIES':
       return { ...state, ledgerEntries: action.payload, isLoading: false };
+    case 'SET_LEDGER_CATEGORIES':
+      return { ...state, ledgerCategories: action.payload, isLoading: false };
     case 'SET_PAYMENT_SUBMISSIONS':
       return { ...state, paymentSubmissions: action.payload, isLoading: false };
     case 'SET_FOOD_REPORT':
@@ -317,12 +320,94 @@ export function HostelManagementProvider({ children }) {
     return result;
   }, [api, getAuth, fetchLedgerAccounts]);
 
-  const fetchLedgerEntries = useCallback(async () => {
+  const updateLedgerAccount = useCallback(async (id, payload) => {
+    const result = await api(`/hm/ledger/accounts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (result.success) await fetchLedgerAccounts();
+    return result;
+  }, [api, fetchLedgerAccounts]);
+
+  const deleteLedgerAccount = useCallback(async (id) => {
+    const result = await api(`/hm/ledger/accounts/${id}`, { method: 'DELETE' });
+    if (result.success) await fetchLedgerAccounts();
+    return result;
+  }, [api, fetchLedgerAccounts]);
+
+  const fetchLedgerEntries = useCallback(async (filters = {}) => {
     const { membershipId } = getAuth();
-    const result = await api(`/hm/ledger/entries?parent_membership_id=${membershipId}`);
-    if (result.success) dispatch({ type: 'SET_LEDGER_ENTRIES', payload: result.data || [] });
+    const q = new URLSearchParams({ parent_membership_id: membershipId });
+    if (filters.accountId) q.set('account_id', filters.accountId);
+    if (filters.entryType) q.set('entry_type', filters.entryType);
+    if (filters.category) q.set('category', filters.category);
+    if (filters.startDate) q.set('start_date', filters.startDate);
+    if (filters.endDate) q.set('end_date', filters.endDate);
+    const result = await api(`/hm/ledger/entries?${q}`);
+    if (result.success) {
+      const payload = result.data;
+      const entries = Array.isArray(payload)
+        ? payload
+        : (payload?.entries || []);
+      dispatch({ type: 'SET_LEDGER_ENTRIES', payload: entries });
+      return { ...result, data: entries, totals: payload?.totals || null };
+    }
     return result;
   }, [api, getAuth]);
+
+  const createLedgerEntry = useCallback(async (payload) => {
+    const { membershipId } = getAuth();
+    const result = await api('/hm/ledger/entries', {
+      method: 'POST',
+      body: JSON.stringify({ ...payload, parentMembershipId: membershipId }),
+    });
+    if (result.success) {
+      await fetchLedgerAccounts();
+      await fetchLedgerEntries();
+    }
+    return result;
+  }, [api, getAuth, fetchLedgerAccounts, fetchLedgerEntries]);
+
+  const deleteLedgerEntry = useCallback(async (id) => {
+    const { membershipId } = getAuth();
+    const result = await api(`/hm/ledger/entries/${id}?parent_membership_id=${membershipId}`, {
+      method: 'DELETE',
+    });
+    if (result.success) {
+      await fetchLedgerAccounts();
+      await fetchLedgerEntries();
+    }
+    return result;
+  }, [api, getAuth, fetchLedgerAccounts, fetchLedgerEntries]);
+
+  const fetchLedgerCategories = useCallback(async () => {
+    const { membershipId } = getAuth();
+    const result = await api(`/hm/ledger/categories?parent_membership_id=${membershipId}`);
+    if (result.success) dispatch({ type: 'SET_LEDGER_CATEGORIES', payload: result.data || [] });
+    return result;
+  }, [api, getAuth]);
+
+  const createLedgerCategory = useCallback(async (payload) => {
+    const { membershipId } = getAuth();
+    const result = await api('/hm/ledger/categories', {
+      method: 'POST',
+      body: JSON.stringify({
+        categoryName: payload.categoryName || payload.category_name,
+        parentMembershipId: membershipId,
+      }),
+    });
+    if (result.success) await fetchLedgerCategories();
+    return result;
+  }, [api, getAuth, fetchLedgerCategories]);
+
+  const deleteLedgerCategory = useCallback(async (id) => {
+    const { membershipId } = getAuth();
+    const result = await api(`/hm/ledger/categories/${id}?parent_membership_id=${membershipId}`, {
+      method: 'DELETE',
+    });
+    if (result.success) await fetchLedgerCategories();
+    return result;
+  }, [api, getAuth, fetchLedgerCategories]);
 
   const fetchFoodReport = useCallback(async (hostelId, startDate, endDate) => {
     const q = new URLSearchParams({ hostel_id: hostelId, start_date: startDate });
@@ -410,10 +495,11 @@ export function HostelManagementProvider({ children }) {
     api(`/hm/meal-menu/items/${id}`, { method: 'DELETE' })
   ), [api]);
 
-  const fetchDashboard = useCallback(async (hostelId = null) => {
+  const fetchDashboard = useCallback(async (hostelId = null, month = null) => {
     const { membershipId } = getAuth();
     const q = new URLSearchParams({ parent_membership_id: membershipId });
     if (hostelId) q.set('hostel_id', hostelId);
+    q.set('month', month || 'all');
     const result = await api(`/hm/dashboard?${q}`);
     if (result.success) dispatch({ type: 'SET_DASHBOARD', payload: result.data });
     return result;
@@ -494,7 +580,14 @@ export function HostelManagementProvider({ children }) {
     rejectPaymentSubmission,
     fetchLedgerAccounts,
     createLedgerAccount,
+    updateLedgerAccount,
+    deleteLedgerAccount,
     fetchLedgerEntries,
+    createLedgerEntry,
+    deleteLedgerEntry,
+    fetchLedgerCategories,
+    createLedgerCategory,
+    deleteLedgerCategory,
     fetchFoodReport,
     fetchOrgFoodReport,
     fetchSpecialOrders,
