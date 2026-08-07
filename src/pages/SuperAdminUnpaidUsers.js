@@ -22,6 +22,29 @@ const formatDate = (value) => {
   });
 };
 
+const isPhoneLike = (value, phone) => {
+  const raw = String(value || '').trim();
+  if (!raw) return true;
+  const phoneDigits = String(phone || '').replace(/\D/g, '');
+  const valueDigits = raw.replace(/\D/g, '');
+  if (phoneDigits && valueDigits && phoneDigits === valueDigits) return true;
+  if (/^[0-9+\-\s()]+$/.test(raw) && valueDigits.length >= 10) return true;
+  return false;
+};
+
+/** name → firstname+lastname → company → phone (same priority as API) */
+const resolveUnpaidDisplayName = (row = {}) => {
+  const phone = row.phone || '';
+  const fullName = [row.firstname, row.lastname].filter(Boolean).join(' ').trim();
+
+  if (row.user_name && !isPhoneLike(row.user_name, phone)) return row.user_name;
+  if (row.display_name && !isPhoneLike(row.display_name, phone)) return row.display_name;
+  if (fullName && !isPhoneLike(fullName, phone)) return fullName;
+  if (row.firstname && !isPhoneLike(row.firstname, phone)) return row.firstname;
+  if (row.company_name && !isPhoneLike(row.company_name, phone)) return row.company_name;
+  return row.display_name || phone || '—';
+};
+
 const selectClassName =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100';
 
@@ -60,7 +83,12 @@ const SuperAdminUnpaidUsers = () => {
     fetchReport();
   }, [user, history, fetchReport]);
 
-  const unpaidDues = useMemo(() => report?.unpaid_dues || [], [report?.unpaid_dues]);
+  const unpaidDues = useMemo(() => {
+    return (report?.unpaid_dues || []).map((row) => ({
+      ...row,
+      display_name: resolveUnpaidDisplayName(row),
+    }));
+  }, [report?.unpaid_dues]);
 
   const userOptions = useMemo(() => {
     const map = new Map();
