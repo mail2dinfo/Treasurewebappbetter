@@ -63,11 +63,51 @@ const SuperAdminUnpaidUsers = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const data = await fetchSuperAdminApi(
-        '/super-admin/analytics/unpaid-users',
-        user?.results?.token
-      );
-      setReport(data.data);
+      const [unpaidData, usersData] = await Promise.all([
+        fetchSuperAdminApi('/super-admin/analytics/unpaid-users', user?.results?.token),
+        fetchSuperAdminApi(
+          '/super-admin/analytics/user-analytics/users',
+          user?.results?.token
+        ).catch(() => null),
+      ]);
+
+      const nameByUserId = new Map();
+      const nameByPhone = new Map();
+      (usersData?.data?.users || []).forEach((row) => {
+        if (row.user_id && row.display_name) {
+          nameByUserId.set(row.user_id, row.display_name);
+        }
+        const phoneKey = String(row.phone || '').replace(/\D/g, '');
+        if (phoneKey && row.display_name) {
+          nameByPhone.set(phoneKey, row.display_name);
+        }
+      });
+
+      const unpaidDues = (unpaidData?.data?.unpaid_dues || []).map((row) => {
+        const phoneKey = String(row.phone || '').replace(/\D/g, '');
+        const analyticsName =
+          nameByUserId.get(row.user_id) || nameByPhone.get(phoneKey) || null;
+
+        return {
+          ...row,
+          display_name: resolveUnpaidDisplayName({
+            ...row,
+            // Prefer the exact same name User Analytics shows for this phone/user
+            display_name: analyticsName || row.display_name,
+            user_name: row.user_name || analyticsName,
+          }),
+        };
+      });
+
+      setReport({
+        ...unpaidData.data,
+        unpaid_dues: unpaidDues,
+        unpaid_count: unpaidDues.length,
+        unpaid_total: unpaidDues.reduce(
+          (sum, row) => sum + Number(row.unpaid_amount || 0),
+          0
+        ),
+      });
     } catch (fetchError) {
       setError(fetchError.message);
     } finally {
@@ -83,12 +123,7 @@ const SuperAdminUnpaidUsers = () => {
     fetchReport();
   }, [user, history, fetchReport]);
 
-  const unpaidDues = useMemo(() => {
-    return (report?.unpaid_dues || []).map((row) => ({
-      ...row,
-      display_name: resolveUnpaidDisplayName(row),
-    }));
-  }, [report?.unpaid_dues]);
+  const unpaidDues = useMemo(() => report?.unpaid_dues || [], [report?.unpaid_dues]);
 
   const userOptions = useMemo(() => {
     const map = new Map();
