@@ -9,6 +9,7 @@ import {
     FaTags,
     FaFilePdf,
     FaFileExcel,
+    FaEdit,
 } from 'react-icons/fa';
 import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
@@ -141,6 +142,7 @@ const PersonalFinanceDashboardPage = () => {
     const [showTxnModal, setShowTxnModal] = useState(false);
     const [showCatModal, setShowCatModal] = useState(false);
     const [showAccountModal, setShowAccountModal] = useState(false);
+    const [editingAccount, setEditingAccount] = useState(null);
     const [saving, setSaving] = useState(false);
 
     const [txnType, setTxnType] = useState('EXPENSE');
@@ -260,14 +262,29 @@ const PersonalFinanceDashboardPage = () => {
             e.preventDefault();
             e.stopPropagation();
         }
+        setEditingAccount(null);
         setNewAccountName('');
         setNewAccountType('CASH');
         setNewOpeningBalance('0');
         setShowAccountModal(true);
     };
 
+    const openRenameAccountModal = (account) => {
+        if (!account?.id) return;
+        setEditingAccount(account);
+        setNewAccountName(account.name || '');
+        setNewAccountType(account.account_type || 'OTHER');
+        setNewOpeningBalance(
+            account.opening_balance !== undefined && account.opening_balance !== null
+                ? String(account.opening_balance)
+                : '0'
+        );
+        setShowAccountModal(true);
+    };
+
     const closeAccountModal = () => {
         setShowAccountModal(false);
+        setEditingAccount(null);
     };
 
     const submitAccount = async (e) => {
@@ -279,28 +296,46 @@ const PersonalFinanceDashboardPage = () => {
         }
         setSaving(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/pf/accounts`, {
-                method: 'POST',
-                headers: authHeaders,
-                body: JSON.stringify({
-                    name: trimmed,
-                    account_type: newAccountType,
-                    opening_balance: Number(newOpeningBalance) || 0,
-                    membershipId,
-                }),
-            });
-            const data = await res.json();
-            if (!res.ok || data.error) {
-                throw new Error(data.message || 'Failed to add account');
+            if (editingAccount?.id) {
+                const res = await fetch(`${API_BASE_URL}/pf/accounts/${editingAccount.id}`, {
+                    method: 'PUT',
+                    headers: authHeaders,
+                    body: JSON.stringify({
+                        name: trimmed,
+                        account_type: newAccountType,
+                        membershipId,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    throw new Error(data.message || 'Failed to rename account');
+                }
+                toast.success(data.message || 'Account renamed');
+            } else {
+                const res = await fetch(`${API_BASE_URL}/pf/accounts`, {
+                    method: 'POST',
+                    headers: authHeaders,
+                    body: JSON.stringify({
+                        name: trimmed,
+                        account_type: newAccountType,
+                        opening_balance: Number(newOpeningBalance) || 0,
+                        membershipId,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    throw new Error(data.message || 'Failed to add account');
+                }
+                toast.success(data.message || 'Account added');
             }
-            toast.success(data.message || 'Account added');
             closeAccountModal();
             setNewAccountName('');
             setNewAccountType('CASH');
             setNewOpeningBalance('0');
             await ensureLookups();
+            await fetchSummary();
         } catch (error) {
-            toast.error(error.message || 'Failed to add account');
+            toast.error(error.message || 'Failed to save account');
         } finally {
             setSaving(false);
         }
@@ -514,7 +549,9 @@ const PersonalFinanceDashboardPage = () => {
             >
                 <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
                     <div className="flex items-center justify-between">
-                        <h2 id="add-account-title" className="text-lg font-bold text-white">Add Account</h2>
+                        <h2 id="add-account-title" className="text-lg font-bold text-white">
+                            {editingAccount ? 'Rename Account' : 'Add Account'}
+                        </h2>
                         <button
                             type="button"
                             onClick={closeAccountModal}
@@ -553,18 +590,20 @@ const PersonalFinanceDashboardPage = () => {
                             ))}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Opening balance
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            value={newOpeningBalance}
-                            onChange={(e) => setNewOpeningBalance(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                        />
-                    </div>
+                    {!editingAccount && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Opening balance
+                            </label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value={newOpeningBalance}
+                                onChange={(e) => setNewOpeningBalance(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                            />
+                        </div>
+                    )}
                     <div className="flex gap-3 pt-2">
                         <button
                             type="button"
@@ -578,7 +617,7 @@ const PersonalFinanceDashboardPage = () => {
                             disabled={saving}
                             className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 font-medium shadow-md disabled:opacity-50"
                         >
-                            {saving ? 'Saving…' : 'Save'}
+                            {saving ? 'Saving…' : editingAccount ? 'Update' : 'Save'}
                         </button>
                     </div>
                 </form>
@@ -723,7 +762,8 @@ const PersonalFinanceDashboardPage = () => {
                                             <th className="px-3 py-2 font-medium">Name</th>
                                             <th className="px-3 py-2 font-medium">Type</th>
                                             <th className="px-3 py-2 font-medium text-right">Opening</th>
-                                            <th className="px-3 py-2 font-medium text-right">Balance</th>
+                                            <th className="px-3 py-2 font-medium text-right">Closing</th>
+                                            <th className="px-3 py-2 font-medium text-center w-16">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -749,9 +789,36 @@ const PersonalFinanceDashboardPage = () => {
                                                 }`}>
                                                     {formatMoneyExact(account.current_balance)}
                                                 </td>
+                                                <td className="px-3 py-2 text-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openRenameAccountModal(account)}
+                                                        className="inline-flex items-center justify-center p-1.5 rounded-md text-slate-600 hover:bg-white hover:text-red-700 border border-transparent hover:border-red-200"
+                                                        title="Rename account"
+                                                        aria-label={`Rename ${account.name}`}
+                                                    >
+                                                        <FaEdit className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
+                                    <tfoot>
+                                        <tr className="border-t-2 border-slate-200 bg-slate-50 font-bold text-slate-900">
+                                            <td className="px-3 py-2.5" colSpan={3}>
+                                                Total
+                                            </td>
+                                            <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                                                {formatMoneyExact(totalOpeningBalance)}
+                                            </td>
+                                            <td className={`px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${
+                                                totalAccountBalance >= 0 ? 'text-green-800' : 'text-red-800'
+                                            }`}>
+                                                {formatMoneyExact(totalAccountBalance)}
+                                            </td>
+                                            <td className="px-3 py-2.5" />
+                                        </tr>
+                                    </tfoot>
                                 </table>
                             </div>
                         )}

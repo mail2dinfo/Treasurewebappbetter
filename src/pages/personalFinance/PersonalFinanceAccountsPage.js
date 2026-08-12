@@ -6,6 +6,7 @@ import {
     FaTrash,
     FaTimes,
     FaSync,
+    FaEdit,
 } from 'react-icons/fa';
 import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
@@ -46,6 +47,7 @@ const PersonalFinanceAccountsPage = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [editingAccount, setEditingAccount] = useState(null);
     const [name, setName] = useState('');
     const [accountType, setAccountType] = useState('CASH');
     const [openingBalance, setOpeningBalance] = useState('0');
@@ -75,13 +77,32 @@ const PersonalFinanceAccountsPage = () => {
     }, [fetchAccounts]);
 
     const openAddModal = () => {
+        setEditingAccount(null);
         setName('');
         setAccountType('CASH');
         setOpeningBalance('0');
         setShowAddModal(true);
     };
 
-    const addAccount = async (e) => {
+    const openRenameModal = (account) => {
+        if (!account?.id) return;
+        setEditingAccount(account);
+        setName(account.name || '');
+        setAccountType(account.account_type || 'OTHER');
+        setOpeningBalance(
+            account.opening_balance !== undefined && account.opening_balance !== null
+                ? String(account.opening_balance)
+                : '0'
+        );
+        setShowAddModal(true);
+    };
+
+    const closeAccountModal = () => {
+        setShowAddModal(false);
+        setEditingAccount(null);
+    };
+
+    const saveAccount = async (e) => {
         if (e) e.preventDefault();
         const trimmed = String(name || '').trim();
         if (!trimmed) {
@@ -90,31 +111,51 @@ const PersonalFinanceAccountsPage = () => {
         }
         setSaving(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/pf/accounts`, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: trimmed,
-                    account_type: accountType,
-                    opening_balance: Number(openingBalance) || 0,
-                    membershipId,
-                }),
-            });
-            const data = await res.json();
-            if (!res.ok || data.error) {
-                throw new Error(data.message || 'Failed to add account');
+            if (editingAccount?.id) {
+                const res = await fetch(`${API_BASE_URL}/pf/accounts/${editingAccount.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: trimmed,
+                        account_type: accountType,
+                        membershipId,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    throw new Error(data.message || 'Failed to rename account');
+                }
+                toast.success(data.message || 'Account renamed');
+            } else {
+                const res = await fetch(`${API_BASE_URL}/pf/accounts`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: trimmed,
+                        account_type: accountType,
+                        opening_balance: Number(openingBalance) || 0,
+                        membershipId,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    throw new Error(data.message || 'Failed to add account');
+                }
+                toast.success(data.message || 'Account added');
             }
-            toast.success(data.message || 'Account added');
-            setShowAddModal(false);
+            closeAccountModal();
             setName('');
             setAccountType('CASH');
             setOpeningBalance('0');
             await fetchAccounts();
         } catch (error) {
-            toast.error(error.message || 'Failed to add account');
+            toast.error(error.message || 'Failed to save account');
         } finally {
             setSaving(false);
         }
@@ -143,6 +184,7 @@ const PersonalFinanceAccountsPage = () => {
     };
 
     const totalBalance = accounts.reduce((sum, a) => sum + (Number(a.current_balance) || 0), 0);
+    const totalOpening = accounts.reduce((sum, a) => sum + (Number(a.opening_balance) || 0), 0);
     const bankCount = accounts.filter((a) => a.account_type === 'BANK').length;
     const cashCount = accounts.filter((a) => a.account_type === 'CASH').length;
 
@@ -242,9 +284,9 @@ const PersonalFinanceAccountsPage = () => {
                                             <th className="px-3 py-2 font-medium">Name</th>
                                             <th className="px-3 py-2 font-medium">Type</th>
                                             <th className="px-3 py-2 font-medium text-right">Opening</th>
-                                            <th className="px-3 py-2 font-medium text-right">Balance</th>
+                                            <th className="px-3 py-2 font-medium text-right">Closing</th>
                                             <th className="px-3 py-2 font-medium">Source</th>
-                                            <th className="px-3 py-2 font-medium text-center w-14">Action</th>
+                                            <th className="px-3 py-2 font-medium text-center w-20">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -274,28 +316,44 @@ const PersonalFinanceAccountsPage = () => {
                                                     {account.is_system ? 'Default' : 'Custom'}
                                                 </td>
                                                 <td className="px-3 py-2 text-center">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeAccount(account)}
-                                                        disabled={saving}
-                                                        className="inline-flex items-center justify-center p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
-                                                        title="Remove"
-                                                    >
-                                                        <FaTrash className="w-3.5 h-3.5" />
-                                                    </button>
+                                                    <div className="inline-flex items-center gap-1">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openRenameModal(account)}
+                                                            disabled={saving}
+                                                            className="inline-flex items-center justify-center p-1.5 text-gray-500 hover:text-red-700 hover:bg-white rounded border border-transparent hover:border-red-200 disabled:opacity-50"
+                                                            title="Rename"
+                                                        >
+                                                            <FaEdit className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeAccount(account)}
+                                                            disabled={saving}
+                                                            className="inline-flex items-center justify-center p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
+                                                            title="Remove"
+                                                        >
+                                                            <FaTrash className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                     <tfoot>
-                                        <tr className="border-t-2 border-gray-200 bg-gray-50">
-                                            <td colSpan={4} className="px-3 py-2 text-right text-sm font-semibold text-gray-700">
-                                                Total balance
+                                        <tr className="border-t-2 border-gray-200 bg-gray-50 font-bold text-gray-900">
+                                            <td colSpan={3} className="px-3 py-2.5">
+                                                Total
                                             </td>
-                                            <td className="px-3 py-2 text-right text-sm font-bold text-gray-900 tabular-nums whitespace-nowrap">
+                                            <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                                                {formatMoney(totalOpening)}
+                                            </td>
+                                            <td className={`px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${
+                                                totalBalance >= 0 ? 'text-green-800' : 'text-red-800'
+                                            }`}>
                                                 {formatMoney(totalBalance)}
                                             </td>
-                                            <td colSpan={2} />
+                                            <td className="px-3 py-2.5" colSpan={2} />
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -305,23 +363,25 @@ const PersonalFinanceAccountsPage = () => {
                 </div>
             </div>
 
-            {/* Add Account modal — Products pattern */}
+            {/* Add / Rename Account modal */}
             {showAddModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
                         <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-lg font-bold text-white">Add Account</h2>
+                                <h2 className="text-lg font-bold text-white">
+                                    {editingAccount ? 'Rename Account' : 'Add Account'}
+                                </h2>
                                 <button
                                     type="button"
-                                    onClick={() => setShowAddModal(false)}
+                                    onClick={closeAccountModal}
                                     className="text-white/80 hover:text-white hover:bg-white/10 rounded-full p-2"
                                 >
                                     <FaTimes className="w-5 h-5" />
                                 </button>
                             </div>
                         </div>
-                        <form onSubmit={addAccount} className="p-6 space-y-4">
+                        <form onSubmit={saveAccount} className="p-6 space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Account name *
@@ -350,22 +410,24 @@ const PersonalFinanceAccountsPage = () => {
                                     ))}
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Opening balance
-                                </label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={openingBalance}
-                                    onChange={(e) => setOpeningBalance(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                />
-                            </div>
+                            {!editingAccount && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Opening balance
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={openingBalance}
+                                        onChange={(e) => setOpeningBalance(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    />
+                                </div>
+                            )}
                             <div className="flex gap-3 pt-2">
                                 <button
                                     type="button"
-                                    onClick={() => setShowAddModal(false)}
+                                    onClick={closeAccountModal}
                                     className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium"
                                 >
                                     Cancel
@@ -375,7 +437,7 @@ const PersonalFinanceAccountsPage = () => {
                                     disabled={saving}
                                     className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 font-medium shadow-md disabled:opacity-50"
                                 >
-                                    {saving ? 'Saving…' : 'Save'}
+                                    {saving ? 'Saving…' : editingAccount ? 'Update' : 'Save'}
                                 </button>
                             </div>
                         </form>
