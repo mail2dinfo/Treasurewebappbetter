@@ -232,7 +232,7 @@ const PersonalFinanceAccountsPage = () => {
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-md hover:shadow-lg"
                                 >
                                     <FaPlus className="w-4 h-4" />
-                                    + Add Account
+                                    Add Account
                                 </button>
                                 <button
                                     type="button"
@@ -272,7 +272,7 @@ const PersonalFinanceAccountsPage = () => {
                                     className="inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-bold rounded-lg hover:from-red-700 hover:to-red-800 shadow-md"
                                 >
                                     <FaPlus className="w-4 h-4" />
-                                    + Add Account
+                                    Add Account
                                 </button>
                             </div>
                         ) : (
