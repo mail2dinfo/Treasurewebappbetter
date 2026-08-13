@@ -162,7 +162,7 @@ const PersonalFinanceAccountsPage = () => {
     };
 
     const removeAccount = async (account) => {
-        if (!window.confirm(`Remove "${account.name}" from your list?`)) return;
+        if (!window.confirm(`Delete account "${account.name}"?`)) return;
         setSaving(true);
         try {
             const qs = membershipId ? `?parent_membership_id=${membershipId}` : '';
@@ -172,12 +172,14 @@ const PersonalFinanceAccountsPage = () => {
             });
             const data = await res.json();
             if (!res.ok || data.error) {
-                throw new Error(data.message || 'Failed to remove account');
+                throw new Error(
+                    data.message || "You have entries on this account. Can't delete."
+                );
             }
-            toast.success(data.message || 'Account removed');
+            toast.success(data.message || 'Account deleted');
             await fetchAccounts();
         } catch (error) {
-            toast.error(error.message || 'Failed to remove account');
+            toast.error(error.message || "You have entries on this account. Can't delete.");
         } finally {
             setSaving(false);
         }

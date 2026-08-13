@@ -37,6 +37,49 @@ const formatMoneyExact = (value) => {
     return `₹${n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Build last 12 months table from transaction entries (fallback if API has no by_month). */
+const buildLast12Months = (entryLists = []) => {
+    const map = new Map();
+    const seenIds = new Set();
+    entryLists.flat().forEach((entry) => {
+        if (entry?.id != null) {
+            const id = String(entry.id);
+            if (seenIds.has(id)) return;
+            seenIds.add(id);
+        }
+        const raw = entry?.txn_date;
+        const key = raw instanceof Date && !Number.isNaN(raw.getTime())
+            ? `${raw.getFullYear()}-${String(raw.getMonth() + 1).padStart(2, '0')}`
+            : String(raw || '').match(/^(\d{4}-\d{2})/)?.[1];
+        if (!key) return;
+        if (!map.has(key)) map.set(key, { income: 0, expense: 0 });
+        const bucket = map.get(key);
+        const amount = Number(entry.amount) || 0;
+        if (entry.txn_type === 'INCOME') bucket.income += amount;
+        else bucket.expense += amount;
+    });
+
+    const now = new Date();
+    const rows = [];
+    for (let i = 0; i < 12; i += 1) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const sums = map.get(key) || { income: 0, expense: 0 };
+        const income = Math.round(sums.income * 100) / 100;
+        const expense = Math.round(sums.expense * 100) / 100;
+        rows.push({
+            month_key: key,
+            month: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`,
+            income,
+            expense,
+            balance: Math.round((income - expense) * 100) / 100,
+        });
+    }
+    return rows;
+};
+
 const CATEGORY_CHART_COLORS = [
     '#16a34a', '#22c55e', '#4ade80', '#86efac', '#15803d',
     '#065f46', '#10b981', '#34d399', '#059669', '#047857',
@@ -47,8 +90,21 @@ const ACCOUNT_CHART_COLORS = [
     '#d97706', '#f59e0b', '#fbbf24', '#b45309', '#92400e',
 ];
 
-/** SVG donut chart for expense breakdown (category or account) */
-const ExpenseDonut = ({ items, total, idKey = 'category_id', colors = CATEGORY_CHART_COLORS }) => {
+const INCOME_CHART_COLORS = [
+    '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#1d4ed8',
+    '#0ea5e9', '#38bdf8', '#0284c7', '#0369a1', '#7dd3fc',
+];
+
+/** SVG donut chart for category/account breakdown */
+const BreakdownDonut = ({
+    items,
+    total,
+    idKey = 'category_id',
+    valueKey = 'expense',
+    colors = CATEGORY_CHART_COLORS,
+    emptyLabel = 'No data',
+    centerLabel = 'Total',
+}) => {
     const size = 140;
     const stroke = 22;
     const radius = (size - stroke) / 2;
@@ -58,7 +114,7 @@ const ExpenseDonut = ({ items, total, idKey = 'category_id', colors = CATEGORY_C
     if (!items.length || total <= 0) {
         return (
             <div className="flex items-center justify-center h-[140px]">
-                <div className="text-center text-gray-500 text-sm">No expense data</div>
+                <div className="text-center text-gray-500 text-sm">{emptyLabel}</div>
             </div>
         );
     }
@@ -75,7 +131,7 @@ const ExpenseDonut = ({ items, total, idKey = 'category_id', colors = CATEGORY_C
                     strokeWidth={stroke}
                 />
                 {items.map((item, i) => {
-                    const pct = Number(item.expense) / total;
+                    const pct = Number(item[valueKey] || 0) / total;
                     const dash = pct * circumference;
                     const gap = circumference - dash;
                     const circle = (
@@ -97,7 +153,7 @@ const ExpenseDonut = ({ items, total, idKey = 'category_id', colors = CATEGORY_C
                 })}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <p className="text-[10px] font-medium text-gray-500 uppercase">Expense</p>
+                <p className="text-[10px] font-medium text-gray-500 uppercase">{centerLabel}</p>
                 <p className="text-sm font-bold text-gray-900 tabular-nums">{formatMoneyExact(total)}</p>
             </div>
         </div>
@@ -158,6 +214,7 @@ const PersonalFinanceDashboardPage = () => {
     const [newAccountType, setNewAccountType] = useState('CASH');
     const [newOpeningBalance, setNewOpeningBalance] = useState('0');
     const [exporting, setExporting] = useState(false);
+    const [monthlyBalances, setMonthlyBalances] = useState([]);
 
     const authHeaders = useMemo(() => ({
         Authorization: `Bearer ${token}`,
@@ -172,9 +229,28 @@ const PersonalFinanceDashboardPage = () => {
         try {
             const params = new URLSearchParams({ period });
             if (membershipId) params.set('parent_membership_id', membershipId);
-            const res = await fetch(`${API_BASE_URL}/pf/dashboard/summary?${params}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+
+            const now = new Date();
+            const prevYearDate = `${now.getFullYear() - 1}-06-15`;
+            const yearParams = new URLSearchParams({ period: 'year' });
+            const prevYearParams = new URLSearchParams({ period: 'year', date: prevYearDate });
+            if (membershipId) {
+                yearParams.set('parent_membership_id', membershipId);
+                prevYearParams.set('parent_membership_id', membershipId);
+            }
+
+            const [res, yearRes, prevYearRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/pf/dashboard/summary?${params}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }),
+                fetch(`${API_BASE_URL}/pf/dashboard/summary?${yearParams}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }).catch(() => null),
+                fetch(`${API_BASE_URL}/pf/dashboard/summary?${prevYearParams}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                }).catch(() => null),
+            ]);
+
             const data = await res.json();
             if (!res.ok || data.error) {
                 throw new Error(data.message || 'Failed to load dashboard');
@@ -188,6 +264,25 @@ const PersonalFinanceDashboardPage = () => {
                 }
                 return entries[0] || null;
             });
+
+            // Prefer API by_month only when it has real activity (avoids stale/empty server rows).
+            const apiByMonth = Array.isArray(results?.by_month) ? results.by_month : [];
+            const apiHasActivity = apiByMonth.some(
+                (row) => (Number(row.income) || 0) !== 0 || (Number(row.expense) || 0) !== 0
+            );
+
+            const yearData = yearRes ? await yearRes.json().catch(() => null) : null;
+            const prevYearData = prevYearRes ? await prevYearRes.json().catch(() => null) : null;
+            const yearEntries = (!yearData?.error && yearData?.results?.entries) || [];
+            const prevYearEntries = (!prevYearData?.error && prevYearData?.results?.entries) || [];
+            // Year + previous year only (do not also merge period entries — that double-counts).
+            const built = buildLast12Months([yearEntries, prevYearEntries]);
+
+            if (apiHasActivity) {
+                setMonthlyBalances(apiByMonth);
+            } else {
+                setMonthlyBalances(built);
+            }
         } catch (error) {
             toast.error(error.message || 'Failed to load dashboard');
         } finally {
@@ -250,11 +345,46 @@ const PersonalFinanceDashboardPage = () => {
         setShowTxnModal(true);
     };
 
-    const openCatModal = async () => {
+    const openCatModal = async (preferredType) => {
         await ensureLookups();
         setCatName('');
-        setCatType('EXPENSE');
+        const nextType =
+            preferredType === 'INCOME' || preferredType === 'EXPENSE'
+                ? preferredType
+                : (txnType === 'INCOME' ? 'INCOME' : 'EXPENSE');
+        setCatType(nextType);
         setShowCatModal(true);
+    };
+
+    const removeAccount = async (account) => {
+        if (!account?.id) return;
+        if (!window.confirm(`Delete account "${account.name}"?`)) return;
+        setSaving(true);
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/pf/accounts/${account.id}${qs ? `?${qs}` : ''}`,
+                {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            const data = await res.json();
+            if (!res.ok || data.error) {
+                throw new Error(
+                    data.message || 'You have entries on this account. Can\'t delete.'
+                );
+            }
+            toast.success(data.message || 'Account deleted');
+            if (accountId === account.id) {
+                setAccountId('');
+            }
+            await ensureLookups();
+            await fetchSummary();
+        } catch (error) {
+            toast.error(error.message || 'You have entries on this account. Can\'t delete.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const openAccountModal = (e) => {
@@ -408,7 +538,14 @@ const PersonalFinanceDashboardPage = () => {
             }
             toast.success('Category added');
             setCatName('');
+            const created = data.results || data.data || null;
             await ensureLookups();
+            if (created?.id && catType === txnType) {
+                setCategoryId(created.id);
+            }
+            if (showTxnModal) {
+                setShowCatModal(false);
+            }
         } catch (error) {
             toast.error(error.message || 'Failed to add category');
         } finally {
@@ -473,8 +610,24 @@ const PersonalFinanceDashboardPage = () => {
     const expenseByCategory = (summary?.by_category || [])
         .filter((c) => c.category_type === 'EXPENSE' && Number(c.expense) > 0)
         .sort((a, b) => Number(b.expense) - Number(a.expense));
+    const incomeByCategory = (summary?.by_category || [])
+        .filter((c) => c.category_type === 'INCOME' && Number(c.income) > 0)
+        .sort((a, b) => Number(b.income) - Number(a.income));
     const expenseCategoryTotal = expenseByCategory.reduce((sum, c) => sum + Number(c.expense || 0), 0);
+    const incomeCategoryTotal = incomeByCategory.reduce((sum, c) => sum + Number(c.income || 0), 0);
     const expenseAccountTotal = byAccount.reduce((sum, a) => sum + Number(a.expense || 0), 0);
+    const byMonth = monthlyBalances.length > 0
+        ? monthlyBalances
+        : (summary?.by_month || buildLast12Months([summary?.entries || []]));
+    const monthTotals = byMonth.reduce(
+        (acc, row) => {
+            acc.income += Number(row.income) || 0;
+            acc.expense += Number(row.expense) || 0;
+            acc.balance += Number(row.balance) || 0;
+            return acc;
+        },
+        { income: 0, expense: 0, balance: 0 }
+    );
     const totalAccountBalance = accounts.reduce((sum, a) => sum + (Number(a.current_balance) || 0), 0);
     const totalOpeningBalance = accounts.reduce((sum, a) => sum + (Number(a.opening_balance) || 0), 0);
     // Header stats: opening is treated as starting money (part of Income)
@@ -690,144 +843,257 @@ const PersonalFinanceDashboardPage = () => {
                                         {p.label}
                                     </button>
                                 ))}
-                                <div className="flex-1" />
-                                <button
-                                    type="button"
-                                    onClick={() => openTxnModal('EXPENSE')}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-md hover:shadow-lg"
-                                >
-                                    <FaPlus className="w-4 h-4" />
-                                    <span className="hidden sm:inline">Add</span>
-                                    <span className="sm:hidden">Add</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={openCatModal}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-600 to-gray-700 text-white text-sm rounded-lg hover:from-gray-700 hover:to-gray-800 transition-all duration-200 shadow-md hover:shadow-lg"
-                                >
-                                    <FaTags className="w-3.5 h-3.5" />
-                                    <span className="hidden sm:inline">Add Category</span>
-                                    <span className="sm:hidden">Category</span>
-                                </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* Account list — below Personal Finance header */}
-                    <div className="mb-4 bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50">
-                            <h3 className="text-sm font-semibold text-gray-900">
-                                Account list
-                                <span className="ml-2 text-xs font-normal text-gray-500">
-                                    ({accounts.length})
-                                </span>
-                            </h3>
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                {accounts.length > 0 && (
-                                    <span className="text-xs font-medium text-gray-600 hidden sm:inline">
-                                        Total {formatMoneyExact(totalAccountBalance)}
+                    {/* Account list 40% | All Entries 60% */}
+                    <div className="mb-4 flex flex-col lg:flex-row gap-3 lg:items-stretch">
+                        {/* Account list — 40% */}
+                        <div className="w-full lg:w-[40%] bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm flex flex-col min-w-0">
+                            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50">
+                                <h3 className="text-sm font-semibold text-gray-900">
+                                    Account list
+                                    <span className="ml-2 text-xs font-normal text-gray-500">
+                                        ({accounts.length})
                                     </span>
-                                )}
-                                <button
-                                    type="button"
-                                    onClick={openAccountModal}
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-red-600 to-red-700 text-white text-xs sm:text-sm rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-md hover:shadow-lg"
-                                >
-                                    <FaPlus className="w-3 h-3" />
-                                    New Account
-                                </button>
+                                </h3>
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                    {accounts.length > 0 && (
+                                        <span className="text-xs font-medium text-gray-600 hidden xl:inline">
+                                            Total {formatMoneyExact(totalAccountBalance)}
+                                        </span>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={openAccountModal}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-red-600 to-red-700 text-white text-xs sm:text-sm rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                                    >
+                                        <FaPlus className="w-3 h-3" />
+                                        New Account
+                                    </button>
+                                </div>
                             </div>
+
+                            {accountsLoading ? (
+                                <div className="py-6 text-center text-sm text-gray-500">Loading accounts...</div>
+                            ) : accounts.length === 0 ? (
+                                <div className="py-6 text-center text-sm text-gray-500">
+                                    <p className="mb-3">No accounts yet</p>
+                                    <button
+                                        type="button"
+                                        onClick={openAccountModal}
+                                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-medium rounded-lg hover:from-red-700 hover:to-red-800 shadow-md"
+                                    >
+                                        <FaPlus className="w-3.5 h-3.5" />
+                                        New Account
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto flex-1">
+                                    <table className="w-full text-sm border-collapse">
+                                        <thead>
+                                            <tr className="bg-red-600 text-white text-left">
+                                                <th className="px-3 py-2 font-medium w-10">#</th>
+                                                <th className="px-3 py-2 font-medium">Name</th>
+                                                <th className="px-3 py-2 font-medium">Type</th>
+                                                <th className="px-3 py-2 font-medium text-right">Opening</th>
+                                                <th className="px-3 py-2 font-medium text-right">Closing</th>
+                                                <th className="px-3 py-2 font-medium text-center w-16">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {accounts.map((account, index) => (
+                                                <tr
+                                                    key={account.id}
+                                                    className="border-t border-gray-100 hover:bg-red-50 transition-colors"
+                                                >
+                                                    <td className="px-3 py-2 text-gray-500">{index + 1}</td>
+                                                    <td className="px-3 py-2 font-semibold text-gray-900">
+                                                        {account.name}
+                                                    </td>
+                                                    <td className="px-3 py-2">
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${typeBadgeClass(account.account_type)}`}>
+                                                            {account.account_type || 'OTHER'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-3 py-2 text-right text-gray-700 whitespace-nowrap tabular-nums">
+                                                        {formatMoneyExact(account.opening_balance)}
+                                                    </td>
+                                                    <td className={`px-3 py-2 text-right font-bold whitespace-nowrap tabular-nums ${
+                                                        Number(account.current_balance) >= 0 ? 'text-green-700' : 'text-red-700'
+                                                    }`}>
+                                                        {formatMoneyExact(account.current_balance)}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-center">
+                                                        <div className="inline-flex items-center gap-1">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openRenameAccountModal(account)}
+                                                                className="inline-flex items-center justify-center p-1.5 rounded-md text-slate-600 hover:bg-white hover:text-red-700 border border-transparent hover:border-red-200"
+                                                                title="Rename account"
+                                                                aria-label={`Rename ${account.name}`}
+                                                            >
+                                                                <FaEdit className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeAccount(account)}
+                                                                disabled={saving}
+                                                                className="inline-flex items-center justify-center p-1.5 rounded-md text-slate-500 hover:bg-white hover:text-red-700 border border-transparent hover:border-red-200 disabled:opacity-50"
+                                                                title="Delete account"
+                                                                aria-label={`Delete ${account.name}`}
+                                                            >
+                                                                <FaTrash className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr className="border-t-2 border-slate-200 bg-slate-50 font-bold text-slate-900">
+                                                <td className="px-3 py-2.5" colSpan={3}>
+                                                    Total
+                                                </td>
+                                                <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                                                    {formatMoneyExact(totalOpeningBalance)}
+                                                </td>
+                                                <td className={`px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${
+                                                    totalAccountBalance >= 0 ? 'text-green-800' : 'text-red-800'
+                                                }`}>
+                                                    {formatMoneyExact(totalAccountBalance)}
+                                                </td>
+                                                <td className="px-3 py-2.5" />
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            )}
                         </div>
 
-                        {accountsLoading ? (
-                            <div className="py-6 text-center text-sm text-gray-500">Loading accounts...</div>
-                        ) : accounts.length === 0 ? (
-                            <div className="py-6 text-center text-sm text-gray-500">
-                                <p className="mb-3">No accounts yet</p>
-                                <button
-                                    type="button"
-                                    onClick={openAccountModal}
-                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-medium rounded-lg hover:from-red-700 hover:to-red-800 shadow-md"
-                                >
-                                    <FaPlus className="w-3.5 h-3.5" />
-                                    New Account
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm border-collapse">
-                                    <thead>
-                                        <tr className="bg-red-600 text-white text-left">
-                                            <th className="px-3 py-2 font-medium w-10">#</th>
-                                            <th className="px-3 py-2 font-medium">Name</th>
-                                            <th className="px-3 py-2 font-medium">Type</th>
-                                            <th className="px-3 py-2 font-medium text-right">Opening</th>
-                                            <th className="px-3 py-2 font-medium text-right">Closing</th>
-                                            <th className="px-3 py-2 font-medium text-center w-16">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {accounts.map((account, index) => (
-                                            <tr
-                                                key={account.id}
-                                                className="border-t border-gray-100 hover:bg-red-50 transition-colors"
-                                            >
-                                                <td className="px-3 py-2 text-gray-500">{index + 1}</td>
-                                                <td className="px-3 py-2 font-semibold text-gray-900">
-                                                    {account.name}
-                                                </td>
-                                                <td className="px-3 py-2">
-                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${typeBadgeClass(account.account_type)}`}>
-                                                        {account.account_type || 'OTHER'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-3 py-2 text-right text-gray-700 whitespace-nowrap tabular-nums">
-                                                    {formatMoneyExact(account.opening_balance)}
-                                                </td>
-                                                <td className={`px-3 py-2 text-right font-bold whitespace-nowrap tabular-nums ${
-                                                    Number(account.current_balance) >= 0 ? 'text-green-700' : 'text-red-700'
-                                                }`}>
-                                                    {formatMoneyExact(account.current_balance)}
-                                                </td>
-                                                <td className="px-3 py-2 text-center">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openRenameAccountModal(account)}
-                                                        className="inline-flex items-center justify-center p-1.5 rounded-md text-slate-600 hover:bg-white hover:text-red-700 border border-transparent hover:border-red-200"
-                                                        title="Rename account"
-                                                        aria-label={`Rename ${account.name}`}
+                        {/* All Entries — 60% */}
+                        <div className="w-full lg:w-[60%] min-w-0 flex flex-col">
+                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden flex-1 shadow-sm">
+                                <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50">
+                                    <h3 className="text-sm font-semibold text-gray-900 shrink-0">
+                                        All Entries
+                                        <span className="ml-2 text-xs font-normal text-gray-500">
+                                            ({entries.length})
+                                        </span>
+                                    </h3>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => openTxnModal('EXPENSE')}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-sm"
+                                        >
+                                            <FaPlus className="w-3 h-3" />
+                                            Add
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleDownloadExcel}
+                                            disabled={exporting || loading}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-lg hover:from-emerald-700 hover:to-emerald-800 shadow-sm disabled:opacity-50"
+                                        >
+                                            <FaFileExcel className="w-3 h-3" />
+                                            Download Excel
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleDownloadPdf}
+                                            disabled={exporting || loading}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-rose-600 to-rose-700 rounded-lg hover:from-rose-700 hover:to-rose-800 shadow-sm disabled:opacity-50"
+                                        >
+                                            <FaFilePdf className="w-3 h-3" />
+                                            Download PDF
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={openCatModal}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-gray-600 to-gray-700 rounded-lg hover:from-gray-700 hover:to-gray-800 shadow-sm"
+                                        >
+                                            <FaTags className="w-3 h-3" />
+                                            Add Category
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {loading ? (
+                                    <div className="py-6 text-center text-sm text-gray-500">Loading...</div>
+                                ) : entries.length === 0 ? (
+                                    <div className="py-6 text-center text-sm text-gray-500">No entries for this period</div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm border-collapse">
+                                            <thead>
+                                                <tr className="bg-red-600 text-white text-left">
+                                                    <th className="px-2 py-1.5 font-medium w-8">#</th>
+                                                    <th className="px-2 py-1.5 font-medium">Date</th>
+                                                    <th className="px-2 py-1.5 font-medium">Type</th>
+                                                    <th className="px-2 py-1.5 font-medium">Category</th>
+                                                    <th className="px-2 py-1.5 font-medium">Account</th>
+                                                    <th className="px-2 py-1.5 font-medium text-right">Amount</th>
+                                                    <th className="px-2 py-1.5 font-medium">Note</th>
+                                                    <th className="px-2 py-1.5 font-medium text-center w-10" />
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {entries.map((txn, index) => (
+                                                    <tr
+                                                        key={txn.id}
+                                                        onClick={() => setSelectedTxn(txn)}
+                                                        className={`border-t border-gray-100 cursor-pointer hover:bg-red-50 ${
+                                                            selectedTxn && selectedTxn.id === txn.id ? 'bg-red-50' : ''
+                                                        }`}
                                                     >
-                                                        <FaEdit className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot>
-                                        <tr className="border-t-2 border-slate-200 bg-slate-50 font-bold text-slate-900">
-                                            <td className="px-3 py-2.5" colSpan={3}>
-                                                Total
-                                            </td>
-                                            <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
-                                                {formatMoneyExact(totalOpeningBalance)}
-                                            </td>
-                                            <td className={`px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${
-                                                totalAccountBalance >= 0 ? 'text-green-800' : 'text-red-800'
-                                            }`}>
-                                                {formatMoneyExact(totalAccountBalance)}
-                                            </td>
-                                            <td className="px-3 py-2.5" />
-                                        </tr>
-                                    </tfoot>
-                                </table>
+                                                        <td className="px-2 py-1.5 text-gray-500">{index + 1}</td>
+                                                        <td className="px-2 py-1.5 whitespace-nowrap">{txn.txn_date}</td>
+                                                        <td className="px-2 py-1.5">
+                                                            <span className={txn.txn_type === 'INCOME' ? 'text-green-700' : 'text-red-700'}>
+                                                                {txn.txn_type === 'INCOME' ? 'Income' : 'Expense'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-2 py-1.5">{txn.category?.name || '—'}</td>
+                                                        <td className="px-2 py-1.5">{txn.account?.name || '—'}</td>
+                                                        <td className={`px-2 py-1.5 text-right font-medium whitespace-nowrap ${
+                                                            txn.txn_type === 'INCOME' ? 'text-green-700' : 'text-red-700'
+                                                        }`}>
+                                                            {txn.txn_type === 'INCOME' ? '+' : '−'}
+                                                            {formatMoneyExact(txn.amount)}
+                                                        </td>
+                                                        <td className="px-2 py-1.5 text-gray-500 max-w-[120px] truncate" title={txn.note || ''}>
+                                                            {txn.note || '—'}
+                                                        </td>
+                                                        <td className="px-2 py-1.5 text-center">
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    removeTransaction(txn);
+                                                                }}
+                                                                disabled={saving}
+                                                                className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                                                                title="Delete"
+                                                            >
+                                                                <FaTrash className="w-3 h-3" />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
-                        )}
+                        </div>
                     </div>
 
-                    {/* Top row: Category 20% | Account 20% | Entries 60% — expense only */}
+                    {/* Category / Account charts */}
                     <div className="mb-4 flex flex-col lg:flex-row gap-3 lg:items-start">
-                        {/* Expense by Category — 20% */}
-                        <div className="w-full lg:w-[20%] bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0">
+                        {/* Expense by Category */}
+                        <div className="w-full lg:w-1/3 bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0">
                             <div className="px-2 py-1.5 border-b border-gray-200 bg-gray-50">
                                 <h3 className="text-sm font-semibold text-gray-900">
                                     Expense by Category
@@ -842,11 +1108,14 @@ const PersonalFinanceDashboardPage = () => {
                                 <div className="py-4 text-center text-xs text-gray-500">No expense yet</div>
                             ) : (
                                 <div className="p-2">
-                                    <ExpenseDonut
+                                    <BreakdownDonut
                                         items={expenseByCategory}
                                         total={expenseCategoryTotal}
                                         idKey="category_id"
+                                        valueKey="expense"
                                         colors={CATEGORY_CHART_COLORS}
+                                        emptyLabel="No expense data"
+                                        centerLabel="Expense"
                                     />
                                     <div className="mt-2 max-h-36 overflow-y-auto">
                                         <table className="w-full text-xs border-collapse">
@@ -888,8 +1157,73 @@ const PersonalFinanceDashboardPage = () => {
                             )}
                         </div>
 
-                        {/* Expense by Account — 20% */}
-                        <div className="w-full lg:w-[20%] bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0">
+                        {/* Income by Category */}
+                        <div className="w-full lg:w-1/3 bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0">
+                            <div className="px-2 py-1.5 border-b border-gray-200 bg-gray-50">
+                                <h3 className="text-sm font-semibold text-gray-900">
+                                    Income by Category
+                                </h3>
+                                <p className="text-[11px] text-gray-500">
+                                    {formatMoneyExact(incomeCategoryTotal)}
+                                </p>
+                            </div>
+                            {loading ? (
+                                <div className="py-4 text-center text-xs text-gray-500">Loading...</div>
+                            ) : incomeByCategory.length === 0 ? (
+                                <div className="py-4 text-center text-xs text-gray-500">No income yet</div>
+                            ) : (
+                                <div className="p-2">
+                                    <BreakdownDonut
+                                        items={incomeByCategory}
+                                        total={incomeCategoryTotal}
+                                        idKey="category_id"
+                                        valueKey="income"
+                                        colors={INCOME_CHART_COLORS}
+                                        emptyLabel="No income data"
+                                        centerLabel="Income"
+                                    />
+                                    <div className="mt-2 max-h-36 overflow-y-auto">
+                                        <table className="w-full text-xs border-collapse">
+                                            <thead>
+                                                <tr className="bg-blue-600 text-white text-left">
+                                                    <th className="px-1.5 py-1 font-medium">Category</th>
+                                                    <th className="px-1.5 py-1 font-medium text-right">Amt</th>
+                                                    <th className="px-1.5 py-1 font-medium text-right">%</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {incomeByCategory.map((c, index) => {
+                                                    const amt = Number(c.income) || 0;
+                                                    const pct = incomeCategoryTotal > 0
+                                                        ? Math.round((amt / incomeCategoryTotal) * 100)
+                                                        : 0;
+                                                    return (
+                                                        <tr key={c.category_id} className="border-t border-gray-100">
+                                                            <td className="px-1.5 py-1 truncate max-w-[80px]" title={c.name}>
+                                                                <span className="inline-flex items-center gap-1">
+                                                                    <span
+                                                                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                                                                        style={{ backgroundColor: INCOME_CHART_COLORS[index % INCOME_CHART_COLORS.length] }}
+                                                                    />
+                                                                    {c.name}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-1.5 py-1 text-right text-green-700 whitespace-nowrap">
+                                                                {formatMoneyExact(amt)}
+                                                            </td>
+                                                            <td className="px-1.5 py-1 text-right text-gray-600">{pct}%</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Expense by Account */}
+                        <div className="w-full lg:w-1/3 bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0">
                             <div className="px-2 py-1.5 border-b border-gray-200 bg-gray-50">
                                 <h3 className="text-sm font-semibold text-gray-900">
                                     Expense by Account
@@ -904,11 +1238,14 @@ const PersonalFinanceDashboardPage = () => {
                                 <div className="py-4 text-center text-xs text-gray-500">No expense yet</div>
                             ) : (
                                 <div className="p-2">
-                                    <ExpenseDonut
+                                    <BreakdownDonut
                                         items={byAccount}
                                         total={expenseAccountTotal}
                                         idKey="account_id"
+                                        valueKey="expense"
                                         colors={ACCOUNT_CHART_COLORS}
+                                        emptyLabel="No expense data"
+                                        centerLabel="Expense"
                                     />
                                     <div className="mt-2 max-h-36 overflow-y-auto">
                                         <table className="w-full text-xs border-collapse">
@@ -949,120 +1286,78 @@ const PersonalFinanceDashboardPage = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
 
-                        {/* All Entries — 60% */}
-                        <div className="w-full lg:w-[60%] min-w-0 flex flex-col gap-2">
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleDownloadPdf}
-                                    disabled={exporting || loading}
-                                    className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-rose-600 to-rose-700 text-white text-xs sm:text-sm rounded-lg hover:from-rose-700 hover:to-rose-800 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
-                                >
-                                    <FaFilePdf className="w-3.5 h-3.5" />
-                                    Download PDF
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={handleDownloadExcel}
-                                    disabled={exporting || loading}
-                                    className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-xs sm:text-sm rounded-lg hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
-                                >
-                                    <FaFileExcel className="w-3.5 h-3.5" />
-                                    Download Excel
-                                </button>
-                            </div>
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50">
-                                <h3 className="text-sm font-semibold text-gray-900">
-                                    All Entries
-                                    <span className="ml-2 text-xs font-normal text-gray-500">
-                                        ({entries.length})
-                                    </span>
-                                </h3>
-                                <button
-                                    type="button"
-                                    onClick={() => openTxnModal('EXPENSE')}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-red-600 rounded hover:bg-red-700"
-                                >
-                                    <FaPlus className="w-3 h-3" />
-                                    Add
-                                </button>
-                            </div>
-
-                            {loading ? (
-                                <div className="py-6 text-center text-sm text-gray-500">Loading...</div>
-                            ) : entries.length === 0 ? (
-                                <div className="py-6 text-center text-sm text-gray-500">No entries for this period</div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm border-collapse">
-                                        <thead>
-                                            <tr className="bg-red-600 text-white text-left">
-                                                <th className="px-2 py-1.5 font-medium w-8">#</th>
-                                                <th className="px-2 py-1.5 font-medium">Date</th>
-                                                <th className="px-2 py-1.5 font-medium">Type</th>
-                                                <th className="px-2 py-1.5 font-medium">Category</th>
-                                                <th className="px-2 py-1.5 font-medium">Account</th>
-                                                <th className="px-2 py-1.5 font-medium text-right">Amount</th>
-                                                <th className="px-2 py-1.5 font-medium">Note</th>
-                                                <th className="px-2 py-1.5 font-medium text-center w-10" />
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {entries.map((txn, index) => (
-                                                <tr
-                                                    key={txn.id}
-                                                    onClick={() => setSelectedTxn(txn)}
-                                                    className={`border-t border-gray-100 cursor-pointer hover:bg-red-50 ${
-                                                        selectedTxn && selectedTxn.id === txn.id ? 'bg-red-50' : ''
-                                                    }`}
-                                                >
-                                                    <td className="px-2 py-1.5 text-gray-500">{index + 1}</td>
-                                                    <td className="px-2 py-1.5 whitespace-nowrap">{txn.txn_date}</td>
-                                                    <td className="px-2 py-1.5">
-                                                        <span className={txn.txn_type === 'INCOME' ? 'text-green-700' : 'text-red-700'}>
-                                                            {txn.txn_type === 'INCOME' ? 'Income' : 'Expense'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-2 py-1.5">{txn.category?.name || '—'}</td>
-                                                    <td className="px-2 py-1.5">{txn.account?.name || '—'}</td>
-                                                    <td className={`px-2 py-1.5 text-right font-medium whitespace-nowrap ${
-                                                        txn.txn_type === 'INCOME' ? 'text-green-700' : 'text-red-700'
-                                                    }`}>
-                                                        {txn.txn_type === 'INCOME' ? '+' : '−'}
-                                                        {formatMoneyExact(txn.amount)}
-                                                    </td>
-                                                    <td className="px-2 py-1.5 text-gray-500 max-w-[120px] truncate" title={txn.note || ''}>
-                                                        {txn.note || '—'}
-                                                    </td>
-                                                    <td className="px-2 py-1.5 text-center">
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                removeTransaction(txn);
-                                                            }}
-                                                            disabled={saving}
-                                                            className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50"
-                                                            title="Delete"
-                                                        >
-                                                            <FaTrash className="w-3 h-3" />
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-                            </div>
+                    {/* Balance by month — last 12 months */}
+                    <div className="mb-4 bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-gray-50">
+                            <h3 className="text-sm font-semibold text-gray-900">
+                                Balance by month
+                                <span className="ml-2 text-xs font-normal text-gray-500">
+                                    (last 12 months · Income − Expense, no opening balance)
+                                </span>
+                            </h3>
                         </div>
+                        {loading ? (
+                            <div className="py-6 text-center text-sm text-gray-500">Loading...</div>
+                        ) : byMonth.length === 0 ? (
+                            <div className="py-6 text-center text-sm text-gray-500">No monthly data yet</div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm border-collapse">
+                                    <thead>
+                                        <tr className="bg-red-600 text-white text-left">
+                                            <th className="px-3 py-2 font-medium">Month</th>
+                                            <th className="px-3 py-2 font-medium text-right">Income</th>
+                                            <th className="px-3 py-2 font-medium text-right">Expense</th>
+                                            <th className="px-3 py-2 font-medium text-right">Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {byMonth.map((row) => (
+                                            <tr
+                                                key={row.month_key || row.month}
+                                                className="border-t border-gray-100 hover:bg-red-50 transition-colors"
+                                            >
+                                                <td className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">
+                                                    {row.month}
+                                                </td>
+                                                <td className="px-3 py-2 text-right tabular-nums text-green-700 whitespace-nowrap">
+                                                    {formatMoneyExact(row.income)}
+                                                </td>
+                                                <td className="px-3 py-2 text-right tabular-nums text-red-700 whitespace-nowrap">
+                                                    {formatMoneyExact(row.expense)}
+                                                </td>
+                                                <td className={`px-3 py-2 text-right font-bold tabular-nums whitespace-nowrap ${
+                                                    Number(row.balance) >= 0 ? 'text-green-800' : 'text-red-800'
+                                                }`}>
+                                                    {formatMoneyExact(row.balance)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="border-t-2 border-slate-200 bg-slate-50 font-bold text-slate-900">
+                                            <td className="px-3 py-2.5">Total</td>
+                                            <td className="px-3 py-2.5 text-right tabular-nums text-green-800 whitespace-nowrap">
+                                                {formatMoneyExact(monthTotals.income)}
+                                            </td>
+                                            <td className="px-3 py-2.5 text-right tabular-nums text-red-800 whitespace-nowrap">
+                                                {formatMoneyExact(monthTotals.expense)}
+                                            </td>
+                                            <td className={`px-3 py-2.5 text-right tabular-nums whitespace-nowrap ${
+                                                monthTotals.balance >= 0 ? 'text-green-800' : 'text-red-800'
+                                            }`}>
+                                                {formatMoneyExact(monthTotals.balance)}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
-
-            {/* Add transaction modal — Products modal pattern */}
             {showTxnModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2">
                     <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto shadow-2xl">
@@ -1137,7 +1432,19 @@ const PersonalFinanceDashboardPage = () => {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+                                        <div className="mb-1 flex items-center justify-between gap-2">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                Category *
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => openCatModal(txnType)}
+                                                className="inline-flex items-center gap-1 text-xs font-semibold text-red-700 hover:text-red-800"
+                                            >
+                                                <FaPlus className="w-3 h-3" />
+                                                Add category
+                                            </button>
+                                        </div>
                                         <select
                                             value={categoryId}
                                             onChange={(e) => setCategoryId(e.target.value)}
@@ -1196,7 +1503,7 @@ const PersonalFinanceDashboardPage = () => {
 
             {/* Category modal */}
             {showCatModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4" style={{ zIndex: 10000 }}>
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
                         <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
                             <div className="flex items-center justify-between">
