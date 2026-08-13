@@ -1,10 +1,22 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import {
   FaTimes,
   FaQuestionCircle,
   FaInfoCircle
 } from 'react-icons/fa'
+import {
+  FiHome,
+  FiUsers,
+  FiLayers,
+  FiDownload,
+  FiUpload,
+  FiSettings,
+  FiBookOpen,
+  FiPackage,
+  FiBarChart2,
+  FiCreditCard,
+} from 'react-icons/fi'
 import { links } from '../utils/constants'
 import CartButtons from './CartButtons'
 import { useUserContext } from '../context/user_context'
@@ -12,16 +24,39 @@ import { useBilling } from '../context/billing_context'
 import { getNavBillingBadge } from '../utils/billingPaymentUtils'
 import MyTreasureBrand from './MyTreasureBrand'
 import FinanceHubNavButton from './FinanceHubNavButton'
+import { getChitFundAppMenuItems } from './chitFund/chitFundMenuItems'
 
 const SIDEBAR_TOP_LINKS = links.filter(
   (link) => String(link.text || '').toLowerCase() !== 'start group'
 );
 
+const MODULE_ICONS = {
+  home: FiHome,
+  dashboard: FiBarChart2,
+  subscribers: FiUsers,
+  groups: FiLayers,
+  receivables: FiDownload,
+  payables: FiUpload,
+  adminsettings: FiSettings,
+  ledger: FiBookOpen,
+  products: FiPackage,
+};
+
 const Sidebar = () => {
+  const location = useLocation();
   const { isLoggedIn, isSidebarOpen, closeSidebar } = useUserContext();
   const { subscription, payments, billingPath } = useBilling();
 
   const billingBadge = getNavBillingBadge(subscription, payments);
+  const isAdminShell = (location.pathname || '').startsWith('/chit-fund/admin');
+  const basePath = isAdminShell
+    ? '/chit-fund/admin'
+    : String(billingPath || '/chit-fund/user/billing').replace(/\/billing\/?$/, '') || '/chit-fund/user';
+
+  const moduleItems = getChitFundAppMenuItems(basePath).filter((item) => {
+    if (isAdminShell && item.id === 'adminsettings') return false;
+    return true;
+  });
 
   const getIconForLink = (text) => {
     switch (text.toLowerCase()) {
@@ -32,6 +67,19 @@ const Sidebar = () => {
       default:
         return null;
     }
+  };
+
+  const isModuleActive = (item) => {
+    const current = location.pathname || '';
+    if (item.id === 'home') {
+      return (
+        current === basePath
+        || current === `${basePath}/`
+        || current === `${basePath}/home`
+      );
+    }
+    if (current === item.path) return true;
+    return current.startsWith(`${item.path}/`);
   };
 
   return (
@@ -47,7 +95,7 @@ const Sidebar = () => {
           <div className="flex flex-col h-full">
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <MyTreasureBrand
-                to="/chit-fund/user/home"
+                to={`${basePath}/home`}
                 subtitle="Chit Fund"
                 onClick={closeSidebar}
               />
@@ -60,8 +108,8 @@ const Sidebar = () => {
               </button>
             </div>
 
-            <nav className="flex-1 px-6 py-6">
-              <ul className="space-y-2">
+            <nav className="flex-1 overflow-y-auto px-6 py-6">
+              <ul className="space-y-1">
                 <li>
                   <FinanceHubNavButton
                     onClick={closeSidebar}
@@ -69,17 +117,38 @@ const Sidebar = () => {
                     iconClassName="w-5 h-5"
                   />
                 </li>
+
+                {moduleItems.map((item) => {
+                  const Icon = MODULE_ICONS[item.id] || FiHome;
+                  const active = isModuleActive(item);
+                  return (
+                    <li key={item.id}>
+                      <Link
+                        to={item.path}
+                        onClick={closeSidebar}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                          active
+                            ? 'bg-red-50 text-red-800 border border-red-100'
+                            : 'text-gray-700 hover:text-red-600 hover:bg-red-50 border border-transparent'
+                        }`}
+                        aria-current={active ? 'page' : undefined}
+                      >
+                        <Icon className="w-5 h-5 shrink-0" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </li>
+                  );
+                })}
+
                 {isLoggedIn && (
                   <li>
                     <Link
-                      to={billingPath || '/chit-fund/user/billing'}
+                      to={billingPath || `${basePath}/billing`}
                       onClick={closeSidebar}
                       className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 group relative"
                     >
                       <div className="relative">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                        </svg>
+                        <FiCreditCard className="w-5 h-5" />
                         {billingBadge.status !== 'unknown' && (
                           <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${billingBadge.color === 'red' ? 'bg-red-500' :
                             billingBadge.color === 'blue' ? 'bg-blue-500' :
@@ -125,6 +194,6 @@ const Sidebar = () => {
       </div>
     </>
   );
-}
+};
 
-export default Sidebar;
+export default Sidebar

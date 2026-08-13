@@ -3,6 +3,7 @@ import { Switch, Route, Redirect } from 'react-router-dom';
 import { BillingProvider } from '../../context/billing_context';
 import BillingAppGuards from '../BillingAppGuards';
 import PersonalFinanceNavbar from './PersonalFinanceNavbar';
+import PersonalFinanceAppMenuBar from './PersonalFinanceAppMenuBar';
 import PersonalFinanceDashboardPage from '../../pages/personalFinance/PersonalFinanceDashboardPage';
 import PersonalFinanceCategoriesPage from '../../pages/personalFinance/PersonalFinanceCategoriesPage';
 import PersonalFinanceAccountsPage from '../../pages/personalFinance/PersonalFinanceAccountsPage';
@@ -17,6 +18,7 @@ const PersonalFinanceLayout = () => (
         <BillingAppGuards>
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
                 <PersonalFinanceNavbar />
+                <PersonalFinanceAppMenuBar />
                 <Switch>
                     <Route path="/personal-finance/user" exact>
                         <Redirect to="/personal-finance/user/dashboard" />

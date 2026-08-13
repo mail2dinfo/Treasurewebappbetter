@@ -9,11 +9,165 @@ import {
 import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
 
+/** True when viewport is phone-sized (stack layout). */
+function useIsPhone() {
+    const [isPhone, setIsPhone] = useState(() =>
+        typeof window !== 'undefined' ? window.innerWidth < 768 : true
+    );
+
+    useEffect(() => {
+        const update = () => setIsPhone(window.innerWidth < 768);
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
+
+    return isPhone;
+}
+
+const CategorySection = ({
+    title,
+    tone,
+    items,
+    value,
+    onChange,
+    onAdd,
+    type,
+    saving,
+    onRemove,
+}) => (
+    <section
+        style={{
+            display: 'block',
+            width: '100%',
+            boxSizing: 'border-box',
+            background: '#fff',
+            borderRadius: 16,
+            border: '1px solid #e5e7eb',
+            overflow: 'hidden',
+            marginBottom: 0,
+        }}
+    >
+        <div
+            style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid #e5e7eb',
+                background: tone === 'income' ? '#ecfdf5' : '#fff1f2',
+            }}
+        >
+            <h2
+                style={{
+                    margin: 0,
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: tone === 'income' ? '#065f46' : '#9f1239',
+                }}
+            >
+                {title}
+            </h2>
+        </div>
+
+        <div style={{ padding: 16, borderBottom: '1px solid #f3f4f6' }}>
+            <input
+                type="text"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') onAdd();
+                }}
+                placeholder={`Add ${type.toLowerCase()} category`}
+                disabled={saving}
+                style={{
+                    display: 'block',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '10px 12px',
+                    marginBottom: 8,
+                    borderRadius: 8,
+                    border: '1px solid #d1d5db',
+                    fontSize: 14,
+                }}
+            />
+            <button
+                type="button"
+                onClick={onAdd}
+                disabled={saving}
+                style={{
+                    display: 'flex',
+                    width: '100%',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    background: '#dc2626',
+                    color: '#fff',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    opacity: saving ? 0.5 : 1,
+                }}
+            >
+                <FiPlus style={{ width: 16, height: 16 }} />
+                Add
+            </button>
+        </div>
+
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: 360, overflowY: 'auto' }}>
+            {items.length === 0 ? (
+                <li style={{ padding: '24px 16px', textAlign: 'center', color: '#6b7280', fontSize: 14 }}>
+                    No categories yet
+                </li>
+            ) : (
+                items.map((item) => (
+                    <li
+                        key={item.id}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 12,
+                            padding: '12px 16px',
+                            borderTop: '1px solid #f3f4f6',
+                        }}
+                    >
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#111827' }}>
+                                {item.name}
+                            </p>
+                            <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af' }}>
+                                {item.is_system ? 'Default' : 'Custom'}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => onRemove(item)}
+                            disabled={saving}
+                            aria-label={`Remove ${item.name}`}
+                            style={{
+                                padding: 8,
+                                border: 'none',
+                                borderRadius: 8,
+                                background: 'transparent',
+                                color: '#9ca3af',
+                                cursor: 'pointer',
+                            }}
+                        >
+                            <FiTrash2 style={{ width: 16, height: 16 }} />
+                        </button>
+                    </li>
+                ))
+            )}
+        </ul>
+    </section>
+);
+
 const PersonalFinanceCategoriesPage = () => {
     const { user } = useUserContext();
     const token = user?.results?.token;
     const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id
         || user?.results?.userAccounts?.[0]?.membershipId;
+    const isPhone = useIsPhone();
 
     const [income, setIncome] = useState([]);
     const [expense, setExpense] = useState([]);
@@ -103,116 +257,95 @@ const PersonalFinanceCategoriesPage = () => {
         }
     };
 
-    const CategoryColumn = ({ title, tone, items, value, onChange, onAdd, type }) => (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className={`px-5 py-4 border-b ${tone === 'income' ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
-                <h2 className={`text-lg font-semibold ${tone === 'income' ? 'text-emerald-800' : 'text-rose-800'}`}>
-                    {title}
-                </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
-                    Defaults included — add or remove to match your needs
-                </p>
-            </div>
+    const incomeSection = (
+        <CategorySection
+            title="Income"
+            tone="income"
+            type="INCOME"
+            items={income}
+            value={newIncome}
+            onChange={setNewIncome}
+            onAdd={() => addCategory('INCOME', newIncome, setNewIncome)}
+            saving={saving}
+            onRemove={removeCategory}
+        />
+    );
 
-            <div className="p-4 border-b border-gray-100 flex gap-2">
-                <input
-                    type="text"
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') onAdd();
-                    }}
-                    placeholder={`Add ${type.toLowerCase()} category`}
-                    className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    disabled={saving}
-                />
-                <button
-                    type="button"
-                    onClick={onAdd}
-                    disabled={saving}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50"
-                >
-                    <FiPlus className="w-4 h-4" />
-                    Add
-                </button>
-            </div>
-
-            <ul className="divide-y divide-gray-100 max-h-[28rem] overflow-y-auto">
-                {items.length === 0 ? (
-                    <li className="px-5 py-8 text-sm text-gray-500 text-center">No categories yet</li>
-                ) : (
-                    items.map((item) => (
-                        <li key={item.id} className="px-5 py-3 flex items-center justify-between gap-3">
-                            <div className="min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">{item.name}</p>
-                                {item.is_system ? (
-                                    <p className="text-[11px] text-gray-400">Default</p>
-                                ) : (
-                                    <p className="text-[11px] text-gray-400">Custom</p>
-                                )}
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => removeCategory(item)}
-                                disabled={saving}
-                                className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50"
-                                aria-label={`Remove ${item.name}`}
-                                title="Remove"
-                            >
-                                <FiTrash2 className="w-4 h-4" />
-                            </button>
-                        </li>
-                    ))
-                )}
-            </ul>
-        </div>
+    const expenseSection = (
+        <CategorySection
+            title="Expense"
+            tone="expense"
+            type="EXPENSE"
+            items={expense}
+            value={newExpense}
+            onChange={setNewExpense}
+            onAdd={() => addCategory('EXPENSE', newExpense, setNewExpense)}
+            saving={saving}
+            onRemove={removeCategory}
+        />
     );
 
     return (
-        <div>
-            <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
-                        <p className="text-sm text-gray-600 mt-1">
-                            Every user starts with standard income &amp; expense categories. Customise yours anytime.
-                        </p>
-                    </div>
+        <div style={{ display: 'block', width: '100%' }}>
+            <main
+                style={{
+                    display: 'block',
+                    width: '100%',
+                    maxWidth: isPhone ? '100%' : 1280,
+                    margin: '0 auto',
+                    padding: isPhone ? '16px 16px 96px' : '32px 32px 96px',
+                    boxSizing: 'border-box',
+                }}
+            >
+                <header style={{ display: 'block', width: '100%', marginBottom: 20 }}>
+                    <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#111827' }}>
+                        Categories
+                    </h1>
+                    <p style={{ margin: '8px 0 0', fontSize: 14, color: '#4b5563' }}>
+                        Every user starts with standard income &amp; expense categories. Customise yours anytime.
+                    </p>
                     <button
                         type="button"
                         onClick={fetchCategories}
                         disabled={loading || saving}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50"
+                        style={{
+                            marginTop: 12,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            padding: '8px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #d1d5db',
+                            background: '#fff',
+                            fontSize: 14,
+                            color: '#374151',
+                        }}
                     >
-                        <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        <FiRefreshCw style={{ width: 16, height: 16 }} />
                         Refresh
                     </button>
-                </div>
+                </header>
 
                 {loading ? (
-                    <div className="flex justify-center py-20">
-                        <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin" />
+                    <div style={{ textAlign: 'center', padding: 48 }}>Loading…</div>
+                ) : isPhone ? (
+                    /* Phone: heading → Income → Expense (one column) */
+                    <div style={{ display: 'block', width: '100%' }}>
+                        <div style={{ marginBottom: 16 }}>{incomeSection}</div>
+                        <div>{expenseSection}</div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <CategoryColumn
-                            title="Income"
-                            tone="income"
-                            type="INCOME"
-                            items={income}
-                            value={newIncome}
-                            onChange={setNewIncome}
-                            onAdd={() => addCategory('INCOME', newIncome, setNewIncome)}
-                        />
-                        <CategoryColumn
-                            title="Expense"
-                            tone="expense"
-                            type="EXPENSE"
-                            items={expense}
-                            value={newExpense}
-                            onChange={setNewExpense}
-                            onAdd={() => addCategory('EXPENSE', newExpense, setNewExpense)}
-                        />
+                    /* Desktop: heading, then Income | Expense */
+                    <div
+                        style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: 24,
+                            width: '100%',
+                        }}
+                    >
+                        {incomeSection}
+                        {expenseSection}
                     </div>
                 )}
             </main>

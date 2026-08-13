@@ -6,6 +6,7 @@ import {
   FiHome as FiProperty,
   FiFileText,
   FiCreditCard,
+  FiBriefcase,
 } from 'react-icons/fi';
 import {
   RM_BASE_PATH,
@@ -14,6 +15,7 @@ import {
 
 const MENU_ICONS = {
   home: FiHome,
+  company: FiBriefcase,
   tenants: FiUsers,
   properties: FiProperty,
   agreements: FiFileText,

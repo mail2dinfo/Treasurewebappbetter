@@ -64,7 +64,7 @@ const ChitFundAppMenuBar = ({ basePath = CHIT_BASE_PATH }) => {
 
     return (
         <nav
-            className="bg-white border-b border-gray-200 sticky top-20 z-40 shadow-sm"
+            className="hidden lg:block bg-white border-b border-gray-200 sticky top-20 z-40 shadow-sm"
             aria-label="Chit Fund modules"
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -22,6 +22,8 @@ import { BillingProvider } from '../../context/billing_context';
 
 // Chit Fund Admin Components
 import Navbar from '../Navbar';
+import Sidebar from '../Sidebar';
+import ChitFundAppMenuBar from './ChitFundAppMenuBar';
 
 // Chit Fund Admin Pages
 import HomePage from '../../pages/HomePage';
@@ -38,6 +40,8 @@ import ProductsPage from '../../pages/ProductsPage';
 import MyBillingPage from '../../pages/MyBillingPage';
 import BillingAppGuards from '../BillingAppGuards';
 import Subscribers from '../Subscribers';
+
+const CHIT_ADMIN_BASE_PATH = '/chit-fund/admin';
 
 const ChitFundAdminLayout = () => {
     return (
@@ -59,7 +63,10 @@ const ChitFundAdminLayout = () => {
                                                                 <BillingAppGuards>
                                                                 <div className="min-h-screen bg-gray-50">
                                                                     <Navbar />
-                                                                    <div className="pt-16">
+                                                                    <div className="h-20" aria-hidden="true" />
+                                                                    <ChitFundAppMenuBar basePath={CHIT_ADMIN_BASE_PATH} />
+                                                                    <Sidebar />
+                                                                    <div className="pt-0">
                                                                         <Switch>
                                                                             {/* Chit Fund Admin Routes */}
                                                                             <Route path="/chit-fund/admin" exact component={HomePage} />

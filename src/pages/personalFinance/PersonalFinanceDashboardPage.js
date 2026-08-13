@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
+import { useHistory } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
@@ -182,6 +183,7 @@ const typeBadgeClass = (type) => {
 };
 
 const PersonalFinanceDashboardPage = () => {
+    const history = useHistory();
     const { user } = useUserContext();
     const token = user?.results?.token;
     const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id
@@ -1026,11 +1028,11 @@ const PersonalFinanceDashboardPage = () => {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={openCatModal}
+                                            onClick={() => history.push('/personal-finance/user/categories')}
                                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-gray-600 to-gray-700 rounded-lg hover:from-gray-700 hover:to-gray-800 shadow-sm"
                                         >
                                             <FaTags className="w-3 h-3" />
-                                            Add Category
+                                            Categories
                                         </button>
                                     </div>
                                 </div>
@@ -1135,75 +1137,10 @@ const PersonalFinanceDashboardPage = () => {
                         </div>
                     </div>
 
-                    {/* Category / Account charts */}
+                    {/* Category / Account charts — Income, then Expense, then Account */}
                     <div className="mb-4 flex flex-col lg:flex-row gap-3 lg:items-start">
-                        {/* Expense by Category */}
-                        <div className="w-full lg:w-1/3 bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0">
-                            <div className="px-2 py-1.5 border-b border-gray-200 bg-gray-50">
-                                <h3 className="text-sm font-semibold text-gray-900">
-                                    Expense by Category
-                                </h3>
-                                <p className="text-[11px] text-gray-500">
-                                    {formatMoneyExact(expenseCategoryTotal)}
-                                </p>
-                            </div>
-                            {loading ? (
-                                <div className="py-4 text-center text-xs text-gray-500">Loading...</div>
-                            ) : expenseByCategory.length === 0 ? (
-                                <div className="py-4 text-center text-xs text-gray-500">No expense yet</div>
-                            ) : (
-                                <div className="p-2">
-                                    <BreakdownDonut
-                                        items={expenseByCategory}
-                                        total={expenseCategoryTotal}
-                                        idKey="category_id"
-                                        valueKey="expense"
-                                        colors={CATEGORY_CHART_COLORS}
-                                        emptyLabel="No expense data"
-                                        centerLabel="Expense"
-                                    />
-                                    <div className="mt-2 max-h-36 overflow-y-auto">
-                                        <table className="w-full text-xs border-collapse">
-                                            <thead>
-                                                <tr className="bg-red-600 text-white text-left">
-                                                    <th className="px-1.5 py-1 font-medium">Category</th>
-                                                    <th className="px-1.5 py-1 font-medium text-right">Amt</th>
-                                                    <th className="px-1.5 py-1 font-medium text-right">%</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {expenseByCategory.map((c, index) => {
-                                                    const amt = Number(c.expense) || 0;
-                                                    const pct = expenseCategoryTotal > 0
-                                                        ? Math.round((amt / expenseCategoryTotal) * 100)
-                                                        : 0;
-                                                    return (
-                                                        <tr key={c.category_id} className="border-t border-gray-100">
-                                                            <td className="px-1.5 py-1 truncate max-w-[80px]" title={c.name}>
-                                                                <span className="inline-flex items-center gap-1">
-                                                                    <span
-                                                                        className="w-1.5 h-1.5 rounded-full shrink-0"
-                                                                        style={{ backgroundColor: CATEGORY_CHART_COLORS[index % CATEGORY_CHART_COLORS.length] }}
-                                                                    />
-                                                                    {c.name}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-1.5 py-1 text-right text-red-700 whitespace-nowrap">
-                                                                {formatMoneyExact(amt)}
-                                                            </td>
-                                                            <td className="px-1.5 py-1 text-right text-gray-600">{pct}%</td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
                         {/* Income by Category */}
-                        <div className="w-full lg:w-1/3 bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0">
+                        <div className="w-full lg:w-1/3 bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0 order-1">
                             <div className="px-2 py-1.5 border-b border-gray-200 bg-gray-50">
                                 <h3 className="text-sm font-semibold text-gray-900">
                                     Income by Category
@@ -1267,8 +1204,73 @@ const PersonalFinanceDashboardPage = () => {
                             )}
                         </div>
 
+                        {/* Expense by Category */}
+                        <div className="w-full lg:w-1/3 bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0 order-2">
+                            <div className="px-2 py-1.5 border-b border-gray-200 bg-gray-50">
+                                <h3 className="text-sm font-semibold text-gray-900">
+                                    Expense by Category
+                                </h3>
+                                <p className="text-[11px] text-gray-500">
+                                    {formatMoneyExact(expenseCategoryTotal)}
+                                </p>
+                            </div>
+                            {loading ? (
+                                <div className="py-4 text-center text-xs text-gray-500">Loading...</div>
+                            ) : expenseByCategory.length === 0 ? (
+                                <div className="py-4 text-center text-xs text-gray-500">No expense yet</div>
+                            ) : (
+                                <div className="p-2">
+                                    <BreakdownDonut
+                                        items={expenseByCategory}
+                                        total={expenseCategoryTotal}
+                                        idKey="category_id"
+                                        valueKey="expense"
+                                        colors={CATEGORY_CHART_COLORS}
+                                        emptyLabel="No expense data"
+                                        centerLabel="Expense"
+                                    />
+                                    <div className="mt-2 max-h-36 overflow-y-auto">
+                                        <table className="w-full text-xs border-collapse">
+                                            <thead>
+                                                <tr className="bg-red-600 text-white text-left">
+                                                    <th className="px-1.5 py-1 font-medium">Category</th>
+                                                    <th className="px-1.5 py-1 font-medium text-right">Amt</th>
+                                                    <th className="px-1.5 py-1 font-medium text-right">%</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {expenseByCategory.map((c, index) => {
+                                                    const amt = Number(c.expense) || 0;
+                                                    const pct = expenseCategoryTotal > 0
+                                                        ? Math.round((amt / expenseCategoryTotal) * 100)
+                                                        : 0;
+                                                    return (
+                                                        <tr key={c.category_id} className="border-t border-gray-100">
+                                                            <td className="px-1.5 py-1 truncate max-w-[80px]" title={c.name}>
+                                                                <span className="inline-flex items-center gap-1">
+                                                                    <span
+                                                                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                                                                        style={{ backgroundColor: CATEGORY_CHART_COLORS[index % CATEGORY_CHART_COLORS.length] }}
+                                                                    />
+                                                                    {c.name}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-1.5 py-1 text-right text-red-700 whitespace-nowrap">
+                                                                {formatMoneyExact(amt)}
+                                                            </td>
+                                                            <td className="px-1.5 py-1 text-right text-gray-600">{pct}%</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Expense by Account */}
-                        <div className="w-full lg:w-1/3 bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0">
+                        <div className="w-full lg:w-1/3 bg-white rounded-lg border border-gray-200 overflow-hidden shrink-0 order-3">
                             <div className="px-2 py-1.5 border-b border-gray-200 bg-gray-50">
                                 <h3 className="text-sm font-semibold text-gray-900">
                                     Expense by Account
@@ -1403,10 +1405,10 @@ const PersonalFinanceDashboardPage = () => {
                     </div>
                 </div>
             </div>
-            {showTxnModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2">
-                    <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto shadow-2xl">
-                        <div className="p-6 md:p-8">
+            {showTxnModal && ReactDOM.createPortal(
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center z-[10000] p-0 sm:p-4">
+                    <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto shadow-2xl">
+                        <div className="p-4 sm:p-6 md:p-8">
                             <div className="flex items-center justify-between mb-6">
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-900">
@@ -1426,17 +1428,6 @@ const PersonalFinanceDashboardPage = () => {
                                 <div className="grid grid-cols-2 gap-2 mb-2">
                                     <button
                                         type="button"
-                                        onClick={() => setTxnType('EXPENSE')}
-                                        className={`py-2 rounded-lg text-sm font-bold transition-all ${
-                                            txnType === 'EXPENSE'
-                                                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md'
-                                                : 'bg-gray-100 text-gray-600'
-                                        }`}
-                                    >
-                                        Expense
-                                    </button>
-                                    <button
-                                        type="button"
                                         onClick={() => setTxnType('INCOME')}
                                         className={`py-2 rounded-lg text-sm font-bold transition-all ${
                                             txnType === 'INCOME'
@@ -1445,6 +1436,17 @@ const PersonalFinanceDashboardPage = () => {
                                         }`}
                                     >
                                         Income
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setTxnType('EXPENSE')}
+                                        className={`py-2 rounded-lg text-sm font-bold transition-all ${
+                                            txnType === 'EXPENSE'
+                                                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md'
+                                                : 'bg-gray-100 text-gray-600'
+                                        }`}
+                                    >
+                                        Expense
                                     </button>
                                 </div>
 
@@ -1543,14 +1545,18 @@ const PersonalFinanceDashboardPage = () => {
                             </form>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
-            {/* Category modal */}
-            {showCatModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4" style={{ zIndex: 10000 }}>
-                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-                        <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
+            {/* Category modal — portaled above txn modal for mobile */}
+            {showCatModal && ReactDOM.createPortal(
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-60 flex items-end sm:items-center justify-center p-0 sm:p-4"
+                    style={{ zIndex: 10050 }}
+                >
+                    <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 shrink-0">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-bold text-white">Add Category</h2>
                                 <button
@@ -1562,23 +1568,12 @@ const PersonalFinanceDashboardPage = () => {
                                 </button>
                             </div>
                         </div>
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-4 overflow-y-auto flex-1">
                             <div className="grid grid-cols-2 gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => setCatType('EXPENSE')}
-                                    className={`py-2 rounded-lg text-sm font-bold ${
-                                        catType === 'EXPENSE'
-                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
-                                            : 'bg-gray-100 text-gray-600'
-                                    }`}
-                                >
-                                    Expense
-                                </button>
-                                <button
-                                    type="button"
                                     onClick={() => setCatType('INCOME')}
-                                    className={`py-2 rounded-lg text-sm font-bold ${
+                                    className={`py-2.5 rounded-lg text-sm font-bold ${
                                         catType === 'INCOME'
                                             ? 'bg-gradient-to-r from-green-600 to-green-700 text-white'
                                             : 'bg-gray-100 text-gray-600'
@@ -1586,9 +1581,20 @@ const PersonalFinanceDashboardPage = () => {
                                 >
                                     Income
                                 </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCatType('EXPENSE')}
+                                    className={`py-2.5 rounded-lg text-sm font-bold ${
+                                        catType === 'EXPENSE'
+                                            ? 'bg-gradient-to-r from-red-600 to-red-700 text-white'
+                                            : 'bg-gray-100 text-gray-600'
+                                    }`}
+                                >
+                                    Expense
+                                </button>
                             </div>
 
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2">
                                 <input
                                     type="text"
                                     value={catName}
@@ -1597,36 +1603,37 @@ const PersonalFinanceDashboardPage = () => {
                                         if (e.key === 'Enter') addCategory();
                                     }}
                                     placeholder="Category name"
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    className="flex-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                    autoFocus
                                 />
                                 <button
                                     type="button"
                                     onClick={addCategory}
                                     disabled={saving}
-                                    className="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm rounded-lg hover:from-red-700 hover:to-red-800 font-medium shadow-md disabled:opacity-50"
+                                    className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm rounded-lg hover:from-red-700 hover:to-red-800 font-medium shadow-md disabled:opacity-50"
                                 >
                                     Add
                                 </button>
                             </div>
 
-                            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-3 max-h-64 overflow-y-auto space-y-2">
+                            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-3 max-h-56 overflow-y-auto space-y-2">
                                 {categoryList.length === 0 ? (
                                     <p className="text-sm text-gray-500 text-center py-4">No categories</p>
                                 ) : (
                                     categoryList.map((c) => (
                                         <div
                                             key={c.id}
-                                            className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-xl"
+                                            className="flex items-center justify-between gap-2 p-3 bg-white border border-gray-200 rounded-xl"
                                         >
-                                            <div>
-                                                <p className="text-sm font-bold text-gray-900">{c.name}</p>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-gray-900 truncate">{c.name}</p>
                                                 <p className="text-[11px] text-gray-400">{c.is_system ? 'Default' : 'Custom'}</p>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={() => removeCategory(c)}
                                                 disabled={saving}
-                                                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-xs rounded-lg hover:from-red-700 hover:to-red-800 shadow-md"
+                                                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-xs rounded-lg hover:from-red-700 hover:to-red-800 shadow-md shrink-0"
                                             >
                                                 <FaTrash className="w-3 h-3" />
                                             </button>
@@ -1636,7 +1643,8 @@ const PersonalFinanceDashboardPage = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {ReactDOM.createPortal(accountModal, document.body)}

@@ -9,6 +9,7 @@ import {
   FiUsers,
   FiHome as FiProperty,
   FiFileText,
+  FiBriefcase,
 } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { downloadImage } from '../../utils/downloadImage';
@@ -22,10 +23,12 @@ import { AppNavbarBurgerButton } from '../AppMobileSidebar';
 
 const MENU_ICONS = {
   home: FiHome,
+  company: FiBriefcase,
   tenants: FiUsers,
   properties: FiProperty,
   agreements: FiFileText,
   collections: FiCreditCard,
+  billing: FiCreditCard,
 };
 
 const navButtonClass =

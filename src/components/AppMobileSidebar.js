@@ -20,11 +20,14 @@ export const AppMobileSidebar = ({
   const location = useLocation();
 
   useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) {
+      document.body.style.overflow = '';
+      return undefined;
+    }
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prev || '';
     };
   }, [isOpen]);
 

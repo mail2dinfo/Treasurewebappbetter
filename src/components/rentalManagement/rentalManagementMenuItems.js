@@ -2,7 +2,11 @@ export const RM_BASE_PATH = '/rental-management/user';
 export const RM_CUSTOMER_BASE_PATH = '/rental-management/customer';
 
 export const RM_APP_MENU_IDS = [
+  'company',
+  'tenants',
   'properties',
+  'agreements',
+  'collections',
 ];
 
 export const getRentalManagementMenuItems = (basePath = RM_BASE_PATH) => [
