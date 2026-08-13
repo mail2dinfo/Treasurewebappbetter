@@ -24,6 +24,8 @@ const PERIODS = [
     { id: 'year', label: 'This year' },
 ];
 
+const ENTRIES_PAGE_SIZE = 10;
+
 const ACCOUNT_TYPES = [
     { value: 'CASH', label: 'Cash' },
     { value: 'WALLET', label: 'Wallet' },
@@ -215,6 +217,7 @@ const PersonalFinanceDashboardPage = () => {
     const [newOpeningBalance, setNewOpeningBalance] = useState('0');
     const [exporting, setExporting] = useState(false);
     const [monthlyBalances, setMonthlyBalances] = useState([]);
+    const [entriesPage, setEntriesPage] = useState(1);
 
     const authHeaders = useMemo(() => ({
         Authorization: `Bearer ${token}`,
@@ -323,6 +326,10 @@ const PersonalFinanceDashboardPage = () => {
     useEffect(() => {
         fetchSummary();
     }, [fetchSummary]);
+
+    useEffect(() => {
+        setEntriesPage(1);
+    }, [period]);
 
     useEffect(() => {
         ensureLookups();
@@ -604,6 +611,14 @@ const PersonalFinanceDashboardPage = () => {
 
     const totals = summary?.totals || { income: 0, expense: 0, net: 0 };
     const entries = summary?.entries || summary?.recent || [];
+    const entriesTotalPages = Math.max(1, Math.ceil(entries.length / ENTRIES_PAGE_SIZE));
+    const safeEntriesPage = Math.min(entriesPage, entriesTotalPages);
+    const pagedEntries = useMemo(() => {
+        const start = (safeEntriesPage - 1) * ENTRIES_PAGE_SIZE;
+        return entries.slice(start, start + ENTRIES_PAGE_SIZE);
+    }, [entries, safeEntriesPage]);
+    const entriesFrom = entries.length === 0 ? 0 : (safeEntriesPage - 1) * ENTRIES_PAGE_SIZE + 1;
+    const entriesTo = Math.min(safeEntriesPage * ENTRIES_PAGE_SIZE, entries.length);
     const byAccount = (summary?.by_account || [])
         .filter((a) => Number(a.expense) > 0)
         .sort((a, b) => Number(b.expense) - Number(a.expense));
@@ -1025,6 +1040,7 @@ const PersonalFinanceDashboardPage = () => {
                                 ) : entries.length === 0 ? (
                                     <div className="py-6 text-center text-sm text-gray-500">No entries for this period</div>
                                 ) : (
+                                    <>
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-sm border-collapse">
                                             <thead>
@@ -1040,7 +1056,7 @@ const PersonalFinanceDashboardPage = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {entries.map((txn, index) => (
+                                                {pagedEntries.map((txn, index) => (
                                                     <tr
                                                         key={txn.id}
                                                         onClick={() => setSelectedTxn(txn)}
@@ -1048,7 +1064,9 @@ const PersonalFinanceDashboardPage = () => {
                                                             selectedTxn && selectedTxn.id === txn.id ? 'bg-red-50' : ''
                                                         }`}
                                                     >
-                                                        <td className="px-2 py-1.5 text-gray-500">{index + 1}</td>
+                                                        <td className="px-2 py-1.5 text-gray-500">
+                                                            {entriesFrom + index}
+                                                        </td>
                                                         <td className="px-2 py-1.5 whitespace-nowrap">{txn.txn_date}</td>
                                                         <td className="px-2 py-1.5">
                                                             <span className={txn.txn_type === 'INCOME' ? 'text-green-700' : 'text-red-700'}>
@@ -1085,6 +1103,33 @@ const PersonalFinanceDashboardPage = () => {
                                             </tbody>
                                         </table>
                                     </div>
+                                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-t border-gray-200 bg-gray-50">
+                                        <p className="text-xs text-gray-500">
+                                            Showing {entriesFrom}–{entriesTo} of {entries.length}
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setEntriesPage((p) => Math.max(1, p - 1))}
+                                                disabled={safeEntriesPage <= 1}
+                                                className="px-2.5 py-1 text-xs font-medium rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                Previous
+                                            </button>
+                                            <span className="text-xs font-medium text-gray-600 tabular-nums">
+                                                Page {safeEntriesPage} / {entriesTotalPages}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEntriesPage((p) => Math.min(entriesTotalPages, p + 1))}
+                                                disabled={safeEntriesPage >= entriesTotalPages}
+                                                className="px-2.5 py-1 text-xs font-medium rounded-md border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                    </>
                                 )}
                             </div>
                         </div>
