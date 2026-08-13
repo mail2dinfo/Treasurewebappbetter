@@ -85,6 +85,9 @@ const SuperAdminChitFundAnalytics = () => {
     const filteredTotals = useMemo(
         () => ({
             groupCount: filteredUsers.reduce((sum, row) => sum + Number(row.group_count || 0), 0),
+            subscriberCount: filteredUsers.reduce((sum, row) => sum + Number(row.subscriber_count || 0), 0),
+            managerCount: filteredUsers.reduce((sum, row) => sum + Number(row.manager_count || 0), 0),
+            collectorCount: filteredUsers.reduce((sum, row) => sum + Number(row.collector_count || 0), 0),
             worth: filteredUsers.reduce((sum, row) => sum + Number(row.worth_of_business || 0), 0),
         }),
         [filteredUsers]
@@ -180,8 +183,8 @@ const SuperAdminChitFundAnalytics = () => {
                             <>
                                 <div className="divide-y divide-slate-100 md:hidden">
                                     {filteredUsers.map((row, index) => (
-                                        <div key={row.user_id} className="flex items-center gap-3 px-4 py-3 sm:px-6">
-                                            <span className="w-6 shrink-0 text-center text-xs font-medium text-slate-400">
+                                        <div key={row.user_id} className="flex items-start gap-3 px-4 py-3 sm:px-6">
+                                            <span className="w-6 shrink-0 pt-2 text-center text-xs font-medium text-slate-400">
                                                 {index + 1}
                                             </span>
                                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">
@@ -191,8 +194,11 @@ const SuperAdminChitFundAnalytics = () => {
                                                 <p className="truncate font-medium capitalize text-slate-900">
                                                     {row.display_name}
                                                 </p>
-                                                <p className="text-xs text-slate-500">
-                                                    {row.group_count} chit{row.group_count === 1 ? '' : 's'}
+                                                <p className="mt-1 text-xs text-slate-500">
+                                                    {Number(row.group_count || 0)} chits ·{' '}
+                                                    {Number(row.subscriber_count || 0)} subscribers ·{' '}
+                                                    {Number(row.manager_count || 0)} managers ·{' '}
+                                                    {Number(row.collector_count || 0)} collectors
                                                 </p>
                                             </div>
                                             <p className="shrink-0 text-sm font-bold text-slate-900">
@@ -215,6 +221,15 @@ const SuperAdminChitFundAnalytics = () => {
                                                     </th>
                                                     <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                                                         No of chits
+                                                    </th>
+                                                    <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                                        No of subscribers
+                                                    </th>
+                                                    <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                                        No of managers
+                                                    </th>
+                                                    <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
+                                                        No of collectors
                                                     </th>
                                                     <th className="px-6 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">
                                                         Worth of business
@@ -244,7 +259,22 @@ const SuperAdminChitFundAnalytics = () => {
                                                         </td>
                                                         <td className="px-6 py-4 text-right">
                                                             <span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md bg-slate-100 px-3 py-1.5 text-sm font-semibold tabular-nums text-slate-900">
-                                                                {row.group_count}
+                                                                {Number(row.group_count || 0)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md bg-slate-100 px-3 py-1.5 text-sm font-semibold tabular-nums text-slate-900">
+                                                                {Number(row.subscriber_count || 0)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md bg-slate-100 px-3 py-1.5 text-sm font-semibold tabular-nums text-slate-900">
+                                                                {Number(row.manager_count || 0)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="inline-flex min-w-[2.5rem] items-center justify-center rounded-md bg-slate-100 px-3 py-1.5 text-sm font-semibold tabular-nums text-slate-900">
+                                                                {Number(row.collector_count || 0)}
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-4 text-right">
@@ -261,7 +291,16 @@ const SuperAdminChitFundAnalytics = () => {
                                                         Total: {filteredUsers.length} users
                                                     </td>
                                                     <td className="px-6 py-3 text-right text-sm font-bold text-slate-900">
-                                                        {filteredTotals.groupCount} chits
+                                                        {filteredTotals.groupCount}
+                                                    </td>
+                                                    <td className="px-6 py-3 text-right text-sm font-bold text-slate-900">
+                                                        {filteredTotals.subscriberCount}
+                                                    </td>
+                                                    <td className="px-6 py-3 text-right text-sm font-bold text-slate-900">
+                                                        {filteredTotals.managerCount}
+                                                    </td>
+                                                    <td className="px-6 py-3 text-right text-sm font-bold text-slate-900">
+                                                        {filteredTotals.collectorCount}
                                                     </td>
                                                     <td className="px-6 py-3 text-right text-sm font-bold text-slate-900">
                                                         {formatCurrency(filteredTotals.worth)}
