@@ -7,8 +7,22 @@ import { isSuperAdminUser } from '../utils/superAdminUtils';
 import SuperAdminShell from '../components/superAdmin/SuperAdminShell';
 import { SuperAdminKpiCard, SuperAdminPanel } from '../components/superAdmin/SuperAdminDashboardCards';
 import Loading from '../components/Loading';
+import { BILLING_APP_CODES } from '../utils/billingAppCodes';
 
 const rs = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+
+const formatAppLabel = (code) =>
+  String(code || '')
+    .toLowerCase()
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+
+const FALLBACK_APP_OPTIONS = Object.values(BILLING_APP_CODES).map((code) => ({
+  code,
+  label: formatAppLabel(code),
+}));
 
 const formatDate = (value) => {
   if (!value) return '—';
@@ -79,25 +93,36 @@ const SuperAdminUnpaidUsers = () => {
 
   const appOptions = useMemo(() => {
     const map = new Map();
-    unpaidDues.forEach((row) => {
-      const code = row.app_code || row.app_name;
+    // Full catalog first (API apps or local billing app codes)
+    const catalog = Array.isArray(report?.apps) && report.apps.length
+      ? report.apps
+      : FALLBACK_APP_OPTIONS;
+    catalog.forEach((app) => {
+      const code = app.code || app.app_code;
       if (!code || map.has(code)) return;
-      map.set(code, row.app_name || row.app_code || code);
+      map.set(code, app.label || app.display_name || formatAppLabel(code));
+    });
+    // Keep any unexpected codes present in unpaid rows
+    unpaidDues.forEach((row) => {
+      const code = row.app_code;
+      if (!code || map.has(code)) return;
+      map.set(code, row.app_name || formatAppLabel(code));
     });
     return [...map.entries()]
       .map(([code, label]) => ({ code, label }))
       .sort((a, b) => String(a.label).localeCompare(String(b.label)));
-  }, [unpaidDues]);
+  }, [report?.apps, unpaidDues]);
 
   const monthOptions = useMemo(() => {
     const map = new Map();
     unpaidDues.forEach((row) => {
-      const key = row.month_label || formatDate(row.cycle_start_date);
-      if (!key || key === '—' || map.has(key)) return;
-      map.set(key, String(row.cycle_start_date || '').slice(0, 7));
+      const sortKey = row.month_key || String(row.cycle_start_date || '').slice(0, 7);
+      const label = row.month_label || formatDate(row.cycle_start_date);
+      if (!sortKey || !label || label === '—' || map.has(sortKey)) return;
+      map.set(sortKey, label);
     });
     return [...map.entries()]
-      .map(([label, sortKey]) => ({ label, sortKey }))
+      .map(([sortKey, label]) => ({ label, sortKey }))
       .sort((a, b) => String(b.sortKey).localeCompare(String(a.sortKey)));
   }, [unpaidDues]);
 
@@ -113,8 +138,8 @@ const SuperAdminUnpaidUsers = () => {
       }
 
       if (monthFilter !== 'all') {
-        const month = row.month_label || formatDate(row.cycle_start_date);
-        if (month !== monthFilter) return false;
+        const rowKey = row.month_key || String(row.cycle_start_date || '').slice(0, 7);
+        if (rowKey !== monthFilter) return false;
       }
 
       if (!query) return true;
@@ -161,7 +186,7 @@ const SuperAdminUnpaidUsers = () => {
     <SuperAdminShell
       activeId="unpaid-users"
       title="Unpaid Users"
-      subtitle="billing_payments status = unpaid · User role only"
+      subtitle="billing_payments status = unpaid or pending · User role only"
       actions={refreshButton}
     >
       <div className="space-y-6">
@@ -177,7 +202,7 @@ const SuperAdminUnpaidUsers = () => {
             icon={FiAlertCircle}
             label="Unpaid cycles"
             value={filteredRows.length}
-            hint="status = unpaid"
+            hint="status = unpaid or pending"
             accent="amber"
           />
           <SuperAdminKpiCard
@@ -253,7 +278,7 @@ const SuperAdminUnpaidUsers = () => {
                   >
                     <option value="all">All months</option>
                     {monthOptions.map((option) => (
-                      <option key={option.label} value={option.label}>
+                      <option key={option.sortKey} value={option.sortKey}>
                         {option.label}
                       </option>
                     ))}
