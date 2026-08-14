@@ -1,226 +1,4 @@
-// import React, { useState, useEffect } from 'react';
-// import { FiDownload, FiPrinter } from 'react-icons/fi';
-// import { PDFDownloadLink } from '@react-pdf/renderer';
-// import Mypdf from '../components/PDF/Mypdf';
-// import { API_BASE_URL } from '../utils/apiConfig';
-// import { useUserContext } from '../context/user_context';
-
-// const DashboardSubscriberGroupWiseAccountsList = ({ items }) => {
-//     const { user } = useUserContext();
-//     console.log(user);
-
-//     const [previewImageUrl, setPreviewImageUrl] = useState('');
-//     const [pdfData, setPdfData] = useState(null);
-//     const [error, setError] = useState(null);
-//     const [companyName, setCompanyName] = useState(null);
-//     // New state variables for filtering
-//     const [subscriberFilter, setSubscriberFilter] = useState("");
-//     const [groupFilter, setGroupFilter] = useState("");
-//     const userCompany = user?.results?.userCompany;
-
-
-//     const fetchCompanyLogoUrl = async (logoKey) => {
-
-//         console.log('logoKey');
-//         console.log(logoKey);
-//         // setLoading(true);
-//         setError(null);
-
-//         try {
-//             // Fetch the signed URL for the company logo using a GET request
-//             const response = await fetch(`${API_BASE_URL}/get-signed-url?key=${encodeURIComponent(logoKey)}`, {
-
-//                 method: 'GET',
-//                 headers: {
-//                     // Include any headers if needed
-//                     // 'Authorization': 'Bearer YourAccessToken',
-//                 },
-//             });
-//             if (response.ok) {
-//                 const responseBody = await response.json();
-//                 const signedUrl = responseBody.results;
-//                 console.log('moody');
-//                 console.log(responseBody.results);
-
-
-//                 setPreviewImageUrl(signedUrl);
-
-
-//             } else {
-//                 // Handle error if needed based on the HTTP status code
-//                 console.error(`Failed to fetch signed URL for company logo: ${logoKey}`);
-
-//             }
-//         } catch (error) {
-//             // Handle fetch error
-//             console.error('Error fetching signed URL for company logo:', error);
-//             setError('Error fetching signed URL for company logo');
-//         } finally {
-//             //   setLoading(false);
-//         }
-//     };
-
-
-//     useEffect(() => {
-//         if (user.results.userCompany.length > 0) {
-//             console.log(user.results.userCompany);
-//             if (user.results.userCompany[0].name) {
-//                 setCompanyName(user.results.userCompany[0].name);
-//                 fetchCompanyLogoUrl(user.results.userCompany[0].logo);
-//             }
-
-
-//         }
-//     }, [user]);
-
-//     const handleGeneratePDF = () => {
-
-//         const formattedData = filteredItems.map(item => ({
-//             subscriber_name: item.subscriber_name,
-//             group_name: item.group_name,
-//             phone: item.phone,
-//             receivable_amount: item.receivable_amount,
-//             received_amount: item.received_amount,
-//             outstanding_due: item.outstanding_due
-//         }));
-//         setPdfData(formattedData);
-//     };
-
-//     // Function to generate file name with today's date
-//     const generateFileName = () => {
-//         const today = new Date();
-//         const date = today.getDate().toString().padStart(2, '0');
-//         const month = (today.getMonth() + 1).toString().padStart(2, '0');
-//         const year = today.getFullYear();
-//         return `SubscriberGroupWise_Receivable_${year}-${month}-${date}.pdf`;
-//     };
-
-//     // **Filter the items based on user input**
-//     const filteredItems = items.filter((item) => {
-//         return (
-//             item.subscriber_name.toLowerCase().includes(subscriberFilter.toLowerCase()) &&
-//             item.group_name.toLowerCase().includes(groupFilter.toLowerCase())
-//         );
-//     });
-//     return (
-//         <div>
-
-//             {/* Filter Inputs */}
-//             <div className="filter-section">
-//                 <input
-//                     type="text"
-//                     placeholder="Filter by Subscriber Name"
-//                     value={subscriberFilter}
-//                     onChange={(e) => setSubscriberFilter(e.target.value)}
-//                     style={{
-//                         height: '40px', // Adjust the height value as needed
-//                         padding: '0.25rem',
-//                         paddingLeft: '1rem',
-//                         background: 'var(--clr-grey-10)',
-//                         borderTopLeftRadius: 'var(--radius)',
-//                         borderBottomLeftRadius: 'var(--radius)',
-//                         borderTopRightRadius: 'var(--radius)',
-//                         borderBottomRightRadius: 'var(--radius)',
-//                         borderColor: 'transparent',
-//                         fontSize: '1rem',
-//                         flex: '1 0 auto',
-//                         color: 'var(--clr-grey-5)',
-//                         marginBottom: '1rem'
-//                     }}
-//                 />
-//                 <input
-//                     type="text"
-//                     placeholder="Filter by Group Name"
-//                     value={groupFilter}
-//                     onChange={(e) => setGroupFilter(e.target.value)}
-//                     style={{
-//                         height: '40px', // Adjust the height value as needed
-//                         padding: '0.25rem',
-//                         paddingLeft: '1rem',
-//                         background: 'var(--clr-grey-10)',
-//                         borderTopLeftRadius: 'var(--radius)',
-//                         borderBottomLeftRadius: 'var(--radius)',
-//                         borderTopRightRadius: 'var(--radius)',
-//                         borderBottomRightRadius: 'var(--radius)',
-//                         borderColor: 'transparent',
-//                         fontSize: '1rem',
-//                         flex: '1 0 auto',
-//                         color: 'var(--clr-grey-5)',
-//                         marginBottom: '1rem'
-//                     }}
-//                 />
-//             </div>
-
-//             {pdfData ? (
-//                 <PDFDownloadLink document={<Mypdf tableData={pdfData}
-
-//                     tableHeaders={[
-//                         { title: "Subscriber Name", value: "subscriber_name" },
-//                         { title: "Group Name", value: "group_name" },
-//                         { title: "Phone", value: "phone" },
-//                         { title: "Total", value: "receivable_amount" },
-//                         { title: "Paid", value: "received_amount" },
-//                         { title: "Due", value: "outstanding_due" },
-//                     ]}
-//                     heading="SubcriberGroupWise Receivable :" // Pass heading here
-
-//                     companyData={userCompany}
-
-//                 />} fileName={generateFileName()}>
-//                     {({ loading }) => (loading ? 'Loading document...' : <button onClick={() => {
-//                         setTimeout(() => {
-//                             setPdfData(null); // Reset pdfData after download
-//                         }, 500);
-//                     }}><FiDownload /> Download PDF</button>)}
-//                 </PDFDownloadLink>
-//             ) : (
-//                 <button onClick={handleGeneratePDF}><FiDownload /> Generate PDF</button>
-//             )}
-
-//             <div className='subcriber-list'>
-//                 <article className='subcriber-header' >
-
-//                     <p >Subscriber name</p>
-//                     <p >Group name</p>
-//                     {/* <p >Image</p> */}
-//                     <p >Phone</p>
-
-//                     <p >Total</p>
-//                     <p >Paid</p>
-//                     <p >Outstanding</p>
-
-//                 </article>
-//                 {filteredItems.length > 0 ? (
-//                     filteredItems?.map((item, index) => {
-//                         const { subscriber_id, subscriber_name, user_image, phone, group_name, group_id, receivable_amount, received_amount, outstanding_due, receipts } = item;
-//                         const truncatedName = subscriber_name.length > 10 ? `${subscriber_name.substring(0, 10)}...` : subscriber_name;
-
-//                         return (
-//                             // <Link
-//                             //     to={/groups/${group_id}/accounts/${group_id}} // Replace with your route path
-//                             //     key={index}
-//                             // >
-//                             <article className='subcriber-item' key={index}
-//                             >                        <p className='title'>{subscriber_name}</p>
-//                                 <p className='title'>{group_name}</p>
-//                                 <p className='title'>{phone}</p>
-//                                 <p className='title'>{receivable_amount}</p>
-//                                 <p className='title'>       {received_amount}</p>
-//                                 <p className='title'>                           {outstanding_due}</p>
-//                             </article>
-//                             // </Link>
-//                         );
-//                     })) : (
-//                     <p className="no-results">No matching results found.</p>
-//                 )}
-//             </div>
-//         </div>
-//     );
-// };
-
-// export default DashboardSubscriberGroupWiseAccountsList;
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FiDownload } from 'react-icons/fi';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import Mypdf from '../components/PDF/Mypdf';
@@ -231,49 +9,56 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
     const { user } = useUserContext();
     const userCompany = user?.results?.userCompany;
 
-    //const [previewImageUrl, setPreviewImageUrl] = useState('');
     const [pdfData, setPdfData] = useState(null);
-    //const [companyName, setCompanyName] = useState(null);
     const [subscriberFilter, setSubscriberFilter] = useState('');
-    const [groupFilter, setGroupFilter] = useState('');
+    const [selectedGroup, setSelectedGroup] = useState('all');
     const [filteredItems, setFilteredItems] = useState(items);
 
-
-
-    // useEffect(() => {
-    //     if (userCompany?.length > 0) {
-    //         setCompanyName(userCompany[0].name);
-    //         fetchCompanyLogoUrl(userCompany[0].logo);
-    //     }
-    // }, [userCompany]);
-
-    // const fetchCompanyLogoUrl = async (logoKey) => {
-    //     try {
-    //         const response = await fetch(`${API_BASE_URL}/get-signed-url?key=${encodeURIComponent(logoKey)}`);
-    //         if (response.ok) {
-    //             const result = await response.json();
-    //             setPreviewImageUrl(result.results);
-    //         }
-    //     } catch (error) {
-    //         console.error('Error fetching signed URL:', error);
-    //     }
-    // };
+    const groupOptions = useMemo(() => {
+        const map = new Map();
+        items.forEach((item) => {
+            const name = String(item.group_name || '').trim();
+            if (!name) return;
+            const key = item.group_id != null ? String(item.group_id) : name.toLowerCase();
+            if (!map.has(key)) {
+                map.set(key, { key, label: name, count: 0 });
+            }
+            map.get(key).count += 1;
+        });
+        return [...map.values()].sort((a, b) =>
+            a.label.localeCompare(b.label, undefined, { sensitivity: 'base' })
+        );
+    }, [items]);
 
     useEffect(() => {
+        if (
+            selectedGroup !== 'all'
+            && !groupOptions.some((g) => g.key === selectedGroup)
+        ) {
+            setSelectedGroup('all');
+        }
+    }, [groupOptions, selectedGroup]);
+
+    useEffect(() => {
+        const subFilter = subscriberFilter.toLowerCase().trim();
+
         const filtered = items.filter((item) => {
             const subscriber = item.subscriber_name?.toLowerCase() || '';
-            const group = item.group_name?.toLowerCase() || '';
-            const subFilter = subscriberFilter.toLowerCase().trim();
-            const grpFilter = groupFilter.toLowerCase().trim();
-
             const matchesSubscriber = !subFilter || subscriber.includes(subFilter);
-            const matchesGroup = !grpFilter || group.includes(grpFilter);
+
+            let matchesGroup = true;
+            if (selectedGroup !== 'all') {
+                const itemKey = item.group_id != null
+                    ? String(item.group_id)
+                    : String(item.group_name || '').trim().toLowerCase();
+                matchesGroup = itemKey === selectedGroup;
+            }
 
             return matchesSubscriber && matchesGroup;
         });
 
         setFilteredItems(filtered);
-    }, [subscriberFilter, groupFilter, items]);
+    }, [subscriberFilter, selectedGroup, items]);
 
     const columnTotals = filteredItems.reduce(
         (acc, item) => ({
@@ -286,14 +71,19 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
 
     const formatAmount = (value) => Number(value || 0).toLocaleString('en-IN');
 
+    const selectedGroupLabel =
+        selectedGroup === 'all'
+            ? 'All Groups'
+            : (groupOptions.find((g) => g.key === selectedGroup)?.label || 'Selected Group');
+
     const handleGeneratePDF = () => {
-        const formattedData = filteredItems.map(item => ({
+        const formattedData = filteredItems.map((item) => ({
             subscriber_name: item.subscriber_name,
             group_name: item.group_name,
             phone: item.phone,
             receivable_amount: item.receivable_amount,
             received_amount: item.received_amount,
-            outstanding_due: item.outstanding_due
+            outstanding_due: item.outstanding_due,
         }));
         if (formattedData.length > 0) {
             formattedData.push({
@@ -311,32 +101,41 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
     const generateFileName = () => {
         const today = new Date();
         const formatted = today.toISOString().split('T')[0];
-        return `SubscriberGroupWise_Receivable_${formatted}.pdf`;
+        const groupSlug = selectedGroup === 'all'
+            ? 'AllGroups'
+            : selectedGroupLabel.replace(/[^\w]+/g, '_');
+        return `SubscriberGroupWise_Receivable_${groupSlug}_${formatted}.pdf`;
     };
 
     const handleClearFilters = () => {
         setSubscriberFilter('');
-        setGroupFilter('');
+        setSelectedGroup('all');
     };
 
     return (
         <div className="subscriber-groupwise-wrapper">
-            {/* Header with filters and download */}
             <div className="subscriber-groupwise-header">
                 <div className="filter-section">
+                    <select
+                        className="group-select"
+                        value={selectedGroup}
+                        onChange={(e) => setSelectedGroup(e.target.value)}
+                        aria-label="Select group"
+                    >
+                        <option value="all">All Groups ({items.length})</option>
+                        {groupOptions.map((group) => (
+                            <option key={group.key} value={group.key}>
+                                {group.label} ({group.count})
+                            </option>
+                        ))}
+                    </select>
                     <input
                         type="text"
                         placeholder="Filter by Subscriber Name"
                         value={subscriberFilter}
                         onChange={(e) => setSubscriberFilter(e.target.value)}
                     />
-                    <input
-                        type="text"
-                        placeholder="Filter by Group Name"
-                        value={groupFilter}
-                        onChange={(e) => setGroupFilter(e.target.value)}
-                    />
-                    <button className="clear-filter-btn" onClick={handleClearFilters}>
+                    <button className="clear-filter-btn" type="button" onClick={handleClearFilters}>
                         Clear Filters
                     </button>
                 </div>
@@ -355,7 +154,7 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
                                         { title: 'Paid', value: 'received_amount' },
                                         { title: 'Due', value: 'outstanding_due' },
                                     ]}
-                                    heading="Subscriber Groupwise Receivable"
+                                    heading={`Subscriber Groupwise Receivable — ${selectedGroupLabel}`}
                                     companyData={userCompany}
                                 />
                             }
@@ -367,6 +166,7 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
                                 ) : (
                                     <button
                                         className="download-btn"
+                                        type="button"
                                         onClick={() => setTimeout(() => setPdfData(null), 500)}
                                     >
                                         <FiDownload /> Download PDF
@@ -375,14 +175,46 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
                             }
                         </PDFDownloadLink>
                     ) : (
-                        <button className="download-btn" onClick={handleGeneratePDF}>
+                        <button className="download-btn" type="button" onClick={handleGeneratePDF}>
                             <FiDownload /> Generate PDF
                         </button>
                     )}
                 </div>
             </div>
 
-            {/* Subscriber list */}
+            <div className="group-tabs-row" role="tablist" aria-label="Select group">
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedGroup === 'all'}
+                    className={`group-tab ${selectedGroup === 'all' ? 'active' : ''}`}
+                    onClick={() => setSelectedGroup('all')}
+                >
+                    All Groups
+                    <span className="group-tab-count">{items.length}</span>
+                </button>
+                {groupOptions.map((group) => (
+                    <button
+                        key={group.key}
+                        type="button"
+                        role="tab"
+                        aria-selected={selectedGroup === group.key}
+                        className={`group-tab ${selectedGroup === group.key ? 'active' : ''}`}
+                        onClick={() => setSelectedGroup(group.key)}
+                        title={group.label}
+                    >
+                        {group.label}
+                        <span className="group-tab-count">{group.count}</span>
+                    </button>
+                ))}
+            </div>
+
+            <p className="group-selection-hint">
+                Showing receivables for: <strong>{selectedGroupLabel}</strong>
+                {' · '}
+                {filteredItems.length} record{filteredItems.length === 1 ? '' : 's'}
+            </p>
+
             <div className="subscriber-list">
                 <div className="subscriber-groupwise-header-row">
                     <p>Subscriber</p>
@@ -396,8 +228,8 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
                 {filteredItems.length > 0 ? (
                     filteredItems.map((item, index) => (
                         <article
-                            className={`account-grid-row ${item.outstanding_due > 0 ? '' : 'paid-row'}`}
-                            key={index}
+                            className={`account-grid-row ${Number(item.outstanding_due) > 0 ? '' : 'paid-row'}`}
+                            key={`${item.subscriber_id || index}-${item.group_id || item.group_name || index}`}
                         >
                             <span data-label="Subscriber">{item.subscriber_name}</span>
                             <span data-label="Group">{item.group_name}</span>
@@ -421,14 +253,9 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
                         <span data-label="Outstanding">{formatAmount(columnTotals.outstanding)}</span>
                     </article>
                 )}
-
             </div>
         </div>
     );
 };
 
 export default DashboardSubscriberGroupWiseAccountsList;
-
-
-
-
