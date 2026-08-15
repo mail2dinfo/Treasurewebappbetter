@@ -63,11 +63,16 @@ export const mergePlansWithCatalog = (apiPlans = []) => {
         const catalogPlan = catalogById[plan.id];
         if (!catalogPlan) return plan;
 
+        const apiPrice = plan.price != null && plan.price !== ''
+            ? Number(plan.price)
+            : null;
+
         return {
             ...plan,
             name: catalogPlan.name,
-            price: catalogPlan.price,
-            features: catalogPlan.features
+            // Prefer live API / DB price; fall back to local catalog defaults
+            price: Number.isFinite(apiPrice) ? apiPrice : catalogPlan.price,
+            features: catalogPlan.features,
         };
     });
 };

@@ -24,6 +24,12 @@ export const SUPER_ADMIN_NAV = [
         icon: 'trending',
     },
     {
+        id: 'plan-fees',
+        name: 'Plan Fees',
+        path: '/super-admin/plan-fees',
+        icon: 'fees',
+    },
+    {
         id: 'jobs',
         name: 'Jobs',
         path: '/super-admin/jobs',

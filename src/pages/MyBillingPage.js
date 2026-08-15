@@ -835,6 +835,7 @@ const MyBillingPage = () => {
                                     <BillingCycleChangePanel
                                         subscription={subscription}
                                         billingCycleChangeWindow={billingCycleChangeWindow}
+                                        availablePlans={availablePlans}
                                         onChangeBillingCycle={changeBillingCycle}
                                     />
                                     </>

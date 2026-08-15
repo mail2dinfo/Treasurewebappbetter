@@ -330,9 +330,15 @@ export const BillingProvider = ({
         dispatch({ type: 'FETCH_START' });
 
         try {
-            const res = await fetch(`${API_BASE_URL}/billing-subscription/plans/available`, {
-                headers: authHeaders(),
-            });
+            const res = await fetch(
+                withAppCodeQuery(
+                    `${API_BASE_URL}/billing-subscription/plans/available`,
+                    resolvedAppCode
+                ),
+                {
+                    headers: authHeaders(),
+                }
+            );
 
             if (!res.ok) throw new Error('Failed to fetch plans');
             const data = await res.json();

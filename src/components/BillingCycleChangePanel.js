@@ -17,6 +17,7 @@ const formatAmount = (amount) => {
 const BillingCycleChangePanel = ({
     subscription,
     billingCycleChangeWindow,
+    availablePlans = [],
     onChangeBillingCycle,
 }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,7 +36,8 @@ const BillingCycleChangePanel = ({
     const planId = subscription.plan_id || subscription.plan_name;
     const currentCycle = subscription.billing_cycle || 'monthly';
     const nextCycleNumber = billingCycleChangeWindow?.next_cycle_number;
-    const basePlanPrice = getBasePlanPrice(planId);
+    const catalogPrice = availablePlans.find((plan) => plan.id === planId)?.price;
+    const basePlanPrice = getBasePlanPrice(planId, catalogPrice);
     const billingCycleOptions = getBillingCycleOptionsForPlan(basePlanPrice);
 
     const handleSubmit = async () => {

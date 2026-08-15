@@ -9,6 +9,7 @@ import SuperAdminUserOnline from './pages/SuperAdminUserOnline';
 import SuperAdminChitFundAnalytics from './pages/SuperAdminChitFundAnalytics';
 import SuperAdminDailyFinanceAnalytics from './pages/SuperAdminDailyFinanceAnalytics';
 import SuperAdminBilling from './pages/SuperAdminBilling';
+import SuperAdminPlanFees from './pages/SuperAdminPlanFees';
 import SuperAdminJobs from './pages/SuperAdminJobs';
 import { UserProvider } from './context/user_context';
 import { PlatformAccessProvider } from './context/platformAccess_context';
@@ -62,6 +63,7 @@ function App() {
                         <PrivateRoute exact path="/super-admin/unpaid-users" component={SuperAdminUnpaidUsers} />
                         <PrivateRoute exact path="/super-admin/user-online" component={SuperAdminUserOnline} />
                         <PrivateRoute exact path="/super-admin/billing" component={SuperAdminBilling} />
+                        <PrivateRoute exact path="/super-admin/plan-fees" component={SuperAdminPlanFees} />
                         <PrivateRoute exact path="/super-admin/jobs" component={SuperAdminJobs} />
                         <PrivateRoute exact path="/super-admin/chit-fund-analytics" component={SuperAdminChitFundAnalytics} />
                         <PrivateRoute exact path="/super-admin/daily-finance-analytics" component={SuperAdminDailyFinanceAnalytics} />

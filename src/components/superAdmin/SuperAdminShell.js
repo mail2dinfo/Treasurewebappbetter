@@ -3,6 +3,7 @@ import {
     FiAlertCircle,
     FiBarChart2,
     FiClock,
+    FiDollarSign,
     FiGrid,
     FiLogOut,
     FiMenu,
@@ -24,6 +25,7 @@ const navIcons = {
     online: FiWifi,
     chart: FiBarChart2,
     trending: FiTrendingUp,
+    fees: FiDollarSign,
     clock: FiClock,
 };
 
