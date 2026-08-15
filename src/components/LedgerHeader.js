@@ -8,22 +8,38 @@ const LedgerHeader = ({ accounts, onAddClick, onEditAccount, onDeleteAccount }) 
   const [actionMessage, setActionMessage] = useState({ type: '', text: '' });
 
   const calculatePercentage = (opening, current) => {
-    if (opening === 0) return "—";
-    const diff = current - opening;
-    const percent = ((diff / opening) * 100).toFixed(2);
-    return `${percent}%`;
+    const open = Number(opening);
+    const curr = Number(current);
+    if (!Number.isFinite(open) || !Number.isFinite(curr)) return "—";
+    if (open === 0) {
+      return curr === 0 ? "0%" : "N/A";
+    }
+    const percent = ((curr - open) / Math.abs(open)) * 100;
+    const sign = percent > 0 ? "+" : "";
+    return `${sign}${percent.toFixed(2)}%`;
+  };
+
+  const getPercentageColor = (opening, current) => {
+    const open = Number(opening) || 0;
+    const curr = Number(current) || 0;
+    if (open === 0) return "#6b7280";
+    if (curr > open) return "#15803d";
+    if (curr < open) return "#b91c1c";
+    return "#6b7280";
   };
 
   const getStatusIcon = (opening, current) => {
+    const open = Number(opening) || 0;
+    const curr = Number(current) || 0;
     const style = { display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' };
 
-    if (current > opening) {
+    if (curr > open) {
       return (
         <span style={{ ...style, color: 'green' }}>
           Profit <FiArrowUp />
         </span>
       );
-    } else if (current < opening) {
+    } else if (curr < open) {
       return (
         <span style={{ ...style, color: 'red' }}>
           Loss <FiArrowDown />
@@ -39,7 +55,7 @@ const LedgerHeader = ({ accounts, onAddClick, onEditAccount, onDeleteAccount }) 
   };
 
   const calculateBalance = (opening, current) => {
-    return Math.abs(opening - current);
+    return Math.abs((Number(opening) || 0) - (Number(current) || 0));
   };
 
   const formatCurrency = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
@@ -99,7 +115,12 @@ const LedgerHeader = ({ accounts, onAddClick, onEditAccount, onDeleteAccount }) 
           <span data-label="Opening Balance">{formatCurrency(acc.opening_balance)}</span>
           <span data-label="Current Balance">{formatCurrency(acc.current_balance)}</span>
           <span data-label="Balance">{formatCurrency(calculateBalance(acc.opening_balance, acc.current_balance))}</span>
-          <span data-label="% Change">{calculatePercentage(acc.opening_balance, acc.current_balance)}</span>
+          <span
+            data-label="% Change"
+            style={{ color: getPercentageColor(acc.opening_balance, acc.current_balance), fontWeight: 600 }}
+          >
+            {calculatePercentage(acc.opening_balance, acc.current_balance)}
+          </span>
           <span data-label="Status">{getStatusIcon(acc.opening_balance, acc.current_balance)}</span>
           <span data-label="Actions" className="account-actions-cell">
             <button

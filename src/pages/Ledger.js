@@ -13,7 +13,7 @@ import { useLedgerCategoryContext } from "../context/ledgerCategory_context";
 
 const LedgerPage = () => {
   const { ledgerAccounts, fetchLedgerAccounts, deleteLedgerAccount } = useLedgerAccountContext();
-  const { ledgerEntries, fetchLedgerEntries } = useLedgerEntryContext();
+  const { ledgerEntries, fetchLedgerEntries, setPage } = useLedgerEntryContext();
   const { categories } = useLedgerCategoryContext();
 
   const accounts = Array.isArray(ledgerAccounts) ? ledgerAccounts : [];
@@ -42,7 +42,9 @@ const LedgerPage = () => {
   }, [ledgerEntries]);
 
   useEffect(() => {
-    fetchLedgerEntries(filters);
+    setPage(1);
+    fetchLedgerEntries(filters, { page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   const handleAccountModalSuccess = async () => {

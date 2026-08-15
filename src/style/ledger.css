@@ -69,6 +69,18 @@ h2 {
   word-wrap: break-word;
 }
 
+.ledger-table tbody tr.ledger-row-flagged {
+  background-color: #fee2e2;
+}
+
+.ledger-table tbody tr.ledger-row-flagged:hover {
+  background-color: #fecaca;
+}
+
+.ledger-table tbody tr.ledger-row-flagged td {
+  border-color: #fecaca;
+}
+
 .total-sum {
   text-align: right;
   margin-top: 10px;
