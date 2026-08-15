@@ -102,28 +102,34 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
 
     useEffect(() => {
         const advanceInput = useGroupAdvance ? parseFloat(groupAdvanceInput || "0") : 0;
-        const partialInput = paymentType === "partial" ? parseFloat(partialAmount || "0") : 0;
+        const applicableAdvance = Math.min(
+            Math.max(advanceInput, 0),
+            Math.max(advanceBalance, 0),
+            Math.max(totalDue, 0)
+        );
 
-        const applicableAdvance = Math.min(advanceInput, advanceBalance, totalDue);  // ✅ Changed to advanceBalance
-        const totalPaid = partialInput + applicableAdvance;
+        // Partial Amount = total toward due this payment (not cash-only).
+        // Full = always settle entire due.
+        const towardDueInput = paymentType === "partial"
+            ? Math.min(Math.max(parseFloat(partialAmount || "0"), 0), Math.max(totalDue, 0))
+            : Math.max(totalDue, 0);
 
-        const remainingDue = totalPaid <= totalDue ? totalDue - totalPaid : 0;
-        const excess = totalPaid > totalDue ? totalPaid - totalDue : 0;
+        const advanceTowardDue = Math.min(applicableAdvance, towardDueInput);
+        const cashInput = Math.max(towardDueInput - advanceTowardDue, 0);
+        const nextRemainingDue = Math.max(totalDue - towardDueInput, 0);
+        const remainingAdvance = Math.max(advanceBalance - advanceTowardDue, 0);
 
-        const remainingAdvance = advanceBalance - applicableAdvance;  // ✅ Changed to advanceBalance
-        const balanceAfterPayment = remainingAdvance + excess;
-
-        setAdvanceApplied(applicableAdvance);
-        setParsedPartialAmount(partialInput);
-        setRemainingDue(remainingDue);
-        setBalanceAdvance(balanceAfterPayment);
+        setAdvanceApplied(advanceTowardDue);
+        setParsedPartialAmount(cashInput);
+        setRemainingDue(nextRemainingDue);
+        setBalanceAdvance(remainingAdvance);
     }, [
         partialAmount,
         groupAdvanceInput,
         useGroupAdvance,
         paymentType,
         totalDue,
-        advanceBalance  // ✅ Changed to advanceBalance
+        advanceBalance
     ]);
 
     if (!isOpen || !currentReceivable) return null;
@@ -150,19 +156,42 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
         setLoading(true);
         const selectedAccount = ledgerAccounts.find(acc => acc.account_name === paymentMethod);
         const paymentMethodId = selectedAccount?.id || null;
-        const paymentAmount = paymentType === 'full'
-            ? (currentReceivable.rbdue > 0 ? currentReceivable.rbdue : currentReceivable.rbtotal)
-            : parseFloat(partialAmount || 0);
+        const dueAmount = currentReceivable.rbdue > 0
+            ? parseFloat(currentReceivable.rbdue)
+            : parseFloat(currentReceivable.rbtotal || 0);
+
+        const towardDue = paymentType === 'full'
+            ? dueAmount
+            : Math.min(Math.max(parseFloat(partialAmount || 0), 0), dueAmount);
+
+        const advanceUsed = useGroupAdvance
+            ? Math.min(parseFloat(advanceApplied || 0), towardDue, dueAmount)
+            : 0;
+        // Cash is only leftover after advance — never send full due again with advance
+        const cashAmount = Math.max(towardDue - advanceUsed, 0);
+
+        if (!paymentMethodId) {
+            toast.error("Please select a valid payment method.");
+            setLoading(false);
+            return;
+        }
+        if (cashAmount <= 0 && advanceUsed <= 0) {
+            toast.error("Please enter a valid payment amount or use advance.");
+            setLoading(false);
+            return;
+        }
+
+        const totalTowardDue = advanceUsed + cashAmount;
 
         const payload = {
             payableReceivalbeId: currentReceivable.id,
-            paymentMethod,
+            paymentMethod: cashAmount <= 0 && advanceUsed > 0 ? "Advance" : paymentMethod,
             paymentMethodId,
             paymentStatus: "SUCCESS",
             paymentType,
             paymentTransactionRef: "FUTURE",
             payableCode: "001",
-            paymentAmount: parseFloat(paymentAmount),
+            paymentAmount: parseFloat(cashAmount),
             subscriberId: currentReceivable.subscriber_id,
             grpSubscriberId: currentReceivable.group_subscriber_id,
             sourceSystem: "WEB",
@@ -175,7 +204,7 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
             auctionDate: auct_date,
             membershipId,
             useGroupAdvanceflag: useGroupAdvance,
-            groupAdvanceUsed: advanceApplied,
+            groupAdvanceUsed: advanceUsed,
             deductionPaymentMethodId: selectedAccount?.id || null
         };
 
@@ -198,6 +227,9 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                     billNumber,
                     receiptId: billNumber,
                     transactedDate: receivableDate,
+                    cashAmount,
+                    advanceAmount: advanceUsed,
+                    totalTowardDue,
                 });
                 setTimeout(() => fetchReceivables(), 2000);
                 fetchLedgerAccounts();
@@ -229,8 +261,15 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
             toast.error("❌ Please select a payment method.");
             return;
         }
+        // Full + Advance only when advance covers the full due
         if (paymentType === "full" && useGroupAdvance && advanceBalance < totalDue) {
-            toast.error("❌ Not enough group advance. Please choose partial payment.");
+            const adv = Math.min(advanceBalance, totalDue);
+            setPaymentType("partial");
+            setGroupAdvanceInput(adv.toString());
+            setPartialAmount(adv.toString());
+            toast.info(
+                `Advance (₹${adv.toLocaleString("en-IN")}) is less than due. Switched to Partial + Use Advance — only advance will be applied.`
+            );
             return;
         }
 
@@ -279,12 +318,16 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
             `Receivable Date: ${formatDate(receivableDate)}`,
             `Group Name: ${group_name || '-'}`,
             `Auction Date: ${formatDate(auct_date)}`,
-            `Amount Paid: ${formatCurrency(receiptData.paymentAmount)}`,
+            `Amount Paid (toward due): ${formatCurrency(receiptData.totalTowardDue ?? receiptData.paymentAmount)}`,
+            receiptData.advanceAmount > 0
+                ? `Advance Applied: ${formatCurrency(receiptData.advanceAmount)}`
+                : null,
+            `Cash Collected: ${formatCurrency(receiptData.cashAmount ?? receiptData.paymentAmount)}`,
             `Payment Method: ${receiptData.paymentMethod || '-'}`,
             `Payment Type: ${receiptData.paymentType || '-'}`,
             '',
             'Thank you for your payment.',
-        ].join('\n');
+        ].filter(Boolean).join('\n');
 
         const encoded = encodeURIComponent(message);
         return subscriberPhone
@@ -444,8 +487,24 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                     <span className="font-semibold">{formatDate(auct_date)}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Amount Paid:</span>
-                                    <span className="font-semibold text-green-600">{formatCurrency(receiptData.paymentAmount)}</span>
+                                    <span className="text-gray-600">Amount Paid (toward due):</span>
+                                    <span className="font-semibold text-green-600">
+                                        {formatCurrency(receiptData.totalTowardDue ?? receiptData.paymentAmount)}
+                                    </span>
+                                </div>
+                                {(receiptData.advanceAmount > 0) && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">Advance Applied:</span>
+                                        <span className="font-semibold text-green-700">
+                                            {formatCurrency(receiptData.advanceAmount)}
+                                        </span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Cash Collected:</span>
+                                    <span className="font-semibold text-orange-700">
+                                        {formatCurrency(receiptData.cashAmount ?? receiptData.paymentAmount)}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Payment Method:</span>
@@ -637,17 +696,40 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                                 if (paymentType === "partial") {
                                                     setPartialAmount(totalDue.toString());
                                                 }
-                                            } else {
-                                                const adv = Math.min(advanceBalance, totalDue);  // ✅ Changed to advanceBalance
+                                            } else if (paymentType === "partial") {
+                                                // Partial + Advance: default advance-only (1 receipt)
+                                                const adv = Math.min(advanceBalance, totalDue);
                                                 setGroupAdvanceInput(adv.toString());
-                                                const userPayable = totalDue - adv;
-                                                setPartialAmount(userPayable.toString());
+                                                setPartialAmount(adv.toString());
+                                            } else if (advanceBalance < totalDue) {
+                                                // Full + Advance but advance < due → force Partial + advance-only
+                                                const adv = Math.min(advanceBalance, totalDue);
+                                                setPaymentType("partial");
+                                                setGroupAdvanceInput(adv.toString());
+                                                setPartialAmount(adv.toString());
+                                                toast.info(
+                                                    `Advance is less than due. Using Partial + Advance for ₹${adv.toLocaleString("en-IN")}.`
+                                                );
+                                            } else {
+                                                // Full + Advance and advance covers due → apply only the due from advance
+                                                setGroupAdvanceInput(totalDue.toString());
                                             }
                                         }}
                                         className="w-4 h-4 text-custom-red border-gray-300 rounded focus:ring-custom-red"
                                     />
                                     <span className="ml-3 text-sm font-medium text-gray-700">Use Advance</span>
                                 </div>
+                                {useGroupAdvance && paymentType === "full" && (
+                                    <p className="text-xs text-gray-500 -mt-1">
+                                        Full due ₹{Number(totalDue).toLocaleString("en-IN")} will be paid from advance.
+                                        Remaining advance stays for future dues.
+                                    </p>
+                                )}
+                                {useGroupAdvance && paymentType === "partial" && (
+                                    <p className="text-xs text-gray-500 -mt-1">
+                                        Only the advance amount (or Amount Toward Due) is posted to receipts — no extra cash unless you raise Amount Toward Due.
+                                    </p>
+                                )}
 
                                 {paymentType === "partial" && (
                                     <>
@@ -658,31 +740,56 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                                     type="number"
                                                     value={groupAdvanceInput}
                                                     onChange={(e) => {
-                                                        const val = Math.min(Number(e.target.value), advanceBalance, totalDue);  // ✅ Changed to advanceBalance
-                                                        setGroupAdvanceInput(val.toString());
-                                                        setPartialAmount(Math.max(totalDue - val, 0).toString());
+                                                        const val = Math.min(
+                                                            Math.max(Number(e.target.value) || 0, 0),
+                                                            advanceBalance,
+                                                            totalDue
+                                                        );
+                                                        setGroupAdvanceInput(String(val));
+                                                        // Sync toward-due with advance so Partial+Advance
+                                                        // does not keep full due and create a large cash receipt
+                                                        setPartialAmount(String(val));
                                                     }}
                                                     min="0"
-                                                    max={advanceBalance}  // ✅ Changed to advanceBalance
+                                                    max={advanceBalance}
                                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-red focus:border-transparent"
                                                 />
                                             </div>
                                         )}
 
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Partial Amount</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Amount Toward Due
+                                            </label>
                                             <input
                                                 type="number"
                                                 value={partialAmount}
                                                 onChange={(e) => {
-                                                    const val = Number(e.target.value);
+                                                    const val = Math.min(
+                                                        Math.max(Number(e.target.value) || 0, 0),
+                                                        totalDue
+                                                    );
                                                     setPartialAmount(val.toString());
+                                                    if (useGroupAdvance) {
+                                                        const adv = Math.min(
+                                                            parseFloat(groupAdvanceInput || 0),
+                                                            advanceBalance,
+                                                            val
+                                                        );
+                                                        setGroupAdvanceInput(String(adv));
+                                                    }
                                                 }}
                                                 min="0"
                                                 max={totalDue}
                                                 placeholder="₹0.00"
                                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-custom-red focus:border-transparent"
                                             />
+                                            {useGroupAdvance && (
+                                                <p className="mt-1 text-xs text-gray-500">
+                                                    Cash to collect: {formatCurrency(parsedPartialAmount)} (after advance).
+                                                    Raise Amount Toward Due above Advance Used if you also want cash.
+                                                </p>
+                                            )}
                                         </div>
                                     </>
                                 )}
@@ -702,12 +809,10 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                                 <span className="text-gray-600">Advance Applied:</span>
                                                 <span className="font-semibold text-green-600">{formatCurrency(advanceApplied)}</span>
                                             </div>
-                                            {paymentType === 'partial' && (
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-600">Partial Amount:</span>
-                                                    <span className="font-semibold text-orange-600">{formatCurrency(parsedPartialAmount)}</span>
-                                                </div>
-                                            )}
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Cash to Collect:</span>
+                                                <span className="font-semibold text-orange-600">{formatCurrency(parsedPartialAmount)}</span>
+                                            </div>
                                             <div className="flex justify-between">
                                                 <span className="text-gray-600">Remaining Due:</span>
                                                 <span className="font-semibold text-red-600">{formatCurrency(remainingDue)}</span>

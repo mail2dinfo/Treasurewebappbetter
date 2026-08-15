@@ -185,10 +185,11 @@ const ReceivableConfirmPanel = ({
   const alreadyPaid = parseFloat(receivable?.rbpaid || 0);
   const pendingBalance = parseFloat(receivable?.rbdue ?? pendingNow ?? 0);
 
-  const cashAmount = paymentType === 'full'
-    ? pendingBalance
-    : parseFloat(parsedPartialAmount || 0);
   const advanceAmount = useGroupAdvance ? parseFloat(advanceApplied || 0) : 0;
+  // Full payment: cash is only the remaining due after advance — never the full pending again
+  const cashAmount = paymentType === 'full'
+    ? Math.max(pendingBalance - advanceAmount, 0)
+    : parseFloat(parsedPartialAmount || 0);
   const totalThisPayment = cashAmount + advanceAmount;
   const towardDue = Math.min(totalThisPayment, pendingBalance);
   const excessToAdvance = Math.max(0, totalThisPayment - pendingBalance);
@@ -220,7 +221,13 @@ const ReceivableConfirmPanel = ({
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Payment Method:</span>
-          <span className="font-semibold">{paymentMethod}</span>
+          <span className="font-semibold">
+            {advanceAmount > 0 && cashAmount <= 0
+              ? 'Advance'
+              : advanceAmount > 0
+                ? `${paymentMethod || 'Cash'} + Advance`
+                : paymentMethod}
+          </span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-600">Payment Type:</span>
@@ -242,6 +249,16 @@ const ReceivableConfirmPanel = ({
           <div className="flex justify-between border-t border-gray-100 pt-2">
             <span className="text-gray-800 font-medium">Pending Balance (now)</span>
             <span className="font-bold text-red-700">{formatCurrency(pendingBalance)}</span>
+          </div>
+          {advanceAmount > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Advance Applied</span>
+              <span className="font-semibold text-green-700">{formatCurrency(advanceAmount)}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-gray-600">Cash Collected</span>
+            <span className="font-semibold text-orange-700">{formatCurrency(cashAmount)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">This payment (toward due)</span>
