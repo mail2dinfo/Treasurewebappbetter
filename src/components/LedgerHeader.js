@@ -7,27 +7,6 @@ const LedgerHeader = ({ accounts, onAddClick, onEditAccount, onDeleteAccount }) 
   const [deletingId, setDeletingId] = useState(null);
   const [actionMessage, setActionMessage] = useState({ type: '', text: '' });
 
-  const calculatePercentage = (opening, current) => {
-    const open = Number(opening);
-    const curr = Number(current);
-    if (!Number.isFinite(open) || !Number.isFinite(curr)) return "—";
-    if (open === 0) {
-      return curr === 0 ? "0%" : "N/A";
-    }
-    const percent = ((curr - open) / Math.abs(open)) * 100;
-    const sign = percent > 0 ? "+" : "";
-    return `${sign}${percent.toFixed(2)}%`;
-  };
-
-  const getPercentageColor = (opening, current) => {
-    const open = Number(opening) || 0;
-    const curr = Number(current) || 0;
-    if (open === 0) return "#6b7280";
-    if (curr > open) return "#15803d";
-    if (curr < open) return "#b91c1c";
-    return "#6b7280";
-  };
-
   const getStatusIcon = (opening, current) => {
     const open = Number(opening) || 0;
     const curr = Number(current) || 0;
@@ -104,7 +83,6 @@ const LedgerHeader = ({ accounts, onAddClick, onEditAccount, onDeleteAccount }) 
         <span>Opening Balance</span>
         <span>Current Balance</span>
         <span>Diff</span>
-        <span>% Change</span>
         <span>Status</span>
         <span>Actions</span>
       </div>
@@ -115,12 +93,6 @@ const LedgerHeader = ({ accounts, onAddClick, onEditAccount, onDeleteAccount }) 
           <span data-label="Opening Balance">{formatCurrency(acc.opening_balance)}</span>
           <span data-label="Current Balance">{formatCurrency(acc.current_balance)}</span>
           <span data-label="Balance">{formatCurrency(calculateBalance(acc.opening_balance, acc.current_balance))}</span>
-          <span
-            data-label="% Change"
-            style={{ color: getPercentageColor(acc.opening_balance, acc.current_balance), fontWeight: 600 }}
-          >
-            {calculatePercentage(acc.opening_balance, acc.current_balance)}
-          </span>
           <span data-label="Status">{getStatusIcon(acc.opening_balance, acc.current_balance)}</span>
           <span data-label="Actions" className="account-actions-cell">
             <button
@@ -149,7 +121,6 @@ const LedgerHeader = ({ accounts, onAddClick, onEditAccount, onDeleteAccount }) 
         <span data-label="Opening Balance">{formatCurrency(totalOpening)}</span>
         <span data-label="Current Balance">{formatCurrency(totalCurrent)}</span>
         <span data-label="Balance">{formatCurrency(totalBalance)}</span>
-        <span data-label="% Change">—</span>
         <span data-label="Status">—</span>
         <span data-label="Actions">—</span>
       </div>
