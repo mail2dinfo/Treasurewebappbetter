@@ -16,6 +16,10 @@ import {
     HM_MANAGER_DEFAULT_FEATURES,
     hmPermissionGrantsFeature,
 } from '../utils/hmPermissionCatalog';
+import {
+    MS_MANAGER_DEFAULT_FEATURES,
+    msPermissionGrantsFeature,
+} from '../utils/msPermissionCatalog';
 import { useUserContext } from './user_context';
 
 const STORAGE_KEY = 'platform_active_context';
@@ -300,6 +304,8 @@ export const PlatformAccessProvider = ({ children }) => {
                 effectivePermissions = CHIT_MANAGER_DEFAULT_FEATURES;
             } else if (activeContext.appCode === 'HOSTEL_MANAGEMENT') {
                 effectivePermissions = HM_MANAGER_DEFAULT_FEATURES;
+            } else if (activeContext.appCode === 'MUTTON_STALL') {
+                effectivePermissions = MS_MANAGER_DEFAULT_FEATURES;
             }
         }
 
@@ -308,6 +314,7 @@ export const PlatformAccessProvider = ({ children }) => {
                 permissionGrantsFeature(permission, requested)
                 || vfPermissionGrantsFeature(permission, requested)
                 || hmPermissionGrantsFeature(permission, requested)
+                || msPermissionGrantsFeature(permission, requested)
             ))
         ));
     }, [activeContext, hasLoaded, isAvailable, session]);

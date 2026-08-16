@@ -70,6 +70,15 @@ const APP_THEMES = {
         bar: 'bg-cyan-700',
         ring: 'ring-cyan-100',
     },
+    MUTTON_STALL: {
+        shortName: 'Mutton Stall POS',
+        accent: '#9F1239',
+        iconBg: 'bg-rose-800',
+        softBg: 'bg-rose-50',
+        border: 'border-rose-200 hover:border-rose-500',
+        bar: 'bg-rose-800',
+        ring: 'ring-rose-100',
+    },
     PEOPLE_ACCESS: {
         shortName: 'Employee & Access',
         accent: '#44403C',
@@ -166,6 +175,14 @@ const APP_ROUTES = {
         ACCOUNTANT: '/hostel-management/user/dashboard',
         SUBSCRIBER: '/hostel-management/resident/dashboard',
     },
+    MUTTON_STALL: {
+        USER: '/mutton-stall/user/dashboard',
+        MANAGER: '/mutton-stall/manager/dashboard',
+        SALESMAN: '/mutton-stall/salesman/dashboard',
+        COLLECTOR: '/mutton-stall/user/dashboard',
+        ACCOUNTANT: '/mutton-stall/user/dashboard',
+        SUBSCRIBER: '/mutton-stall/customer/dashboard',
+    },
 };
 
 const CUSTOMER_APP_PATHS = {
@@ -175,6 +192,7 @@ const CUSTOMER_APP_PATHS = {
     PERSONAL_LOAN: '/personal-loan/customer/dashboard',
     RENTAL_MANAGEMENT: '/rental-management/customer/dashboard',
     HOSTEL_MANAGEMENT: '/hostel-management/resident/dashboard',
+    MUTTON_STALL: '/mutton-stall/customer/dashboard',
 };
 
 const PLATFORM_ACCOUNT_ROLE = {
@@ -185,6 +203,7 @@ const PLATFORM_ACCOUNT_ROLE = {
     receptionist: 'RECEPTIONIST',
     'kitchen staff': 'KITCHEN_STAFF',
     kitchen_staff: 'KITCHEN_STAFF',
+    salesman: 'SALESMAN',
 };
 
 const resolveRoute = (app, role) => (
@@ -210,6 +229,7 @@ const accountNameToRoleCode = (accountName) => {
     // Membership names are sometimes "Chit Collector" / "VF Manager", etc.
     if (key.includes('kitchen')) return 'KITCHEN_STAFF';
     if (key.includes('receptionist')) return 'RECEPTIONIST';
+    if (key.includes('salesman') || key.includes('sales man')) return 'SALESMAN';
     if (key.includes('accountant')) return 'ACCOUNTANT';
     if (key.includes('collector')) return 'COLLECTOR';
     if (key.includes('manager')) return 'MANAGER';
@@ -257,6 +277,19 @@ const AppSelectionPage = () => {
             setBookmarkedIds([]);
         }
     }, [user]);
+
+    // After stall public landing → login, resume customer order app
+    useEffect(() => {
+        try {
+            const redirect = sessionStorage.getItem('ms_post_login_redirect');
+            if (redirect && user?.results?.token) {
+                sessionStorage.removeItem('ms_post_login_redirect');
+                history.replace(redirect);
+            }
+        } catch {
+            // ignore
+        }
+    }, [user, history]);
 
     const toggleBookmark = (event, app) => {
         event.preventDefault();
@@ -418,6 +451,19 @@ const AppSelectionPage = () => {
                 </svg>
             ),
             path: '/hostel-management/user/dashboard',
+            isActive: true
+        },
+        {
+            id: 8,
+            appCode: 'MUTTON_STALL',
+            name: 'Mutton Stall POS',
+            description: 'Stock, customer orders, billing, daybook & reports',
+            icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path fillRule="evenodd" d="M7.5 6v.75H5.513c-.96 0-1.764.724-1.865 1.679l-1.263 12A1.875 1.875 0 004.25 22.5h15.5a1.875 1.875 0 001.865-2.071l-1.263-12a1.875 1.875 0 00-1.865-1.679H16.5V6a4.5 4.5 0 10-9 0zM12 3a3 3 0 00-3 3v.75h6V6a3 3 0 00-3-3zm-3 8.25a3 3 0 106 0v-.75a.75.75 0 011.5 0v.75a4.5 4.5 0 11-9 0v-.75a.75.75 0 011.5 0v.75z" clipRule="evenodd" />
+                </svg>
+            ),
+            path: '/mutton-stall/user/dashboard',
             isActive: true
         }
     ], []);

@@ -40,6 +40,12 @@ import HostelManagementAdminLayout, {
 import HostelManagementResidentLayout from './components/hostelManagement/HostelManagementResidentLayout';
 import HostelManagementKitchenLayout from './components/hostelManagement/HostelManagementKitchenLayout';
 import { HM_KITCHENSTAFF_BASE_PATH } from './components/hostelManagement/hostelManagementMenuItems';
+import MuttonStallAdminLayout, {
+  MuttonStallManagerLayout,
+  MuttonStallSalesmanLayout,
+} from './components/muttonStall/MuttonStallAdminLayout';
+import MuttonStallCustomerLayout from './components/muttonStall/MuttonStallCustomerLayout';
+import MuttonStallPublicLandingPage from './pages/muttonStall/MuttonStallPublicLandingPage';
 
 // Legacy layouts for backward compatibility (can be removed later)
 import CollectorLayout from './components/collector/CollectorLayout';
@@ -128,6 +134,13 @@ function App() {
                             )}
                         />
 
+                        {/* Mutton Stall POS */}
+                        <Route path="/mutton-stall/order/:orderToken" render={() => <Redirect to="/mutton-stall/customer/dashboard" />} />
+                        <Route path="/mutton-stall/user" component={MuttonStallAdminLayout} />
+                        <Route path="/mutton-stall/manager" component={MuttonStallManagerLayout} />
+                        <Route path="/mutton-stall/salesman" component={MuttonStallSalesmanLayout} />
+                        <Route path="/mutton-stall/customer" component={MuttonStallCustomerLayout} />
+
                         {/* Legacy Routes for Backward Compatibility */}
                         <Route path="/customer" render={() => <Redirect to="/chit-fund/subscriber" />} />
                         <Route path="/collector" component={CollectorLayout} />
@@ -164,6 +177,10 @@ function App() {
                         <Route path="/verify-otp" component={VerifyOTP} />
                         <Route path="/login" component={Login} />
                         <Route path="/forget-password" component={ForgetPassword} />
+
+                        {/* Mutton Stall public landing: /{stall-name} */}
+                        <Route exact path="/stall/:stallSlug" component={MuttonStallPublicLandingPage} />
+                        <Route exact path="/:stallSlug" component={MuttonStallPublicLandingPage} />
 
                         {/* Default redirect to app selection */}
                         <Route path="/">

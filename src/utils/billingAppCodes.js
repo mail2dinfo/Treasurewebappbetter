@@ -6,6 +6,7 @@ export const BILLING_APP_CODES = Object.freeze({
   PERSONAL_FINANCE: 'PERSONAL_FINANCE',
   RENTAL_MANAGEMENT: 'RENTAL_MANAGEMENT',
   HOSTEL_MANAGEMENT: 'HOSTEL_MANAGEMENT',
+  MUTTON_STALL: 'MUTTON_STALL',
 });
 
 export const DEFAULT_BILLING_APP_CODE = BILLING_APP_CODES.CHIT_FUND;
@@ -18,6 +19,7 @@ export const BILLING_PATHS = Object.freeze({
   PERSONAL_FINANCE: '/personal-finance/user/billing',
   RENTAL_MANAGEMENT: '/rental-management/user/billing',
   HOSTEL_MANAGEMENT: '/hostel-management/user/billing',
+  MUTTON_STALL: '/mutton-stall/user/billing',
 });
 
 export const getBillingPathForApp = (appCode) =>
