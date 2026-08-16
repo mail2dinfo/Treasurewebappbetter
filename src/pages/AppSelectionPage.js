@@ -1,9 +1,13 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useUserContext } from '../context/user_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
-import { FiBookmark, FiLogOut, FiShield, FiUsers, FiX } from 'react-icons/fi';
+import { FiBookmark, FiLogOut, FiShield, FiUsers, FiX, FiGrid, FiPlusCircle } from 'react-icons/fi';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import MyTreasureBrand from '../components/MyTreasureBrand';
+import { API_BASE_URL } from '../utils/apiConfig';
+import { BILLING_APP_CODES } from '../utils/billingAppCodes';
 
 /** Distinct look per product so cards are easy to tell apart at a glance. */
 const APP_THEMES = {
@@ -267,6 +271,17 @@ const AppSelectionPage = () => {
     const platform = usePlatformAccess();
     const [accountChoice, setAccountChoice] = useState(null);
     const [bookmarkedIds, setBookmarkedIds] = useState([]);
+    const [billingSummary, setBillingSummary] = useState({
+        loaded: false,
+        subscribedCodes: [],
+        unusedCodes: Object.values(BILLING_APP_CODES),
+    });
+    const [enablingAppCode, setEnablingAppCode] = useState('');
+
+    const membershipAccounts = useMemo(
+        () => uniqueMembershipAccounts(user?.results?.userAccounts || []),
+        [user?.results?.userAccounts]
+    );
 
     useEffect(() => {
         try {
@@ -291,6 +306,60 @@ const AppSelectionPage = () => {
         }
     }, [user, history]);
 
+    const token = user?.results?.token || localStorage.getItem('token') || '';
+
+    const billingMembershipId = useMemo(() => {
+        const fromOrg = platform?.organizations?.[0]?.parentMembershipId
+            ?? platform?.organizations?.[0]?.parent_membership_id;
+        if (fromOrg) return Number(fromOrg);
+        const fromAccount = membershipAccounts[0]?.parent_membership_id
+            ?? membershipAccounts[0]?.membershipId;
+        return fromAccount ? Number(fromAccount) : null;
+    }, [platform?.organizations, membershipAccounts]);
+
+    const loadBillingAppsSummary = useCallback(async () => {
+        if (!token || !billingMembershipId) {
+            setBillingSummary({
+                loaded: true,
+                subscribedCodes: [],
+                unusedCodes: Object.values(BILLING_APP_CODES),
+            });
+            return;
+        }
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/billing-subscription/${billingMembershipId}/apps-summary`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.success) {
+                setBillingSummary({
+                    loaded: true,
+                    subscribedCodes: [],
+                    unusedCodes: Object.values(BILLING_APP_CODES),
+                });
+                return;
+            }
+            const payload = data.data || {};
+            setBillingSummary({
+                loaded: true,
+                subscribedCodes: (payload.subscribed_app_codes || []).map((c) => String(c).toUpperCase()),
+                unusedCodes: (payload.unused_app_codes || Object.values(BILLING_APP_CODES))
+                    .map((c) => String(c).toUpperCase()),
+            });
+        } catch {
+            setBillingSummary({
+                loaded: true,
+                subscribedCodes: [],
+                unusedCodes: Object.values(BILLING_APP_CODES),
+            });
+        }
+    }, [token, billingMembershipId]);
+
+    useEffect(() => {
+        loadBillingAppsSummary();
+    }, [loadBillingAppsSummary]);
+
     const toggleBookmark = (event, app) => {
         event.preventDefault();
         event.stopPropagation();
@@ -307,11 +376,6 @@ const AppSelectionPage = () => {
             return next;
         });
     };
-
-    const membershipAccounts = useMemo(
-        () => uniqueMembershipAccounts(user?.results?.userAccounts || []),
-        [user?.results?.userAccounts]
-    );
 
     const legacyIsOwner = membershipAccounts.some(
         (account) => String(account?.accountName || '').toLowerCase() === 'user'
@@ -647,7 +711,7 @@ const AppSelectionPage = () => {
             const roles = Array.isArray(app.roles) ? app.roles : [];
             const staffRoles = roles.filter((role) => {
                 const code = String(role.roleCode || '').toUpperCase();
-                return ['USER', 'OWNER', 'MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF'].includes(code);
+                return ['USER', 'OWNER', 'MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN'].includes(code);
             });
 
             if (!staffRoles.length) {
@@ -710,22 +774,99 @@ const AppSelectionPage = () => {
         customerApps,
     ]);
 
-    const { bookmarkedApps, otherApps } = useMemo(() => {
+    const subscribedCodeSet = useMemo(
+        () => new Set(billingSummary.subscribedCodes || []),
+        [billingSummary.subscribedCodes]
+    );
+
+    const { bookmarkedApps, otherApps, yourApps, unusedApps } = useMemo(() => {
+        // Your apps = openable cards that are actually billed (active/suspended),
+        // plus customer portals and Employee & Access (not billing products).
+        const using = apps.filter((app) => {
+            const code = String(app.appCode || '').toUpperCase();
+            if (code === 'PEOPLE_ACCESS') return true;
+            if (app.isCustomerApp || app.accountKind === 'subscriber') return true;
+            if (!billingSummary.loaded) return true; // avoid empty flash while loading
+            // Non-billing catalog codes (none today) stay if user has access
+            if (!Object.values(BILLING_APP_CODES).includes(code)) return true;
+            return subscribedCodeSet.has(code);
+        });
+
         const bookmarked = [];
         const others = [];
-        apps.forEach((app) => {
+        using.forEach((app) => {
             if (bookmarkedIds.includes(getAppBookmarkId(app))) {
                 bookmarked.push(app);
             } else {
                 others.push(app);
             }
         });
-        // Keep bookmark order stable from storage (most recently bookmarked first).
         bookmarked.sort((a, b) => (
             bookmarkedIds.indexOf(getAppBookmarkId(a)) - bookmarkedIds.indexOf(getAppBookmarkId(b))
         ));
-        return { bookmarkedApps: bookmarked, otherApps: others };
-    }, [apps, bookmarkedIds]);
+
+        const unused = allApps
+            .filter((app) => {
+                const code = String(app.appCode || '').toUpperCase();
+                if (!billingSummary.loaded) return false;
+                return !subscribedCodeSet.has(code);
+            })
+            .map((app) => ({
+                ...app,
+                name: cleanAppDisplayName(app.appCode, app.name),
+                accountLabel: null,
+                accountKind: 'unused',
+                isCustomerApp: false,
+                isStaffAccount: false,
+                isUnused: true,
+                isActive: false,
+                id: `unused-${app.appCode}`,
+            }));
+
+        return {
+            bookmarkedApps: bookmarked,
+            otherApps: others,
+            yourApps: using,
+            unusedApps: unused,
+        };
+    }, [apps, allApps, bookmarkedIds, billingSummary.loaded, subscribedCodeSet]);
+
+    const enableUnusedApp = async (app) => {
+        const appCode = String(app.appCode || '').toUpperCase();
+        if (!isOwner) {
+            toast.info('Ask your organization owner to enable this app for you.');
+            return;
+        }
+        if (!billingMembershipId || !token) {
+            toast.error('Cannot enable app — membership not found');
+            return;
+        }
+        setEnablingAppCode(appCode);
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/billing-subscription/${billingMembershipId}/ensure`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ app_code: appCode }),
+                }
+            );
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.success === false) {
+                toast.error(data.message || 'Failed to enable app');
+                return;
+            }
+            toast.success(`${cleanAppDisplayName(appCode, app.name)} enabled`);
+            await loadBillingAppsSummary();
+        } catch (err) {
+            toast.error(err.message || 'Failed to enable app');
+        } finally {
+            setEnablingAppCode('');
+        }
+    };
 
     const openWithAccount = (app, choice) => {
         const parentMembershipId = app.parentMembershipId
@@ -741,6 +882,10 @@ const AppSelectionPage = () => {
     };
 
     const handleAppSelection = (app) => {
+        if (app.isUnused) {
+            enableUnusedApp(app);
+            return;
+        }
         if (!app.isActive || app.path === '#') return;
 
         // Subscriber / customer portal (e.g. Chit Fund subscriber, DC customer)
@@ -784,10 +929,11 @@ const AppSelectionPage = () => {
         history.push('/login');
     };
 
-    const renderAppCard = (app, index) => {
+    const renderAppCard = (app, index, { showBookmark = true } = {}) => {
         const theme = getAppTheme(app.appCode);
         const bookmarkId = getAppBookmarkId(app);
         const isBookmarked = bookmarkedIds.includes(bookmarkId);
+        const unused = Boolean(app.isUnused);
         const title = String(app.name || theme.shortName || app.appCode)
             .replace(/^MyTreasure\s*[-–—:]\s*/i, '')
             .trim() || theme.shortName || app.appCode;
@@ -800,45 +946,56 @@ const AppSelectionPage = () => {
                     group relative border-2 rounded-xl p-3 sm:p-4
                     transition-all duration-300 ease-in-out
                     flex flex-col items-center text-center gap-2 sm:gap-2.5
-                    shadow-sm hover:shadow-md ring-1 ${theme.ring} ${theme.softBg}
-                    ${app.isActive
-                        ? `${theme.border} cursor-pointer hover:-translate-y-0.5`
-                        : 'border-gray-300 opacity-60 cursor-not-allowed bg-gray-50'
+                    shadow-sm hover:shadow-md ring-1
+                    ${unused
+                        ? 'border-dashed border-gray-300 bg-gray-50/80 ring-gray-100 cursor-pointer hover:border-gray-400 opacity-90'
+                        : `${theme.ring} ${theme.softBg} ${app.isActive
+                            ? `${theme.border} cursor-pointer hover:-translate-y-0.5`
+                            : 'border-gray-300 opacity-60 cursor-not-allowed bg-gray-50'
+                        }`
                     }
                 `}
                 style={{
                     animation: `fadeIn 0.4s ease-out ${index * 0.05}s backwards`,
-                    borderTopColor: app.isActive ? theme.accent : undefined,
-                    borderTopWidth: app.isActive ? 3 : undefined,
+                    borderTopColor: (!unused && app.isActive) ? theme.accent : undefined,
+                    borderTopWidth: (!unused && app.isActive) ? 3 : undefined,
                 }}
             >
-                <div className={`
-                    absolute top-0 left-0 w-full h-1 rounded-t-[10px]
-                    transition-transform duration-300 origin-left scale-x-0
-                    group-hover:scale-x-100
-                    ${app.isActive ? theme.bar : 'bg-gray-400'}
-                `} />
+                {!unused && (
+                    <div className={`
+                        absolute top-0 left-0 w-full h-1 rounded-t-[10px]
+                        transition-transform duration-300 origin-left scale-x-0
+                        group-hover:scale-x-100
+                        ${app.isActive ? theme.bar : 'bg-gray-400'}
+                    `} />
+                )}
 
-                <button
-                    type="button"
-                    aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark app'}
-                    title={isBookmarked ? 'Remove bookmark' : 'Bookmark for quick access'}
-                    onClick={(event) => toggleBookmark(event, app)}
-                    className={`
-                        absolute top-2 left-2 z-10 p-1.5 rounded-lg transition-colors
-                        ${isBookmarked
-                            ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
-                            : 'text-gray-400 bg-white/80 hover:text-amber-500 hover:bg-amber-50'
-                        }
-                    `}
-                >
-                    <FiBookmark
-                        className="w-4 h-4"
-                        fill={isBookmarked ? 'currentColor' : 'none'}
-                    />
-                </button>
+                {showBookmark && !unused ? (
+                    <button
+                        type="button"
+                        aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark app'}
+                        title={isBookmarked ? 'Remove bookmark' : 'Bookmark for quick access'}
+                        onClick={(event) => toggleBookmark(event, app)}
+                        className={`
+                            absolute top-2 left-2 z-10 p-1.5 rounded-lg transition-colors
+                            ${isBookmarked
+                                ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
+                                : 'text-gray-400 bg-white/80 hover:text-amber-500 hover:bg-amber-50'
+                            }
+                        `}
+                    >
+                        <FiBookmark
+                            className="w-4 h-4"
+                            fill={isBookmarked ? 'currentColor' : 'none'}
+                        />
+                    </button>
+                ) : null}
 
-                {app.accountLabel ? (
+                {unused ? (
+                    <span className="absolute top-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white text-gray-500 border border-gray-200">
+                        Not in use
+                    </span>
+                ) : app.accountLabel ? (
                     <span className={`absolute top-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
                         app.accountKind === 'subscriber'
                             ? 'bg-sky-100 text-sky-800'
@@ -852,7 +1009,7 @@ const AppSelectionPage = () => {
                     w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center
                     transition-all duration-300 shadow-sm mt-1
                     group-hover:scale-105
-                    ${app.isActive ? theme.iconBg : 'bg-gray-400'}
+                    ${unused ? 'bg-gray-400' : (app.isActive ? theme.iconBg : 'bg-gray-400')}
                 `}>
                     <div className="w-5 h-5 sm:w-6 sm:h-6 text-white">
                         {app.icon}
@@ -864,16 +1021,24 @@ const AppSelectionPage = () => {
                         {title}
                     </h3>
                     <p className="text-[11px] sm:text-xs text-gray-600 leading-snug line-clamp-2">
-                        {app.description}
+                        {unused ? (app.description || 'Available on MyTreasure') : app.description}
                     </p>
-                    {Array.isArray(app.roles) && app.roles.length > 1 ? (
+                    {!unused && Array.isArray(app.roles) && app.roles.length > 1 ? (
                         <p className="text-[10px] text-gray-500 mt-1">
                             {app.roles.length} accounts available
                         </p>
                     ) : null}
+                    {unused ? (
+                        <p className="text-[10px] text-gray-500 mt-1.5 inline-flex items-center gap-1 justify-center">
+                            <FiPlusCircle className="w-3 h-3" />
+                            {enablingAppCode === String(app.appCode || '').toUpperCase()
+                                ? 'Enabling…'
+                                : (isOwner ? 'Tap to start trial / enable' : 'Ask owner to enable')}
+                        </p>
+                    ) : null}
                 </div>
 
-                {!app.isActive && (
+                {!unused && !app.isActive && (
                     <div className="absolute bottom-2 right-2 bg-gray-700 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide">
                         Coming Soon
                     </div>
@@ -892,6 +1057,10 @@ const AppSelectionPage = () => {
             </div>
         );
     }
+
+    const yourAppsList = bookmarkedApps.length
+        ? [...bookmarkedApps, ...otherApps]
+        : yourApps;
 
     return (
         <div className="min-h-screen bg-white">
@@ -947,57 +1116,106 @@ const AppSelectionPage = () => {
                 </div>
             </header>
 
-            <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-                <div className="text-center mb-8 sm:mb-12">
-                    <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-2">
+            <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+                <div className="mb-6 sm:mb-8">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">
                         Choose your app
                     </h2>
-                    <p className="text-sm sm:text-base text-gray-500 max-w-2xl mx-auto">
-                        {customerApps.length && apps.some((app) => app.accountKind === 'staff')
-                            ? 'You have employee and subscriber access. Pick Manager / Collector for staff apps, or Subscriber for your customer portal.'
-                            : 'Select an application to get started. Tap the bookmark to pin favorites to the top.'}
+                    <p className="text-sm sm:text-base text-gray-500 max-w-3xl">
+                        Your apps are products with an active billing subscription. Unused apps can be enabled by the owner.
                     </p>
                 </div>
 
-                {apps.length === 0 ? (
-                    <div className="text-center py-12 px-4 bg-gray-50 rounded-xl border border-gray-200 mb-8 max-w-5xl mx-auto">
-                        <p className="text-gray-800 font-medium">No applications available yet</p>
-                        <p className="text-sm text-gray-500 mt-2">
-                            Ask your organization owner to assign you an app role in Employee &amp; Access.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="max-w-5xl mx-auto space-y-8 mb-8 sm:mb-10">
-                        {bookmarkedApps.length > 0 ? (
-                            <section>
-                                <div className="flex items-center gap-2 mb-3 px-0.5">
-                                    <FiBookmark className="w-4 h-4 text-amber-500" fill="currentColor" />
-                                    <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                                        Bookmarked
-                                    </h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start mb-8 sm:mb-10">
+                    {/* Left — apps in use */}
+                    <section className="rounded-2xl border border-red-100 bg-gradient-to-b from-red-50/60 to-white p-4 sm:p-5 shadow-sm min-h-[20rem]">
+                        <div className="flex items-center justify-between gap-3 mb-4">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-red-600 text-white shadow-sm shrink-0">
+                                    <FiGrid className="w-4 h-4" />
+                                </span>
+                                <div className="min-w-0">
+                                    <h3 className="text-base font-bold text-gray-900">Your apps</h3>
+                                    <p className="text-xs text-gray-500">
+                                        Based on billing subscription
+                                        {yourAppsList.length ? ` · ${yourAppsList.length}` : ''}
+                                    </p>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                                    {bookmarkedApps.map((app, index) => renderAppCard(app, index))}
-                                </div>
-                            </section>
-                        ) : null}
-
-                        <section>
-                            {bookmarkedApps.length > 0 ? (
-                                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 px-0.5">
-                                    All apps
-                                </h3>
-                            ) : null}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                                {(bookmarkedApps.length ? otherApps : apps).map((app, index) => (
-                                    renderAppCard(app, index + bookmarkedApps.length)
-                                ))}
                             </div>
-                        </section>
-                    </div>
-                )}
+                        </div>
 
-                <div className="text-center pt-8 sm:pt-12 mt-8 sm:mt-12 border-t border-gray-200">
+                        {yourAppsList.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-gray-300 bg-white px-4 py-10 text-center">
+                                <p className="text-gray-800 font-medium">No applications available yet</p>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    Ask your organization owner to assign you an app role in Employee &amp; Access.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="space-y-5">
+                                {bookmarkedApps.length > 0 ? (
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-2.5 px-0.5">
+                                            <FiBookmark className="w-3.5 h-3.5 text-amber-500" fill="currentColor" />
+                                            <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                                                Bookmarked
+                                            </h4>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                            {bookmarkedApps.map((app, index) => renderAppCard(app, index))}
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                <div>
+                                    {bookmarkedApps.length > 0 ? (
+                                        <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2.5 px-0.5">
+                                            All your apps
+                                        </h4>
+                                    ) : null}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {(bookmarkedApps.length ? otherApps : yourApps).map((app, index) => (
+                                            renderAppCard(app, index + bookmarkedApps.length)
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Right — unused / catalog */}
+                    <section className="rounded-2xl border border-gray-200 bg-gradient-to-b from-gray-50 to-white p-4 sm:p-5 shadow-sm min-h-[20rem] lg:sticky lg:top-20">
+                        <div className="flex items-center justify-between gap-3 mb-4">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-stone-700 text-white shadow-sm shrink-0">
+                                    <FiPlusCircle className="w-4 h-4" />
+                                </span>
+                                <div className="min-w-0">
+                                    <h3 className="text-base font-bold text-gray-900">Unused apps</h3>
+                                    <p className="text-xs text-gray-500">
+                                        No active subscription yet
+                                        {unusedApps.length ? ` · ${unusedApps.length}` : ''}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {unusedApps.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-gray-300 bg-white px-4 py-10 text-center">
+                                <p className="text-gray-800 font-medium">You’re using every available app</p>
+                                <p className="text-sm text-gray-500 mt-2">
+                                    New products will show up here when they’re added to MyTreasure.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {unusedApps.map((app, index) => renderAppCard(app, index, { showBookmark: false }))}
+                            </div>
+                        )}
+                    </section>
+                </div>
+
+                <div className="text-center pt-8 sm:pt-10 mt-4 border-t border-gray-200">
                     <p className="text-xs sm:text-sm text-gray-500">
                         © 2024 Treasure Finance Hub. All rights reserved.
                     </p>
@@ -1056,6 +1274,7 @@ const AppSelectionPage = () => {
                     </div>
                 </div>
             )}
+            <ToastContainer position="top-right" autoClose={3500} />
         </div>
     );
 };
