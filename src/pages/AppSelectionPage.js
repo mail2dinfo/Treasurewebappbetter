@@ -1071,32 +1071,25 @@ const AppSelectionPage = () => {
                 key={cardKey}
                 onClick={() => handleAppSelection(app)}
                 className={`
-                    group relative border-2 rounded-xl p-3 sm:p-4
+                    group relative border-2 rounded-xl p-2.5 sm:p-3
                     transition-all duration-300 ease-in-out
-                    flex flex-col items-center text-center gap-2 sm:gap-2.5
-                    shadow-sm hover:shadow-md ring-1
-                    ${unused
-                        ? 'border-dashed border-gray-300 bg-gray-50/80 ring-gray-100 cursor-pointer hover:border-gray-400 opacity-90'
-                        : `${theme.ring} ${theme.softBg} ${app.isActive
-                            ? `${theme.border} cursor-pointer hover:-translate-y-0.5`
-                            : 'border-gray-300 opacity-60 cursor-not-allowed bg-gray-50'
-                        }`
-                    }
+                    flex flex-col items-center text-center gap-1.5 sm:gap-2
+                    shadow-sm hover:shadow-md ring-1 cursor-pointer hover:-translate-y-0.5
+                    ${theme.ring} ${theme.softBg} ${theme.border}
+                    ${unused ? '' : (!app.isActive ? 'opacity-60 cursor-not-allowed' : '')}
                 `}
                 style={{
                     animation: `fadeIn 0.4s ease-out ${index * 0.05}s backwards`,
-                    borderTopColor: (!unused && app.isActive) ? theme.accent : undefined,
-                    borderTopWidth: (!unused && app.isActive) ? 3 : undefined,
+                    borderTopColor: (unused || app.isActive) ? theme.accent : undefined,
+                    borderTopWidth: (unused || app.isActive) ? 3 : undefined,
                 }}
             >
-                {!unused && (
-                    <div className={`
-                        absolute top-0 left-0 w-full h-1 rounded-t-[10px]
-                        transition-transform duration-300 origin-left scale-x-0
-                        group-hover:scale-x-100
-                        ${app.isActive ? theme.bar : 'bg-gray-400'}
-                    `} />
-                )}
+                <div className={`
+                    absolute top-0 left-0 w-full h-1 rounded-t-[10px]
+                    transition-transform duration-300 origin-left scale-x-0
+                    group-hover:scale-x-100
+                    ${theme.bar}
+                `} />
 
                 {showBookmark && !unused ? (
                     <button
@@ -1105,7 +1098,7 @@ const AppSelectionPage = () => {
                         title={isBookmarked ? 'Remove bookmark' : 'Bookmark for quick access'}
                         onClick={(event) => toggleBookmark(event, app)}
                         className={`
-                            absolute top-2 left-2 z-10 p-1.5 rounded-lg transition-colors
+                            absolute top-1.5 left-1.5 z-10 p-1 rounded-md transition-colors
                             ${isBookmarked
                                 ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
                                 : 'text-gray-400 bg-white/80 hover:text-amber-500 hover:bg-amber-50'
@@ -1113,19 +1106,19 @@ const AppSelectionPage = () => {
                         `}
                     >
                         <FiBookmark
-                            className="w-4 h-4"
+                            className="w-3.5 h-3.5"
                             fill={isBookmarked ? 'currentColor' : 'none'}
                         />
                     </button>
                 ) : null}
 
-                <div className="absolute top-2 right-2 z-20 flex items-start gap-1">
+                <div className="absolute top-1.5 right-1.5 z-20 flex items-start gap-1">
                     {unused ? (
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white text-gray-500 border border-gray-200">
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-white/95 text-gray-700 border border-gray-200 shadow-sm">
                             Not in use
                         </span>
                     ) : app.accountLabel ? (
-                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
                             app.accountKind === 'subscriber'
                                 ? 'bg-sky-100 text-sky-800'
                                 : 'bg-white/90 text-gray-700 border border-gray-200'
@@ -1145,9 +1138,9 @@ const AppSelectionPage = () => {
                                     event.stopPropagation();
                                     setCardMenuAppId((prev) => (prev === cardKey ? null : cardKey));
                                 }}
-                                className="p-1.5 rounded-lg bg-white/90 border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm"
+                                className="p-1 rounded-md bg-white/90 border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm"
                             >
-                                <FiMoreVertical className="w-4 h-4" />
+                                <FiMoreVertical className="w-3.5 h-3.5" />
                             </button>
                             {menuOpen ? (
                                 <div
@@ -1168,30 +1161,32 @@ const AppSelectionPage = () => {
                 </div>
 
                 <div className={`
-                    w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center
-                    transition-all duration-300 shadow-sm mt-1
+                    w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center
+                    transition-all duration-300 shadow-sm mt-0.5
                     group-hover:scale-105
-                    ${unused ? 'bg-gray-400' : (app.isActive ? theme.iconBg : 'bg-gray-400')}
+                    ${theme.iconBg}
                 `}>
-                    <div className="w-5 h-5 sm:w-6 sm:h-6 text-white">
+                    <div className="w-4 h-4 text-white">
                         {app.icon}
                     </div>
                 </div>
 
-                <div className="flex-1 min-w-0 w-full px-1">
-                    <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-0.5 leading-snug">
+                <div className="flex-1 min-w-0 w-full px-0.5">
+                    <h3 className="text-xs sm:text-sm font-semibold text-gray-800 mb-0.5 leading-snug">
                         {title}
                     </h3>
-                    <p className="text-[11px] sm:text-xs text-gray-600 leading-snug line-clamp-2">
+                    <p className="text-[10px] sm:text-[11px] text-gray-600 leading-snug line-clamp-2">
                         {unused ? (app.description || 'Available on MyTreasure') : app.description}
                     </p>
                     {!unused && Array.isArray(app.roles) && app.roles.length > 1 ? (
-                        <p className="text-[10px] text-gray-500 mt-1">
+                        <p className="text-[9px] text-gray-500 mt-0.5">
                             {app.roles.length} accounts available
                         </p>
                     ) : null}
                     {unused ? (
-                        <p className="text-[10px] text-gray-500 mt-1.5 inline-flex items-center gap-1 justify-center">
+                        <p className="text-[9px] font-medium mt-1 inline-flex items-center gap-1 justify-center"
+                            style={{ color: theme.accent }}
+                        >
                             <FiPlusCircle className="w-3 h-3" />
                             {enablingAppCode === String(app.appCode || '').toUpperCase()
                                 ? 'Enabling…'
@@ -1323,7 +1318,7 @@ const AppSelectionPage = () => {
                                                 Bookmarked
                                             </h4>
                                         </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
                                             {bookmarkedApps.map((app, index) => renderAppCard(app, index))}
                                         </div>
                                     </div>
@@ -1335,7 +1330,7 @@ const AppSelectionPage = () => {
                                             All your apps
                                         </h4>
                                     ) : null}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
                                         {(bookmarkedApps.length ? otherApps : yourApps).map((app, index) => (
                                             renderAppCard(app, index + bookmarkedApps.length)
                                         ))}
@@ -1370,7 +1365,7 @@ const AppSelectionPage = () => {
                                 </p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5">
                                 {unusedApps.map((app, index) => renderAppCard(app, index, { showBookmark: false }))}
                             </div>
                         )}
