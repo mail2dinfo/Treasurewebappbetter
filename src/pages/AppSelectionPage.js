@@ -2,12 +2,13 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useUserContext } from '../context/user_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
-import { FiBookmark, FiLogOut, FiShield, FiUsers, FiX, FiGrid, FiPlusCircle } from 'react-icons/fi';
+import { FiBookmark, FiLogOut, FiShield, FiUsers, FiX, FiGrid, FiPlusCircle, FiMoreVertical } from 'react-icons/fi';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import MyTreasureBrand from '../components/MyTreasureBrand';
 import { API_BASE_URL } from '../utils/apiConfig';
-import { BILLING_APP_CODES } from '../utils/billingAppCodes';
+import { BILLING_APP_CODES, getBillingPathForApp } from '../utils/billingAppCodes';
+import { BILLING_PLANS, mergePlansWithCatalog } from '../utils/billingPlans';
 
 /** Distinct look per product so cards are easy to tell apart at a glance. */
 const APP_THEMES = {
@@ -277,6 +278,10 @@ const AppSelectionPage = () => {
         unusedCodes: Object.values(BILLING_APP_CODES),
     });
     const [enablingAppCode, setEnablingAppCode] = useState('');
+    const [planPicker, setPlanPicker] = useState(null); // { app, plans, loading, selectedPlanId }
+    const [cardMenuAppId, setCardMenuAppId] = useState(null);
+    const [unsubscribeModal, setUnsubscribeModal] = useState(null);
+    // unsubscribeModal: { app, phase: 'confirm'|'blocked'|'working', outstanding }
 
     const membershipAccounts = useMemo(
         () => uniqueMembershipAccounts(user?.results?.userAccounts || []),
@@ -359,6 +364,13 @@ const AppSelectionPage = () => {
     useEffect(() => {
         loadBillingAppsSummary();
     }, [loadBillingAppsSummary]);
+
+    useEffect(() => {
+        if (!cardMenuAppId) return undefined;
+        const onDocClick = () => setCardMenuAppId(null);
+        document.addEventListener('click', onDocClick);
+        return () => document.removeEventListener('click', onDocClick);
+    }, [cardMenuAppId]);
 
     const toggleBookmark = (event, app) => {
         event.preventDefault();
@@ -831,7 +843,7 @@ const AppSelectionPage = () => {
         };
     }, [apps, allApps, bookmarkedIds, billingSummary.loaded, subscribedCodeSet]);
 
-    const enableUnusedApp = async (app) => {
+    const openPlanPicker = async (app) => {
         const appCode = String(app.appCode || '').toUpperCase();
         if (!isOwner) {
             toast.info('Ask your organization owner to enable this app for you.');
@@ -841,10 +853,113 @@ const AppSelectionPage = () => {
             toast.error('Cannot enable app — membership not found');
             return;
         }
+
+        setPlanPicker({
+            app,
+            plans: BILLING_PLANS,
+            loading: true,
+            selectedPlanId: 'VeryBasic',
+        });
+
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/billing-subscription/plans/available?app_code=${encodeURIComponent(appCode)}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const data = await res.json().catch(() => ({}));
+            const apiPlans = Array.isArray(data.data) ? data.data : [];
+            setPlanPicker((prev) => (prev ? {
+                ...prev,
+                loading: false,
+                plans: mergePlansWithCatalog(apiPlans),
+            } : null));
+        } catch {
+            setPlanPicker((prev) => (prev ? {
+                ...prev,
+                loading: false,
+                plans: BILLING_PLANS,
+            } : null));
+        }
+    };
+
+    const enableUnusedApp = async (app, planId) => {
+        const appCode = String(app.appCode || '').toUpperCase();
+        if (!isOwner) {
+            toast.info('Ask your organization owner to enable this app for you.');
+            return;
+        }
+        if (!billingMembershipId || !token) {
+            toast.error('Cannot enable app — membership not found');
+            return;
+        }
+        if (!planId) {
+            toast.error('Please select a plan');
+            return;
+        }
+
         setEnablingAppCode(appCode);
         try {
             const res = await fetch(
                 `${API_BASE_URL}/billing-subscription/${billingMembershipId}/ensure`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({ app_code: appCode, plan_id: planId }),
+                }
+            );
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || data.success === false) {
+                toast.error(data.message || 'Failed to enable app');
+                return;
+            }
+            toast.success(
+                data.data?.reactivated
+                    ? `${cleanAppDisplayName(appCode, app.name)} re-enabled on ${planId}`
+                    : data.data?.created === false
+                        ? `${cleanAppDisplayName(appCode, app.name)} already enabled`
+                        : `${cleanAppDisplayName(appCode, app.name)} enabled on ${planId} (trial)`
+            );
+            setPlanPicker(null);
+            await loadBillingAppsSummary();
+        } catch (err) {
+            toast.error(err.message || 'Failed to enable app');
+        } finally {
+            setEnablingAppCode('');
+        }
+    };
+
+    const canManageBillingForApp = (app) => {
+        if (!isOwner || !app) return false;
+        if (app.isUnused || app.isCustomerApp || app.accountKind === 'subscriber') return false;
+        const code = String(app.appCode || '').toUpperCase();
+        if (code === 'PEOPLE_ACCESS') return false;
+        return Object.values(BILLING_APP_CODES).includes(code);
+    };
+
+    const openUnsubscribeModal = (event, app) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setCardMenuAppId(null);
+        if (!canManageBillingForApp(app)) return;
+        setUnsubscribeModal({
+            app,
+            phase: 'confirm',
+            outstanding: null,
+        });
+    };
+
+    const confirmUnsubscribe = async () => {
+        const app = unsubscribeModal?.app;
+        if (!app || !billingMembershipId || !token) return;
+        const appCode = String(app.appCode || '').toUpperCase();
+
+        setUnsubscribeModal((prev) => (prev ? { ...prev, phase: 'working' } : null));
+        try {
+            const res = await fetch(
+                `${API_BASE_URL}/billing-subscription/${billingMembershipId}/unsubscribe`,
                 {
                     method: 'POST',
                     headers: {
@@ -856,15 +971,25 @@ const AppSelectionPage = () => {
             );
             const data = await res.json().catch(() => ({}));
             if (!res.ok || data.success === false) {
-                toast.error(data.message || 'Failed to enable app');
+                if (data.code === 'PENDING_DUES' || res.status === 400) {
+                    setUnsubscribeModal({
+                        app,
+                        phase: 'blocked',
+                        outstanding: data.data || null,
+                        message: data.message,
+                    });
+                    return;
+                }
+                toast.error(data.message || 'Failed to unsubscribe');
+                setUnsubscribeModal(null);
                 return;
             }
-            toast.success(`${cleanAppDisplayName(appCode, app.name)} enabled`);
+            toast.success(`${cleanAppDisplayName(appCode, app.name)} unsubscribed — monthly bills stopped`);
+            setUnsubscribeModal(null);
             await loadBillingAppsSummary();
         } catch (err) {
-            toast.error(err.message || 'Failed to enable app');
-        } finally {
-            setEnablingAppCode('');
+            toast.error(err.message || 'Failed to unsubscribe');
+            setUnsubscribeModal(null);
         }
     };
 
@@ -883,7 +1008,7 @@ const AppSelectionPage = () => {
 
     const handleAppSelection = (app) => {
         if (app.isUnused) {
-            enableUnusedApp(app);
+            openPlanPicker(app);
             return;
         }
         if (!app.isActive || app.path === '#') return;
@@ -934,13 +1059,16 @@ const AppSelectionPage = () => {
         const bookmarkId = getAppBookmarkId(app);
         const isBookmarked = bookmarkedIds.includes(bookmarkId);
         const unused = Boolean(app.isUnused);
+        const cardKey = app.id || `${app.parentMembershipId || 'app'}-${app.appCode}-${app.accountLabel || index}`;
+        const menuOpen = cardMenuAppId === cardKey;
+        const showBillingMenu = canManageBillingForApp(app);
         const title = String(app.name || theme.shortName || app.appCode)
             .replace(/^MyTreasure\s*[-–—:]\s*/i, '')
             .trim() || theme.shortName || app.appCode;
 
         return (
             <div
-                key={app.id || `${app.parentMembershipId || 'app'}-${app.appCode}-${app.accountLabel || index}`}
+                key={cardKey}
                 onClick={() => handleAppSelection(app)}
                 className={`
                     group relative border-2 rounded-xl p-3 sm:p-4
@@ -991,19 +1119,53 @@ const AppSelectionPage = () => {
                     </button>
                 ) : null}
 
-                {unused ? (
-                    <span className="absolute top-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white text-gray-500 border border-gray-200">
-                        Not in use
-                    </span>
-                ) : app.accountLabel ? (
-                    <span className={`absolute top-2 right-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                        app.accountKind === 'subscriber'
-                            ? 'bg-sky-100 text-sky-800'
-                            : 'bg-white/90 text-gray-700 border border-gray-200'
-                    }`}>
-                        {app.accountLabel}
-                    </span>
-                ) : null}
+                <div className="absolute top-2 right-2 z-20 flex items-start gap-1">
+                    {unused ? (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white text-gray-500 border border-gray-200">
+                            Not in use
+                        </span>
+                    ) : app.accountLabel ? (
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                            app.accountKind === 'subscriber'
+                                ? 'bg-sky-100 text-sky-800'
+                                : 'bg-white/90 text-gray-700 border border-gray-200'
+                        }`}>
+                            {app.accountLabel}
+                        </span>
+                    ) : null}
+
+                    {showBillingMenu ? (
+                        <div className="relative">
+                            <button
+                                type="button"
+                                aria-label="App actions"
+                                title="App actions"
+                                onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    setCardMenuAppId((prev) => (prev === cardKey ? null : cardKey));
+                                }}
+                                className="p-1.5 rounded-lg bg-white/90 border border-gray-200 text-gray-600 hover:bg-gray-50 shadow-sm"
+                            >
+                                <FiMoreVertical className="w-4 h-4" />
+                            </button>
+                            {menuOpen ? (
+                                <div
+                                    className="absolute right-0 mt-1 w-44 rounded-xl border border-gray-200 bg-white shadow-lg py-1 text-left"
+                                    onClick={(event) => event.stopPropagation()}
+                                >
+                                    <button
+                                        type="button"
+                                        className="w-full px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+                                        onClick={(event) => openUnsubscribeModal(event, app)}
+                                    >
+                                        Unsubscribe
+                                    </button>
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : null}
+                </div>
 
                 <div className={`
                     w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center
@@ -1033,7 +1195,7 @@ const AppSelectionPage = () => {
                             <FiPlusCircle className="w-3 h-3" />
                             {enablingAppCode === String(app.appCode || '').toUpperCase()
                                 ? 'Enabling…'
-                                : (isOwner ? 'Tap to start trial / enable' : 'Ask owner to enable')}
+                                : (isOwner ? 'Tap to choose plan & enable' : 'Ask owner to enable')}
                         </p>
                     ) : null}
                 </div>
@@ -1234,6 +1396,190 @@ const AppSelectionPage = () => {
           }
         }
       `}</style>
+
+            {unsubscribeModal && (
+                <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">
+                                    {unsubscribeModal.phase === 'blocked'
+                                        ? 'Cannot unsubscribe yet'
+                                        : 'Unsubscribe from app?'}
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {cleanAppDisplayName(
+                                        unsubscribeModal.app.appCode,
+                                        unsubscribeModal.app.name
+                                    )}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => unsubscribeModal.phase !== 'working' && setUnsubscribeModal(null)}
+                                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                                disabled={unsubscribeModal.phase === 'working'}
+                            >
+                                <FiX />
+                            </button>
+                        </div>
+
+                        {unsubscribeModal.phase === 'blocked' ? (
+                            <div className="mt-4 space-y-3">
+                                <p className="text-sm text-gray-700">
+                                    {unsubscribeModal.message
+                                        || 'Clear pending bills for this app before unsubscribing.'}
+                                </p>
+                                {unsubscribeModal.outstanding?.outstanding_amount != null ? (
+                                    <p className="text-sm font-semibold text-red-700">
+                                        Pending: ₹
+                                        {Number(unsubscribeModal.outstanding.outstanding_amount || 0)
+                                            .toLocaleString('en-IN')}
+                                        {unsubscribeModal.outstanding.outstanding_count
+                                            ? ` · ${unsubscribeModal.outstanding.outstanding_count} cycle(s)`
+                                            : ''}
+                                    </p>
+                                ) : null}
+                                <p className="text-xs text-gray-500">
+                                    Pay dues first. After that you can unsubscribe and stop new monthly bills.
+                                </p>
+                                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setUnsubscribeModal(null)}
+                                        className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Close
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const path = getBillingPathForApp(unsubscribeModal.app.appCode);
+                                            setUnsubscribeModal(null);
+                                            history.push(path);
+                                        }}
+                                        className="px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700"
+                                    >
+                                        Pay dues
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="mt-4 space-y-3">
+                                <ul className="text-sm text-gray-700 space-y-1.5 list-disc pl-5">
+                                    <li>New monthly bills for this app will stop</li>
+                                    <li>You can enable it again later from Unused apps</li>
+                                    <li>Existing payment history is kept</li>
+                                </ul>
+                                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setUnsubscribeModal(null)}
+                                        disabled={unsubscribeModal.phase === 'working'}
+                                        className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={confirmUnsubscribe}
+                                        disabled={unsubscribeModal.phase === 'working'}
+                                        className="px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                                    >
+                                        {unsubscribeModal.phase === 'working' ? 'Unsubscribing…' : 'Unsubscribe'}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {planPicker && (
+                <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">Choose a plan</h2>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {cleanAppDisplayName(planPicker.app.appCode, planPicker.app.name)}
+                                    {' · '}
+                                    Starts with a free trial on the plan you select
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => !enablingAppCode && setPlanPicker(null)}
+                                className="p-2 rounded-lg text-gray-500 hover:bg-gray-100"
+                                disabled={Boolean(enablingAppCode)}
+                            >
+                                <FiX />
+                            </button>
+                        </div>
+
+                        {planPicker.loading ? (
+                            <p className="mt-8 text-center text-sm text-gray-500">Loading plans…</p>
+                        ) : (
+                            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {(planPicker.plans || []).map((plan) => {
+                                    const selected = planPicker.selectedPlanId === plan.id;
+                                    return (
+                                        <button
+                                            key={plan.id}
+                                            type="button"
+                                            onClick={() => setPlanPicker((prev) => (
+                                                prev ? { ...prev, selectedPlanId: plan.id } : null
+                                            ))}
+                                            className={`text-left rounded-xl border-2 px-4 py-3.5 transition-colors ${
+                                                selected
+                                                    ? 'border-red-600 bg-red-50 ring-1 ring-red-200'
+                                                    : 'border-gray-200 hover:border-red-300 bg-white'
+                                            }`}
+                                        >
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="font-bold text-gray-900">{plan.name}</span>
+                                                <span className="text-sm font-semibold tabular-nums text-gray-800">
+                                                    ₹{Number(plan.price || 0).toLocaleString('en-IN')}/mo
+                                                </span>
+                                            </div>
+                                            {Array.isArray(plan.features) && plan.features.length > 0 ? (
+                                                <ul className="mt-2 space-y-1">
+                                                    {plan.features.slice(0, 4).map((feature) => (
+                                                        <li key={feature} className="text-xs text-gray-500">
+                                                            · {feature}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : null}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setPlanPicker(null)}
+                                disabled={Boolean(enablingAppCode)}
+                                className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!planPicker.selectedPlanId || Boolean(enablingAppCode) || planPicker.loading}
+                                onClick={() => enableUnusedApp(planPicker.app, planPicker.selectedPlanId)}
+                                className="px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                            >
+                                {enablingAppCode
+                                    ? 'Enabling…'
+                                    : `Start trial on ${planPicker.selectedPlanId || 'plan'}`}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {accountChoice && (
                 <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4">
