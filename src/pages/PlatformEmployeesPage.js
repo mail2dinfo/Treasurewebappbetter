@@ -36,6 +36,14 @@ import {
     msFeaturesAssignableToRole,
     toMsFallbackFeature,
 } from '../utils/msPermissionCatalog';
+import {
+    HH_ADMINISTRATION_CATEGORIES,
+    HH_GRANULAR_FEATURES,
+    HH_HIDDEN_FEATURE_KEYS,
+    HH_LEGACY_TO_GRANULAR,
+    hhFeaturesAssignableToRole,
+    toHhFallbackFeature,
+} from '../utils/hhPermissionCatalog';
 import { useUserContext } from '../context/user_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
 import MyTreasureBrand from '../components/MyTreasureBrand';
@@ -273,6 +281,61 @@ const MANAGER_SCOPE_PERMISSIONS = {
             'ms_settings',
         ],
     },
+    HOSPITAL_MANAGEMENT: {
+        appLabel: 'Hospital Management',
+        accessAny: [
+            'hh_employee_manage',
+            'hh_manager_view',
+            'hh_manager_add',
+            'hh_receptionist_view',
+            'hh_receptionist_add',
+            'hh_receptionist_edit',
+            'hh_receptionist_delete',
+        ],
+        manageAll: 'hh_employee_manage',
+        employeeAdd: 'hh_receptionist_add',
+        collectorView: [
+            'hh_receptionist_view',
+            'hh_receptionist_add',
+            'hh_receptionist_edit',
+            'hh_receptionist_delete',
+            'hh_employee_manage',
+        ],
+        collectorAdd: 'hh_receptionist_add',
+        collectorEdit: 'hh_receptionist_edit',
+        collectorDelete: 'hh_receptionist_delete',
+        collectorOffer: null,
+        managerView: 'hh_manager_view',
+        accountantAdd: null,
+        accountantEdit: null,
+        accountantDelete: null,
+        accountantOffer: null,
+        accountantViewKeys: [],
+        receptionistView: [
+            'hh_receptionist_view',
+            'hh_receptionist_add',
+            'hh_receptionist_edit',
+            'hh_receptionist_delete',
+            'hh_employee_manage',
+        ],
+        receptionistAdd: 'hh_receptionist_add',
+        receptionistEdit: 'hh_receptionist_edit',
+        receptionistDelete: 'hh_receptionist_delete',
+        receptionistOffer: null,
+        managerCreatableRoles: ['RECEPTIONIST'],
+        ownerCreatableRoles: ['MANAGER', 'RECEPTIONIST'],
+        blockedDelegation: [
+            'people_access_manage',
+            'hh_employee_manage',
+            'hh_manager_view',
+            'hh_manager_add',
+            'hh_receptionist_view',
+            'hh_receptionist_add',
+            'hh_receptionist_edit',
+            'hh_receptionist_delete',
+            'hh_settings',
+        ],
+    },
 };
 
 const emptyProfile = {
@@ -294,6 +357,7 @@ const APP_DISPLAY_ORDER = [
     'VEHICLE_FINANCE',
     'HOSTEL_MANAGEMENT',
     'MUTTON_STALL',
+    'HOSPITAL_MANAGEMENT',
     'DAILY_COLLECTION',
     'PERSONAL_LOAN',
     'TWO_WHEELER_FINANCE',
@@ -306,6 +370,7 @@ const defaultAppLabel = (appCode) => {
         VEHICLE_FINANCE: 'Vehicle Finance',
         HOSTEL_MANAGEMENT: 'Hostel Management',
         MUTTON_STALL: 'Mutton Stall',
+        HOSPITAL_MANAGEMENT: 'Hospital Management',
         DAILY_COLLECTION: 'Daily Collection',
         PERSONAL_LOAN: 'Personal Loan',
         TWO_WHEELER_FINANCE: 'Two Wheeler Finance',
@@ -382,6 +447,12 @@ const FALLBACK_APP_CATALOG = [
         features: MS_GRANULAR_FEATURES.map(toMsFallbackFeature),
     },
     {
+        appCode: 'HOSPITAL_MANAGEMENT',
+        displayName: 'Hospital Management',
+        description: 'OPD, IPD, pharmacy, billing, ledger and daybook',
+        features: HH_GRANULAR_FEATURES.map(toHhFallbackFeature),
+    },
+    {
         appCode: 'DAILY_COLLECTION',
         displayName: 'Daily Collection',
         description: 'Daily collection lending operations',
@@ -441,7 +512,7 @@ const mergeCatalogWithFallback = (catalogList) => {
 
         // Chit / VF Step 3: server catalog is source of truth (API rejects unknown keys).
         // Fallback list only orders/labels keys that already exist in DB.
-        if (appCode === 'CHIT_FUND' || appCode === 'VEHICLE_FINANCE' || appCode === 'HOSTEL_MANAGEMENT' || appCode === 'MUTTON_STALL') {
+        if (appCode === 'CHIT_FUND' || appCode === 'VEHICLE_FINANCE' || appCode === 'HOSTEL_MANAGEMENT' || appCode === 'MUTTON_STALL' || appCode === 'HOSPITAL_MANAGEMENT') {
             const granularFeatures = getFeatures(fallbackApp);
             const serverFeatures = getFeatures(app);
             const serverKeys = new Set(serverFeatures.map(getFeatureKey).filter(Boolean));
@@ -451,7 +522,9 @@ const mergeCatalogWithFallback = (catalogList) => {
                     ? VF_LEGACY_TO_GRANULAR
                     : appCode === 'MUTTON_STALL'
                         ? MS_LEGACY_TO_GRANULAR
-                        : HM_LEGACY_TO_GRANULAR;
+                        : appCode === 'HOSPITAL_MANAGEMENT'
+                            ? HH_LEGACY_TO_GRANULAR
+                            : HM_LEGACY_TO_GRANULAR;
             const legacyKeys = new Set(Object.keys(legacyMap));
             if (!serverKeys.size) {
                 return {
@@ -485,13 +558,15 @@ const mergeCatalogWithFallback = (catalogList) => {
                     && !legacyKeys.has(key)
                     && !(appCode === 'CHIT_FUND' && CHIT_HIDDEN_FEATURE_KEYS.has(key))
                     && !(appCode === 'HOSTEL_MANAGEMENT' && HM_HIDDEN_FEATURE_KEYS.has(key))
-                    && !(appCode === 'MUTTON_STALL' && MS_HIDDEN_FEATURE_KEYS.has(key));
+                    && !(appCode === 'MUTTON_STALL' && MS_HIDDEN_FEATURE_KEYS.has(key))
+                    && !(appCode === 'HOSPITAL_MANAGEMENT' && HH_HIDDEN_FEATURE_KEYS.has(key));
             });
             const merged = [...orderedKnown, ...serverExtras].filter((feature) => {
                 const key = getFeatureKey(feature);
                 if (appCode === 'CHIT_FUND' && key && CHIT_HIDDEN_FEATURE_KEYS.has(key)) return false;
                 if (appCode === 'HOSTEL_MANAGEMENT' && key && HM_HIDDEN_FEATURE_KEYS.has(key)) return false;
                 if (appCode === 'MUTTON_STALL' && key && MS_HIDDEN_FEATURE_KEYS.has(key)) return false;
+                if (appCode === 'HOSPITAL_MANAGEMENT' && key && HH_HIDDEN_FEATURE_KEYS.has(key)) return false;
                 return true;
             });
             return {
@@ -573,6 +648,11 @@ const expandGrantedPermissions = (appCode, permissionKeys = []) => {
         }
         if (appCode === 'MUTTON_STALL' && MS_LEGACY_TO_GRANULAR[key]) {
             MS_LEGACY_TO_GRANULAR[key].forEach((item) => expanded.add(item));
+            expanded.add(key);
+            return;
+        }
+        if (appCode === 'HOSPITAL_MANAGEMENT' && HH_LEGACY_TO_GRANULAR[key]) {
+            HH_LEGACY_TO_GRANULAR[key].forEach((item) => expanded.add(item));
             expanded.add(key);
             return;
         }
@@ -678,13 +758,14 @@ const PlatformEmployeesPage = ({
     const isChitScoped = appScope === 'CHIT_FUND';
     const isHmScoped = appScope === 'HOSTEL_MANAGEMENT';
     const isMsScoped = appScope === 'MUTTON_STALL';
+    const isHhScoped = appScope === 'HOSPITAL_MANAGEMENT';
     // Role-package Step 3 for subordinate staff (Collector/Accountant/Receptionist/Salesman).
     const usesCollectorAccountantPackage = (roleCode, forAppCode = null) => {
         const role = String(roleCode || '').toUpperCase();
         if (!['COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN'].includes(role)) return false;
         if (managerMode) return true;
         const appCode = String(forAppCode || appScope || '').toUpperCase();
-        if (role === 'RECEPTIONIST' || role === 'KITCHEN_STAFF') return appCode === 'HOSTEL_MANAGEMENT';
+        if (role === 'RECEPTIONIST' || role === 'KITCHEN_STAFF') return appCode === 'HOSTEL_MANAGEMENT' || appCode === 'HOSPITAL_MANAGEMENT';
         if (role === 'SALESMAN') return appCode === 'MUTTON_STALL';
         return appCode === 'VEHICLE_FINANCE' || appCode === 'CHIT_FUND';
     };
@@ -815,10 +896,12 @@ const PlatformEmployeesPage = ({
             || isChitScoped
             || isHmScoped
             || isMsScoped
+            || isHhScoped
             || appCode === 'VEHICLE_FINANCE'
             || appCode === 'CHIT_FUND'
             || appCode === 'HOSTEL_MANAGEMENT'
             || appCode === 'MUTTON_STALL'
+            || appCode === 'HOSPITAL_MANAGEMENT'
         ) {
             const preferred = scope.ownerCreatableRoles
                 || ['MANAGER', 'COLLECTOR', 'ACCOUNTANT'];
@@ -840,8 +923,8 @@ const PlatformEmployeesPage = ({
         const blockedKeys = new Set(
             (MANAGER_SCOPE_PERMISSIONS[appCode] || scopeConfig).blockedDelegation || []
         );
-        const assignFn = appCode === 'HOSTEL_MANAGEMENT' || roleCode === 'RECEPTIONIST' || roleCode === 'KITCHEN_STAFF'
-            ? hmFeaturesAssignableToRole
+        const assignFn = appCode === 'HOSTEL_MANAGEMENT' || (appCode === 'HOSPITAL_MANAGEMENT' && roleCode === 'RECEPTIONIST') || roleCode === 'RECEPTIONIST' || roleCode === 'KITCHEN_STAFF'
+            ? (appCode === 'HOSPITAL_MANAGEMENT' ? hhFeaturesAssignableToRole : hmFeaturesAssignableToRole)
             : (appCode === 'MUTTON_STALL' || roleCode === 'SALESMAN')
                 ? msFeaturesAssignableToRole
                 : featuresAssignableToRole;
@@ -2493,7 +2576,9 @@ const PlatformEmployeesPage = ({
                                                                                         ? HM_ADMINISTRATION_CATEGORIES
                                                                                         : (appCode === 'MUTTON_STALL'
                                                                                             ? MS_ADMINISTRATION_CATEGORIES
-                                                                                            : null)));
+                                                                                            : (appCode === 'HOSPITAL_MANAGEMENT'
+                                                                                                ? HH_ADMINISTRATION_CATEGORIES
+                                                                                                : null))));
                                                                             if (adminCategories) {
                                                                                 const adminSet = new Set(adminCategories);
                                                                                 const generalGroups = orderedFeatureGroups.filter(([category]) => !adminSet.has(category));

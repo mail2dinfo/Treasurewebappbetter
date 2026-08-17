@@ -20,6 +20,10 @@ import {
     MS_MANAGER_DEFAULT_FEATURES,
     msPermissionGrantsFeature,
 } from '../utils/msPermissionCatalog';
+import {
+    HH_MANAGER_DEFAULT_FEATURES,
+    hhPermissionGrantsFeature,
+} from '../utils/hhPermissionCatalog';
 import { useUserContext } from './user_context';
 
 const STORAGE_KEY = 'platform_active_context';
@@ -216,13 +220,14 @@ export const PlatformAccessProvider = ({ children }) => {
         const isVfFeature = key.startsWith('vf_') || key.startsWith('vf.');
         const roleCode = String(activeContext?.roleCode || '').toUpperCase();
         // Owner bypass only for owner/user context — never when acting as Manager/Collector.
-        const staffRoleActive = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF'].includes(roleCode);
+        const staffRoleActive = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN'].includes(roleCode);
         if (session?.isOwner && !staffRoleActive) return true;
 
-        // Fail closed for VF/HM staff until session/context is known.
+        // Fail closed for VF/HM/HH staff until session/context is known.
         const isHmFeature = key.startsWith('hm_') || key === 'people_access_manage';
+        const isHhFeature = key.startsWith('hh_');
         if (!isAvailable || !hasLoaded) {
-            return (isVfFeature || (isHmFeature && staffRoleActive)) ? false : true;
+            return (isVfFeature || ((isHmFeature || isHhFeature) && staffRoleActive)) ? false : true;
         }
         if (!activeContext) {
             return isVfFeature ? false : true;
@@ -306,6 +311,8 @@ export const PlatformAccessProvider = ({ children }) => {
                 effectivePermissions = HM_MANAGER_DEFAULT_FEATURES;
             } else if (activeContext.appCode === 'MUTTON_STALL') {
                 effectivePermissions = MS_MANAGER_DEFAULT_FEATURES;
+            } else if (activeContext.appCode === 'HOSPITAL_MANAGEMENT') {
+                effectivePermissions = HH_MANAGER_DEFAULT_FEATURES;
             }
         }
 
@@ -315,6 +322,7 @@ export const PlatformAccessProvider = ({ children }) => {
                 || vfPermissionGrantsFeature(permission, requested)
                 || hmPermissionGrantsFeature(permission, requested)
                 || msPermissionGrantsFeature(permission, requested)
+                || hhPermissionGrantsFeature(permission, requested)
             ))
         ));
     }, [activeContext, hasLoaded, isAvailable, session]);

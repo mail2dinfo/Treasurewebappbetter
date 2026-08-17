@@ -84,6 +84,15 @@ const APP_THEMES = {
         bar: 'bg-rose-800',
         ring: 'ring-rose-100',
     },
+    HOSPITAL_MANAGEMENT: {
+        shortName: 'Hospital Management',
+        accent: '#0E7490',
+        iconBg: 'bg-cyan-700',
+        softBg: 'bg-cyan-50',
+        border: 'border-cyan-200 hover:border-cyan-500',
+        bar: 'bg-cyan-700',
+        ring: 'ring-cyan-100',
+    },
     PEOPLE_ACCESS: {
         shortName: 'Employee & Access',
         accent: '#44403C',
@@ -187,6 +196,14 @@ const APP_ROUTES = {
         COLLECTOR: '/mutton-stall/user/dashboard',
         ACCOUNTANT: '/mutton-stall/user/dashboard',
         SUBSCRIBER: '/mutton-stall/customer/dashboard',
+    },
+    HOSPITAL_MANAGEMENT: {
+        USER: '/hospital-management/user/dashboard',
+        MANAGER: '/hospital-management/manager/dashboard',
+        RECEPTIONIST: '/hospital-management/receptionist/dashboard',
+        DOCTOR: '/hospital-management/user/dashboard',
+        ACCOUNTANT: '/hospital-management/user/dashboard',
+        COLLECTOR: '/hospital-management/user/dashboard',
     },
 };
 
@@ -540,6 +557,20 @@ const AppSelectionPage = () => {
                 </svg>
             ),
             path: '/mutton-stall/user/dashboard',
+            isActive: true
+        },
+        {
+            id: 9,
+            appCode: 'HOSPITAL_MANAGEMENT',
+            name: 'Hospital Management',
+            description: 'OPD, IPD, pharmacy, billing, ledger & daybook',
+            icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM8.25 9.75a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0zM12 15.75a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75h-.008a.75.75 0 01-.75-.75V16.5a.75.75 0 01.75-.75h.008z" clipRule="evenodd" />
+                    <path d="M11.25 6.75h1.5v3.75h3.75v1.5h-3.75v3.75h-1.5v-3.75H7.5v-1.5h3.75V6.75z" />
+                </svg>
+            ),
+            path: '/hospital-management/user/dashboard',
             isActive: true
         }
     ], []);

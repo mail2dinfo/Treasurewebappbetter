@@ -46,6 +46,12 @@ import MuttonStallAdminLayout, {
 } from './components/muttonStall/MuttonStallAdminLayout';
 import MuttonStallCustomerLayout from './components/muttonStall/MuttonStallCustomerLayout';
 import MuttonStallPublicLandingPage from './pages/muttonStall/MuttonStallPublicLandingPage';
+import HospitalManagementAdminLayout, {
+  HospitalManagementManagerLayout,
+  HospitalManagementReceptionistLayout,
+} from './components/hospitalManagement/HospitalManagementAdminLayout';
+import HospitalPatientPortalLogin from './pages/hospitalManagement/patientPortal/HospitalPatientPortalLogin';
+import HospitalPatientPortalHome from './pages/hospitalManagement/patientPortal/HospitalPatientPortalHome';
 
 // Legacy layouts for backward compatibility (can be removed later)
 import CollectorLayout from './components/collector/CollectorLayout';
@@ -140,6 +146,13 @@ function App() {
                         <Route path="/mutton-stall/manager" component={MuttonStallManagerLayout} />
                         <Route path="/mutton-stall/salesman" component={MuttonStallSalesmanLayout} />
                         <Route path="/mutton-stall/customer" component={MuttonStallCustomerLayout} />
+
+                        {/* Hospital Management App Routes */}
+                        <Route exact path="/hospital-management/patient" component={HospitalPatientPortalLogin} />
+                        <Route exact path="/hospital-management/patient/home" component={HospitalPatientPortalHome} />
+                        <Route path="/hospital-management/user" component={HospitalManagementAdminLayout} />
+                        <Route path="/hospital-management/manager" component={HospitalManagementManagerLayout} />
+                        <Route path="/hospital-management/receptionist" component={HospitalManagementReceptionistLayout} />
 
                         {/* Legacy Routes for Backward Compatibility */}
                         <Route path="/customer" render={() => <Redirect to="/chit-fund/subscriber" />} />
