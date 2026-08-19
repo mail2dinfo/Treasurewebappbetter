@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useHistory, useLocation } from 'react-router-dom';
 import {
   FiHome,
   FiActivity,
@@ -19,6 +19,7 @@ import {
   FiShield,
   FiBarChart2,
   FiSliders,
+  FiShoppingBag,
 } from 'react-icons/fi';
 import {
   HH_BASE_PATH,
@@ -33,6 +34,10 @@ const MENU_ICONS = {
   doctors: FiUserCheck,
   patients: FiUsers,
   appointments: FiCalendar,
+  reception: FiUserCheck,
+  'doctor-desk': FiActivity,
+  'pharmacy-desk': FiShoppingBag,
+  'kitchen-desk': FiPackage,
   'wards-beds': FiLayers,
   admissions: FiClipboard,
   'hospital-billing': FiDollarSign,
@@ -50,6 +55,7 @@ const MENU_ICONS = {
 };
 
 const HospitalManagementAppMenuBar = ({ basePath: basePathProp }) => {
+  const history = useHistory();
   const location = useLocation();
   const contextBasePath = useHhBasePath();
   const basePath = basePathProp || contextBasePath || HH_BASE_PATH;
@@ -74,9 +80,28 @@ const HospitalManagementAppMenuBar = ({ basePath: basePathProp }) => {
   };
 
   return (
-    <nav className="hidden lg:block bg-white border-b border-gray-200 sticky top-14 z-40 shadow-sm" aria-label="Hospital Management modules">
+    <nav className="bg-white border-b border-gray-200 sticky top-14 z-40 shadow-sm" aria-label="Hospital Management modules">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-1 overflow-x-auto py-2 -mx-1 px-1">
+        {/* Mobile / tablet: dropdown */}
+        <div className="lg:hidden py-2">
+          <label className="sr-only" htmlFor="hh-module-jump">Jump to module</label>
+          <select
+            id="hh-module-jump"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+            value={items.find((item) => isItemActive(item))?.path || ''}
+            onChange={(e) => {
+              if (e.target.value) history.push(e.target.value);
+            }}
+          >
+            <option value="" disabled>Go to module…</option>
+            {items.map((item) => (
+              <option key={item.id} value={item.path}>{item.label}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Desktop: wrap modules so every permitted menu stays visible */}
+        <div className="hidden lg:flex flex-wrap items-center gap-1 py-2 -mx-1 px-1">
           {items.map((item) => {
             const Icon = MENU_ICONS[item.id] || FiHome;
             const active = isItemActive(item);

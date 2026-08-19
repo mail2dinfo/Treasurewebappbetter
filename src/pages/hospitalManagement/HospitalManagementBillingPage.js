@@ -15,8 +15,10 @@ const HospitalManagementBillingPage = () => {
   const {
     receivables,
     patients,
+    ledgerAccounts,
     fetchReceivables,
     fetchPatients,
+    fetchLedgerAccounts,
     createReceivable,
     recordPayment,
   } = useHospitalManagement();
@@ -28,6 +30,8 @@ const HospitalManagementBillingPage = () => {
     billType: 'OPD',
     billDate: toDate(new Date()),
     description: '',
+    paymentMethod: 'CASH',
+    ledgerAccountId: '',
   });
   const [payForm, setPayForm] = useState({
     receivableId: '',
@@ -35,13 +39,15 @@ const HospitalManagementBillingPage = () => {
     paymentMethod: 'CASH',
     paymentDate: toDate(new Date()),
     notes: '',
+    ledgerAccountId: '',
   });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchReceivables();
     fetchPatients();
-  }, [fetchReceivables, fetchPatients]);
+    fetchLedgerAccounts();
+  }, [fetchReceivables, fetchPatients, fetchLedgerAccounts]);
 
   const enrichedReceivables = useMemo(
     () =>
@@ -77,32 +83,49 @@ const HospitalManagementBillingPage = () => {
   const onCreateBill = async (e) => {
     e.preventDefault();
     if (!billForm.patientId) return toast.error('Select patient');
-    if (!Number(billForm.amountDue)) return toast.error('Enter amount due');
+    if (!Number(billForm.amountDue)) return toast.error('Enter amount');
+    if (!billForm.ledgerAccountId) return toast.error('Select the ledger account receiving this payment');
     setSaving(true);
-    const result = await createReceivable({
+    const created = await createReceivable({
       patientId: billForm.patientId,
       amountDue: Number(billForm.amountDue),
       billType: billForm.billType,
       billDate: billForm.billDate,
       description: billForm.description.trim() || null,
     });
+    if (!created.success) {
+      setSaving(false);
+      return toast.error(created.error || 'Failed');
+    }
+    const receivableId = created.data?.id || created.data?.receivable?.id;
+    const paid = await recordPayment({
+      receivableId,
+      amount: Number(billForm.amountDue),
+      paymentMethod: billForm.paymentMethod,
+      paymentDate: billForm.billDate,
+      ledgerAccountId: billForm.ledgerAccountId,
+      description: billForm.description.trim() || null,
+    });
     setSaving(false);
-    if (result.success) {
-      toast.success('Receivable created');
+    if (paid.success) {
+      toast.success('Payment collected — bill created and logged in ledger');
       setBillForm({
         patientId: '',
         amountDue: '',
         billType: 'OPD',
         billDate: toDate(new Date()),
         description: '',
+        paymentMethod: 'CASH',
+        ledgerAccountId: billForm.ledgerAccountId,
       });
-    } else toast.error(result.error || 'Failed');
+    } else toast.error(paid.error || 'Payment failed');
   };
 
   const onRecordPayment = async (e) => {
     e.preventDefault();
     if (!payForm.receivableId) return toast.error('Select receivable');
     if (!Number(payForm.amount)) return toast.error('Enter amount');
+    if (!payForm.ledgerAccountId) return toast.error('Select the ledger account receiving this payment');
     setSaving(true);
     const result = await recordPayment({
       receivableId: payForm.receivableId,
@@ -110,6 +133,7 @@ const HospitalManagementBillingPage = () => {
       paymentMethod: payForm.paymentMethod,
       paymentDate: payForm.paymentDate,
       description: payForm.notes.trim() || null,
+      ledgerAccountId: payForm.ledgerAccountId,
     });
     setSaving(false);
     if (result.success) {
@@ -120,6 +144,7 @@ const HospitalManagementBillingPage = () => {
         paymentMethod: 'CASH',
         paymentDate: toDate(new Date()),
         notes: '',
+        ledgerAccountId: payForm.ledgerAccountId,
       });
     } else toast.error(result.error || 'Failed');
   };
@@ -128,13 +153,13 @@ const HospitalManagementBillingPage = () => {
     <div className="max-w-6xl mx-auto px-4 py-4 space-y-4">
       <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
         <h1 className="text-xl font-bold text-gray-900">Hospital Billing</h1>
-        <p className="text-sm text-gray-500">Receivables and payment receipts</p>
+        <p className="text-sm text-gray-500">Bills are issued only after payment. Both payment and refunds are logged in ledger.</p>
       </div>
 
       {canManage && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <form onSubmit={onCreateBill} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm space-y-3">
-            <h2 className="text-sm font-semibold text-gray-900">Create receivable</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Collect payment & create bill</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <select
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white sm:col-span-2"
@@ -148,7 +173,7 @@ const HospitalManagementBillingPage = () => {
               </select>
               <input
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                placeholder="Amount due *"
+                placeholder="Amount *"
                 type="number"
                 value={billForm.amountDue}
                 onChange={(e) => setBillForm((f) => ({ ...f, amountDue: e.target.value }))}
@@ -163,6 +188,28 @@ const HospitalManagementBillingPage = () => {
                 <option value="PHARMACY">Pharmacy</option>
                 <option value="ADHOC">Ad hoc</option>
               </select>
+              <select
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                value={billForm.paymentMethod}
+                onChange={(e) => setBillForm((f) => ({ ...f, paymentMethod: e.target.value }))}
+              >
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="CARD">Card</option>
+                <option value="BANK">Bank transfer</option>
+              </select>
+              <select
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white sm:col-span-2"
+                value={billForm.ledgerAccountId}
+                onChange={(e) => setBillForm((f) => ({ ...f, ledgerAccountId: e.target.value }))}
+              >
+                <option value="">Ledger account *</option>
+                {(ledgerAccounts || []).map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name || account.account_name} · {rs(account.current_balance ?? account.currentBalance)}
+                  </option>
+                ))}
+              </select>
               <input
                 type="date"
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
@@ -170,14 +217,14 @@ const HospitalManagementBillingPage = () => {
                 onChange={(e) => setBillForm((f) => ({ ...f, billDate: e.target.value }))}
               />
               <input
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm sm:col-span-2"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
                 placeholder="Description"
                 value={billForm.description}
                 onChange={(e) => setBillForm((f) => ({ ...f, description: e.target.value }))}
               />
             </div>
             <button type="submit" disabled={saving} className="bg-cyan-700 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-cyan-800 disabled:opacity-60">
-              {saving ? 'Saving…' : 'Create receivable'}
+              {saving ? 'Saving…' : 'Collect payment'}
             </button>
           </form>
 
@@ -219,6 +266,18 @@ const HospitalManagementBillingPage = () => {
                 value={payForm.paymentDate}
                 onChange={(e) => setPayForm((f) => ({ ...f, paymentDate: e.target.value }))}
               />
+              <select
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white sm:col-span-2"
+                value={payForm.ledgerAccountId}
+                onChange={(e) => setPayForm((f) => ({ ...f, ledgerAccountId: e.target.value }))}
+              >
+                <option value="">Ledger account *</option>
+                {(ledgerAccounts || []).map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name || account.account_name} · {rs(account.current_balance ?? account.currentBalance)}
+                  </option>
+                ))}
+              </select>
               <input
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
                 placeholder="Notes"

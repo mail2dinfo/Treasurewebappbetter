@@ -41,9 +41,11 @@ import {
     HH_GRANULAR_FEATURES,
     HH_HIDDEN_FEATURE_KEYS,
     HH_LEGACY_TO_GRANULAR,
+    HH_STAFF_ROLES,
     hhFeaturesAssignableToRole,
     toHhFallbackFeature,
 } from '../utils/hhPermissionCatalog';
+import HhSearchableSelect from '../components/hospitalManagement/HhSearchableSelect';
 import { useUserContext } from '../context/user_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
 import MyTreasureBrand from '../components/MyTreasureBrand';
@@ -291,6 +293,26 @@ const MANAGER_SCOPE_PERMISSIONS = {
             'hh_receptionist_add',
             'hh_receptionist_edit',
             'hh_receptionist_delete',
+            'hh_pharmacist_view',
+            'hh_pharmacist_add',
+            'hh_pharmacist_edit',
+            'hh_pharmacist_delete',
+            'hh_doctor_staff_view',
+            'hh_doctor_staff_add',
+            'hh_doctor_staff_edit',
+            'hh_doctor_staff_delete',
+            'hh_nurse_view',
+            'hh_nurse_add',
+            'hh_nurse_edit',
+            'hh_nurse_delete',
+            'hh_compounder_view',
+            'hh_compounder_add',
+            'hh_compounder_edit',
+            'hh_compounder_delete',
+            'hh_kitchen_staff_view',
+            'hh_kitchen_staff_add',
+            'hh_kitchen_staff_edit',
+            'hh_kitchen_staff_delete',
         ],
         manageAll: 'hh_employee_manage',
         employeeAdd: 'hh_receptionist_add',
@@ -322,8 +344,63 @@ const MANAGER_SCOPE_PERMISSIONS = {
         receptionistEdit: 'hh_receptionist_edit',
         receptionistDelete: 'hh_receptionist_delete',
         receptionistOffer: null,
-        managerCreatableRoles: ['RECEPTIONIST'],
-        ownerCreatableRoles: ['MANAGER', 'RECEPTIONIST'],
+        pharmacistView: [
+            'hh_pharmacist_view',
+            'hh_pharmacist_add',
+            'hh_pharmacist_edit',
+            'hh_pharmacist_delete',
+            'hh_employee_manage',
+        ],
+        pharmacistAdd: 'hh_pharmacist_add',
+        pharmacistEdit: 'hh_pharmacist_edit',
+        pharmacistDelete: 'hh_pharmacist_delete',
+        pharmacistOffer: null,
+        doctorStaffView: [
+            'hh_doctor_staff_view',
+            'hh_doctor_staff_add',
+            'hh_doctor_staff_edit',
+            'hh_doctor_staff_delete',
+            'hh_employee_manage',
+        ],
+        doctorStaffAdd: 'hh_doctor_staff_add',
+        doctorStaffEdit: 'hh_doctor_staff_edit',
+        doctorStaffDelete: 'hh_doctor_staff_delete',
+        doctorStaffOffer: null,
+        nurseView: [
+            'hh_nurse_view',
+            'hh_nurse_add',
+            'hh_nurse_edit',
+            'hh_nurse_delete',
+            'hh_employee_manage',
+        ],
+        nurseAdd: 'hh_nurse_add',
+        nurseEdit: 'hh_nurse_edit',
+        nurseDelete: 'hh_nurse_delete',
+        nurseOffer: null,
+        compounderView: [
+            'hh_compounder_view',
+            'hh_compounder_add',
+            'hh_compounder_edit',
+            'hh_compounder_delete',
+            'hh_employee_manage',
+        ],
+        compounderAdd: 'hh_compounder_add',
+        compounderEdit: 'hh_compounder_edit',
+        compounderDelete: 'hh_compounder_delete',
+        compounderOffer: null,
+        kitchenStaffView: [
+            'hh_kitchen_staff_view',
+            'hh_kitchen_staff_add',
+            'hh_kitchen_staff_edit',
+            'hh_kitchen_staff_delete',
+            'hh_employee_manage',
+        ],
+        kitchenStaffAdd: 'hh_kitchen_staff_add',
+        kitchenStaffEdit: 'hh_kitchen_staff_edit',
+        kitchenStaffDelete: 'hh_kitchen_staff_delete',
+        kitchenStaffOffer: null,
+        managerCreatableRoles: ['RECEPTIONIST', 'PHARMACIST', 'DOCTOR', 'NURSE', 'COMPOUNDER', 'KITCHEN_STAFF'],
+        ownerCreatableRoles: ['MANAGER', 'RECEPTIONIST', 'PHARMACIST', 'DOCTOR', 'NURSE', 'COMPOUNDER', 'KITCHEN_STAFF'],
         blockedDelegation: [
             'people_access_manage',
             'hh_employee_manage',
@@ -333,6 +410,26 @@ const MANAGER_SCOPE_PERMISSIONS = {
             'hh_receptionist_add',
             'hh_receptionist_edit',
             'hh_receptionist_delete',
+            'hh_pharmacist_view',
+            'hh_pharmacist_add',
+            'hh_pharmacist_edit',
+            'hh_pharmacist_delete',
+            'hh_doctor_staff_view',
+            'hh_doctor_staff_add',
+            'hh_doctor_staff_edit',
+            'hh_doctor_staff_delete',
+            'hh_nurse_view',
+            'hh_nurse_add',
+            'hh_nurse_edit',
+            'hh_nurse_delete',
+            'hh_compounder_view',
+            'hh_compounder_add',
+            'hh_compounder_edit',
+            'hh_compounder_delete',
+            'hh_kitchen_staff_view',
+            'hh_kitchen_staff_add',
+            'hh_kitchen_staff_edit',
+            'hh_kitchen_staff_delete',
             'hh_settings',
         ],
     },
@@ -350,6 +447,8 @@ const emptyProfile = {
     bankBranch: '',
     bankAccountNumber: '',
     bankIfsc: '',
+    specializationId: '',
+    consultationFee: '',
 };
 
 const APP_DISPLAY_ORDER = [
@@ -406,7 +505,7 @@ const getFeatureLabel = (feature) => (
     typeof feature === 'string' ? feature : feature.displayName || feature.display_name || feature.name || getFeatureKey(feature)
 );
 
-const EMPLOYEE_ROLES = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN'];
+const EMPLOYEE_ROLES = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN', 'PHARMACIST', 'DOCTOR', 'NURSE', 'COMPOUNDER'];
 const ROLE_DISPLAY_NAME = {
     MANAGER: 'Manager',
     COLLECTOR: 'Collector',
@@ -414,6 +513,10 @@ const ROLE_DISPLAY_NAME = {
     RECEPTIONIST: 'Receptionist',
     KITCHEN_STAFF: 'Kitchen Staff',
     SALESMAN: 'Salesman',
+    PHARMACIST: 'Pharmacist',
+    DOCTOR: 'Doctor',
+    NURSE: 'Nurse',
+    COMPOUNDER: 'Compounder',
 };
 const fallbackFeature = (featureKey, displayName, category, defaultRoles) => ({
     featureKey,
@@ -539,7 +642,8 @@ const mergeCatalogWithFallback = (catalogList) => {
             const orderedKnown = granularFeatures.map((feature) => {
                 const key = getFeatureKey(feature);
                 const fromServer = serverFeatures.find((item) => getFeatureKey(item) === key);
-                if (!fromServer) return feature;
+                // API rejects unknown keys — never send frontend-only features.
+                if (!fromServer) return null;
                 return {
                     ...fromServer,
                     category: feature.category || fromServer.category || fromServer.category_name,
@@ -549,7 +653,7 @@ const mergeCatalogWithFallback = (catalogList) => {
                         || fromServer.default_roles
                         || [],
                 };
-            });
+            }).filter(Boolean);
             const orderedKeys = new Set(orderedKnown.map(getFeatureKey));
             const serverExtras = serverFeatures.filter((feature) => {
                 const key = getFeatureKey(feature);
@@ -762,10 +866,13 @@ const PlatformEmployeesPage = ({
     // Role-package Step 3 for subordinate staff (Collector/Accountant/Receptionist/Salesman).
     const usesCollectorAccountantPackage = (roleCode, forAppCode = null) => {
         const role = String(roleCode || '').toUpperCase();
-        if (!['COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN'].includes(role)) return false;
+        const packageRoles = ['COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN', 'PHARMACIST', 'DOCTOR', 'NURSE', 'COMPOUNDER'];
+        if (!packageRoles.includes(role)) return false;
         if (managerMode) return true;
         const appCode = String(forAppCode || appScope || '').toUpperCase();
-        if (role === 'RECEPTIONIST' || role === 'KITCHEN_STAFF') return appCode === 'HOSTEL_MANAGEMENT' || appCode === 'HOSPITAL_MANAGEMENT';
+        if (role === 'RECEPTIONIST') return appCode === 'HOSTEL_MANAGEMENT' || appCode === 'HOSPITAL_MANAGEMENT';
+        if (role === 'KITCHEN_STAFF') return appCode === 'HOSTEL_MANAGEMENT' || appCode === 'HOSPITAL_MANAGEMENT';
+        if (HH_STAFF_ROLES.includes(role)) return appCode === 'HOSPITAL_MANAGEMENT';
         if (role === 'SALESMAN') return appCode === 'MUTTON_STALL';
         return appCode === 'VEHICLE_FINANCE' || appCode === 'CHIT_FUND';
     };
@@ -830,18 +937,83 @@ const PlatformEmployeesPage = ({
         || hasManageAll;
     const canViewKitchenStaff = isOwner
         || (scopeConfig.kitchenView || []).some((key) => contextHasGranted(key))
+        || (scopeConfig.kitchenStaffView || []).some((key) => contextHasGranted(key))
         || hasManageAll;
     const canCreateKitchenStaff = isOwner
         || contextHasGranted(scopeConfig.kitchenAdd)
+        || contextHasGranted(scopeConfig.kitchenStaffAdd)
         || hasManageAll;
     const canEditKitchenStaff = isOwner
         || contextHasGranted(scopeConfig.kitchenEdit)
+        || contextHasGranted(scopeConfig.kitchenStaffEdit)
         || hasManageAll;
     const canDeleteKitchenStaff = isOwner
         || contextHasGranted(scopeConfig.kitchenDelete)
+        || contextHasGranted(scopeConfig.kitchenStaffDelete)
         || hasManageAll;
     const canOfferLetterKitchenStaff = isOwner
         || contextHasGranted(scopeConfig.kitchenOffer)
+        || contextHasGranted(scopeConfig.kitchenStaffOffer)
+        || hasManageAll;
+    const canViewPharmacists = isOwner
+        || (scopeConfig.pharmacistView || []).some((key) => contextHasGranted(key))
+        || hasManageAll;
+    const canCreatePharmacist = isOwner
+        || contextHasGranted(scopeConfig.pharmacistAdd)
+        || hasManageAll;
+    const canEditPharmacist = isOwner
+        || contextHasGranted(scopeConfig.pharmacistEdit)
+        || hasManageAll;
+    const canDeletePharmacist = isOwner
+        || contextHasGranted(scopeConfig.pharmacistDelete)
+        || hasManageAll;
+    const canOfferLetterPharmacist = isOwner
+        || contextHasGranted(scopeConfig.pharmacistOffer)
+        || hasManageAll;
+    const canViewDoctorStaff = isOwner
+        || (scopeConfig.doctorStaffView || []).some((key) => contextHasGranted(key))
+        || hasManageAll;
+    const canCreateDoctorStaff = isOwner
+        || contextHasGranted(scopeConfig.doctorStaffAdd)
+        || hasManageAll;
+    const canEditDoctorStaff = isOwner
+        || contextHasGranted(scopeConfig.doctorStaffEdit)
+        || hasManageAll;
+    const canDeleteDoctorStaff = isOwner
+        || contextHasGranted(scopeConfig.doctorStaffDelete)
+        || hasManageAll;
+    const canOfferLetterDoctorStaff = isOwner
+        || contextHasGranted(scopeConfig.doctorStaffOffer)
+        || hasManageAll;
+    const canViewNurses = isOwner
+        || (scopeConfig.nurseView || []).some((key) => contextHasGranted(key))
+        || hasManageAll;
+    const canCreateNurse = isOwner
+        || contextHasGranted(scopeConfig.nurseAdd)
+        || hasManageAll;
+    const canEditNurse = isOwner
+        || contextHasGranted(scopeConfig.nurseEdit)
+        || hasManageAll;
+    const canDeleteNurse = isOwner
+        || contextHasGranted(scopeConfig.nurseDelete)
+        || hasManageAll;
+    const canOfferLetterNurse = isOwner
+        || contextHasGranted(scopeConfig.nurseOffer)
+        || hasManageAll;
+    const canViewCompounders = isOwner
+        || (scopeConfig.compounderView || []).some((key) => contextHasGranted(key))
+        || hasManageAll;
+    const canCreateCompounder = isOwner
+        || contextHasGranted(scopeConfig.compounderAdd)
+        || hasManageAll;
+    const canEditCompounder = isOwner
+        || contextHasGranted(scopeConfig.compounderEdit)
+        || hasManageAll;
+    const canDeleteCompounder = isOwner
+        || contextHasGranted(scopeConfig.compounderDelete)
+        || hasManageAll;
+    const canOfferLetterCompounder = isOwner
+        || contextHasGranted(scopeConfig.compounderOffer)
         || hasManageAll;
     const canViewSalesmen = isOwner
         || (scopeConfig.salesmanView || []).some((key) => contextHasGranted(key))
@@ -862,6 +1034,10 @@ const PlatformEmployeesPage = ({
         || canCreateAccountant
         || canCreateReceptionist
         || canCreateKitchenStaff
+        || canCreatePharmacist
+        || canCreateDoctorStaff
+        || canCreateNurse
+        || canCreateCompounder
         || canCreateSalesman;
     const canAssignRole = (roleCode) => {
         // Managers cannot create/assign another Manager (same role).
@@ -871,6 +1047,10 @@ const PlatformEmployeesPage = ({
         if (roleCode === 'ACCOUNTANT') return canCreateAccountant;
         if (roleCode === 'RECEPTIONIST') return canCreateReceptionist;
         if (roleCode === 'KITCHEN_STAFF') return canCreateKitchenStaff;
+        if (roleCode === 'PHARMACIST') return canCreatePharmacist;
+        if (roleCode === 'DOCTOR') return canCreateDoctorStaff;
+        if (roleCode === 'NURSE') return canCreateNurse;
+        if (roleCode === 'COMPOUNDER') return canCreateCompounder;
         if (roleCode === 'SALESMAN') return canCreateSalesman;
         return false;
     };
@@ -923,7 +1103,14 @@ const PlatformEmployeesPage = ({
         const blockedKeys = new Set(
             (MANAGER_SCOPE_PERMISSIONS[appCode] || scopeConfig).blockedDelegation || []
         );
-        const assignFn = appCode === 'HOSTEL_MANAGEMENT' || (appCode === 'HOSPITAL_MANAGEMENT' && roleCode === 'RECEPTIONIST') || roleCode === 'RECEPTIONIST' || roleCode === 'KITCHEN_STAFF'
+        const assignFn = appCode === 'HOSTEL_MANAGEMENT'
+            || appCode === 'HOSPITAL_MANAGEMENT'
+            || roleCode === 'RECEPTIONIST'
+            || roleCode === 'KITCHEN_STAFF'
+            || roleCode === 'PHARMACIST'
+            || roleCode === 'DOCTOR'
+            || roleCode === 'NURSE'
+            || roleCode === 'COMPOUNDER'
             ? (appCode === 'HOSPITAL_MANAGEMENT' ? hhFeaturesAssignableToRole : hmFeaturesAssignableToRole)
             : (appCode === 'MUTTON_STALL' || roleCode === 'SALESMAN')
                 ? msFeaturesAssignableToRole
@@ -939,6 +1126,10 @@ const PlatformEmployeesPage = ({
             || (roleCode === 'ACCOUNTANT' && canCreateAccountant)
             || (roleCode === 'RECEPTIONIST' && canCreateReceptionist)
             || (roleCode === 'KITCHEN_STAFF' && canCreateKitchenStaff)
+            || (roleCode === 'PHARMACIST' && canCreatePharmacist)
+            || (roleCode === 'DOCTOR' && canCreateDoctorStaff)
+            || (roleCode === 'NURSE' && canCreateNurse)
+            || (roleCode === 'COMPOUNDER' && canCreateCompounder)
             || (roleCode === 'SALESMAN' && canCreateSalesman);
         return roleFeatures.filter((feature) => {
             const featureKey = getFeatureKey(feature);
@@ -969,6 +1160,8 @@ const PlatformEmployeesPage = ({
     const [editorError, setEditorError] = useState('');
     const [selectedAppCodes, setSelectedAppCodes] = useState([]);
     const [enrollments, setEnrollments] = useState([]);
+    const [hhSpecializations, setHhSpecializations] = useState([]);
+    const [hhDoctors, setHhDoctors] = useState([]);
     const showCollectorAccountantPackageHint = !managerMode && (
         isVfScoped
         || isChitScoped
@@ -1007,6 +1200,10 @@ const PlatformEmployeesPage = ({
             if (roles.includes('MANAGER')) return canViewManagers;
             if (roles.includes('RECEPTIONIST')) return canViewReceptionists;
             if (roles.includes('KITCHEN_STAFF')) return canViewKitchenStaff;
+            if (roles.includes('PHARMACIST')) return canViewPharmacists;
+            if (roles.includes('DOCTOR')) return canViewDoctorStaff;
+            if (roles.includes('NURSE')) return canViewNurses;
+            if (roles.includes('COMPOUNDER')) return canViewCompounders;
             if (roles.includes('SALESMAN')) return canViewSalesmen;
             if (roles.includes('COLLECTOR')) return canViewCollectors;
             if (roles.includes('ACCOUNTANT')) {
@@ -1026,6 +1223,10 @@ const PlatformEmployeesPage = ({
         canViewCollectors,
         canViewReceptionists,
         canViewKitchenStaff,
+        canViewPharmacists,
+        canViewDoctorStaff,
+        canViewNurses,
+        canViewCompounders,
         canViewSalesmen,
         canCreateAccountant,
         canEditAccountant,
@@ -1106,6 +1307,34 @@ const PlatformEmployeesPage = ({
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
     }), [token]);
+
+    useEffect(() => {
+        if (!isHhScoped || !token || !ownerMembershipId) return undefined;
+        let cancelled = false;
+        const q = `parent_membership_id=${encodeURIComponent(ownerMembershipId)}`;
+        const loadHhMasters = async () => {
+            try {
+                const [specRes, doctorRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/hh/specializations?${q}`, { headers: authHeaders }),
+                    fetch(`${API_BASE_URL}/hh/doctors?${q}`, { headers: authHeaders }),
+                ]);
+                const specJson = await specRes.json().catch(() => ({}));
+                const doctorJson = await doctorRes.json().catch(() => ({}));
+                if (cancelled) return;
+                const specs = specJson.results ?? specJson.data ?? specJson;
+                const docs = doctorJson.results ?? doctorJson.data ?? doctorJson;
+                setHhSpecializations(Array.isArray(specs) ? specs : []);
+                setHhDoctors(Array.isArray(docs) ? docs : (Array.isArray(docs?.rows) ? docs.rows : []));
+            } catch {
+                if (!cancelled) {
+                    setHhSpecializations([]);
+                    setHhDoctors([]);
+                }
+            }
+        };
+        loadHhMasters();
+        return () => { cancelled = true; };
+    }, [isHhScoped, token, ownerMembershipId, authHeaders]);
 
     const changeViewMode = (mode) => {
         setViewMode(mode);
@@ -1258,12 +1487,33 @@ const PlatformEmployeesPage = ({
             setError('Edit Kitchen Staff permission is required.');
             return;
         }
+        if (managerMode && employeeHasRole(employee, 'PHARMACIST') && !canEditPharmacist) {
+            setError('Edit Pharmacist permission is required.');
+            return;
+        }
+        if (managerMode && employeeHasRole(employee, 'DOCTOR') && !canEditDoctorStaff) {
+            setError('Edit Doctor permission is required.');
+            return;
+        }
+        if (managerMode && employeeHasRole(employee, 'NURSE') && !canEditNurse) {
+            setError('Edit Nurse permission is required.');
+            return;
+        }
+        if (managerMode && employeeHasRole(employee, 'COMPOUNDER') && !canEditCompounder) {
+            setError('Edit Compounder permission is required.');
+            return;
+        }
         if (managerMode && employeeHasRole(employee, 'SALESMAN') && !canEditSalesman) {
             setError('Edit Salesman permission is required.');
             return;
         }
         const sourceProfile = employee.profile || employee;
         const sourceUser = sourceProfile.user || employee.user || sourceProfile;
+        const phoneDigits = String(sourceUser.phone || '').replace(/\D/g, '').slice(-10);
+        const matchedDoctor = hhDoctors.find((doc) => {
+            if (sourceUser.id && String(doc.user_id || '') === String(sourceUser.id)) return true;
+            return phoneDigits && String(doc.phone || '').replace(/\D/g, '').slice(-10) === phoneDigits;
+        });
         setEditingEmployee(employee);
         setProfile({
             name: sourceUser.name || sourceProfile.employee_name || '',
@@ -1277,6 +1527,8 @@ const PlatformEmployeesPage = ({
             bankBranch: sourceUser.bankBranch || sourceUser.bank_branch || '',
             bankAccountNumber: sourceUser.bankAccountNumber || sourceUser.bank_account_number || '',
             bankIfsc: sourceUser.bankIfsc || sourceUser.bank_ifsc || '',
+            specializationId: matchedDoctor?.specialization_id || '',
+            consultationFee: matchedDoctor?.consultation_fee != null ? String(matchedDoctor.consultation_fee) : '',
         });
         const existingEnrollments = (employee.enrollments || employee.roles || [])
                 .filter((enrollment) => enrollment.isActive !== false && enrollment.is_active !== false)
@@ -1400,6 +1652,7 @@ const PlatformEmployeesPage = ({
                     if (
                         canCreateReceptionist
                         && !canCreateKitchenStaff
+                        && !canCreatePharmacist
                         && !canCreateCollector
                         && !canCreateAccountant
                         && !canCreateSalesman
@@ -1408,22 +1661,33 @@ const PlatformEmployeesPage = ({
                     } else if (
                         canCreateKitchenStaff
                         && !canCreateReceptionist
+                        && !canCreatePharmacist
                         && !canCreateCollector
                         && !canCreateAccountant
                         && !canCreateSalesman
                     ) {
                         defaultRoleCode = 'KITCHEN_STAFF';
                     } else if (
-                        canCreateSalesman
+                        canCreatePharmacist
                         && !canCreateReceptionist
                         && !canCreateKitchenStaff
                         && !canCreateCollector
                         && !canCreateAccountant
+                        && !canCreateSalesman
+                    ) {
+                        defaultRoleCode = 'PHARMACIST';
+                    } else if (
+                        canCreateSalesman
+                        && !canCreateReceptionist
+                        && !canCreateKitchenStaff
+                        && !canCreatePharmacist
+                        && !canCreateCollector
+                        && !canCreateAccountant
                     ) {
                         defaultRoleCode = 'SALESMAN';
-                    } else if (canCreateCollector && !canCreateAccountant && !canCreateReceptionist && !canCreateKitchenStaff && !canCreateSalesman) {
+                    } else if (canCreateCollector && !canCreateAccountant && !canCreateReceptionist && !canCreateKitchenStaff && !canCreatePharmacist && !canCreateSalesman) {
                         defaultRoleCode = 'COLLECTOR';
-                    } else if (!canCreateCollector && canCreateAccountant && !canCreateReceptionist && !canCreateKitchenStaff && !canCreateSalesman) {
+                    } else if (!canCreateCollector && canCreateAccountant && !canCreateReceptionist && !canCreateKitchenStaff && !canCreatePharmacist && !canCreateSalesman) {
                         defaultRoleCode = 'ACCOUNTANT';
                     } else defaultRoleCode = null;
                 }
@@ -1574,6 +1838,13 @@ const PlatformEmployeesPage = ({
                 : 'Assign at least one role for every selected application.');
             return;
         }
+        const hiringDoctor = assignableEnrollments.some(
+            (item) => item.appCode === 'HOSPITAL_MANAGEMENT' && item.roleCode === 'DOCTOR'
+        );
+        if (hiringDoctor && !String(profile.specializationId || '').trim()) {
+            setEditorError('Select a specialization for the Doctor.');
+            return;
+        }
         setIsSaving(true);
         setEditorError('');
         setError('');
@@ -1581,6 +1852,12 @@ const PlatformEmployeesPage = ({
             const employeeId = editingEmployee?.id || editingEmployee?.employeeId || editingEmployee?.employee_id;
             const payloadProfile = { ...profile };
             if (!payloadProfile.loginPassword) delete payloadProfile.loginPassword;
+            if (hiringDoctor) {
+                const selectedSpec = hhSpecializations.find(
+                    (item) => String(item.id) === String(payloadProfile.specializationId)
+                );
+                payloadProfile.specialization = selectedSpec?.name || payloadProfile.specialization || null;
+            }
             const mapEnrollmentPayload = (item) => {
                 let permissions = expandGrantedPermissions(
                     item.appCode,
@@ -1661,6 +1938,22 @@ const PlatformEmployeesPage = ({
             setError('Delete Kitchen Staff permission is required.');
             return;
         }
+        if (managerMode && employeeHasRole(employee, 'PHARMACIST') && !canDeletePharmacist) {
+            setError('Delete Pharmacist permission is required.');
+            return;
+        }
+        if (managerMode && employeeHasRole(employee, 'DOCTOR') && !canDeleteDoctorStaff) {
+            setError('Delete Doctor permission is required.');
+            return;
+        }
+        if (managerMode && employeeHasRole(employee, 'NURSE') && !canDeleteNurse) {
+            setError('Delete Nurse permission is required.');
+            return;
+        }
+        if (managerMode && employeeHasRole(employee, 'COMPOUNDER') && !canDeleteCompounder) {
+            setError('Delete Compounder permission is required.');
+            return;
+        }
         if (managerMode && employeeHasRole(employee, 'SALESMAN') && !canDeleteSalesman) {
             setError('Delete Salesman permission is required.');
             return;
@@ -1686,6 +1979,10 @@ const PlatformEmployeesPage = ({
         if (employeeHasRole(employee, 'ACCOUNTANT')) return canOfferLetterAccountant;
         if (employeeHasRole(employee, 'RECEPTIONIST')) return canOfferLetterReceptionist;
         if (employeeHasRole(employee, 'KITCHEN_STAFF')) return canOfferLetterKitchenStaff;
+        if (employeeHasRole(employee, 'PHARMACIST')) return canOfferLetterPharmacist;
+        if (employeeHasRole(employee, 'DOCTOR')) return canOfferLetterDoctorStaff;
+        if (employeeHasRole(employee, 'NURSE')) return canOfferLetterNurse;
+        if (employeeHasRole(employee, 'COMPOUNDER')) return canOfferLetterCompounder;
         // Owner may also generate for Managers from People & Access.
         if (isOwner && employeeHasRole(employee, 'MANAGER')) return true;
         return false;
@@ -1810,11 +2107,13 @@ const PlatformEmployeesPage = ({
                         <div>
                             <h1 className={`text-lg ${textTitle}`}>{pageTitle}</h1>
                             <p className={`text-sm ${textMuted}`}>
-                                {canAddEmployee
+                                {isHhScoped
+                                    ? 'Add Manager, Doctor, Receptionist, Pharmacist, Nurse, Compounder or Kitchen Staff. Doctors require a specialization.'
+                                    : canAddEmployee
                                     ? `You can add ${[
                                         canCreateCollector ? 'Collector' : null,
                                         canCreateAccountant ? 'Accountant' : null,
-                                    ].filter(Boolean).join(' or ')}.`
+                                    ].filter(Boolean).join(' or ') || 'employees'}.`
                                     : 'View team members. Add permission is not assigned.'}
                             </p>
                         </div>
@@ -1859,18 +2158,22 @@ const PlatformEmployeesPage = ({
                                     ['1', 'Employee details', 'Add profile and login information'],
                                     ['2', 'App details', (managerMode || isVfScoped || isChitScoped || isHmScoped || isMsScoped) ? `${scopedAppLabel} (current app)` : 'Confirm application access'],
                                     ['3', 'Roles & features', managerMode
-                                        ? (isHmScoped
-                                            ? 'Receptionist (by your permissions)'
-                                            : (isMsScoped
-                                                ? 'Salesman (by your permissions)'
-                                                : 'Collector or Accountant (by your permissions)'))
+                                        ? (isHhScoped
+                                            ? 'Clinical staff roles / Doctor / Nurse / Compounder (by your permissions)'
+                                            : (isHmScoped
+                                                ? 'Receptionist (by your permissions)'
+                                                : (isMsScoped
+                                                    ? 'Salesman (by your permissions)'
+                                                    : 'Collector or Accountant (by your permissions)')))
                                         : ((isVfScoped || isChitScoped)
                                             ? 'Manager and Collector / Accountant'
-                                            : (isHmScoped
-                                                ? 'Manager and Receptionist'
-                                                : (isMsScoped
-                                                    ? 'Manager and Salesman'
-                                                    : 'Choose duties and permissions')))],
+                                            : (isHhScoped
+                                                ? 'Manager + clinical staff roles with responsibilities'
+                                                : (isHmScoped
+                                                    ? 'Manager and Receptionist'
+                                                    : (isMsScoped
+                                                        ? 'Manager and Salesman'
+                                                        : 'Choose duties and permissions'))))],
                                 ].map(([number, title, description]) => (
                                     <div key={number} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
                                         <div className="w-7 h-7 rounded-full bg-red-600 text-white text-xs font-semibold flex items-center justify-center">{number}</div>
@@ -1978,12 +2281,20 @@ const PlatformEmployeesPage = ({
                                                     const isAccountantEmployee = employeeHasRole(employee, 'ACCOUNTANT');
                                                     const isReceptionistEmployee = employeeHasRole(employee, 'RECEPTIONIST');
                                                     const isKitchenStaffEmployee = employeeHasRole(employee, 'KITCHEN_STAFF');
+                                                    const isPharmacistEmployee = employeeHasRole(employee, 'PHARMACIST');
+                                                    const isDoctorEmployee = employeeHasRole(employee, 'DOCTOR');
+                                                    const isNurseEmployee = employeeHasRole(employee, 'NURSE');
+                                                    const isCompounderEmployee = employeeHasRole(employee, 'COMPOUNDER');
                                                     const isSalesmanEmployee = employeeHasRole(employee, 'SALESMAN');
                                                     const canEditThis = isOwner
                                                         || (isCollectorEmployee && canEditCollector)
                                                         || (isAccountantEmployee && canEditAccountant)
                                                         || (isReceptionistEmployee && canEditReceptionist)
                                                         || (isKitchenStaffEmployee && canEditKitchenStaff)
+                                                        || (isPharmacistEmployee && canEditPharmacist)
+                                                        || (isDoctorEmployee && canEditDoctorStaff)
+                                                        || (isNurseEmployee && canEditNurse)
+                                                        || (isCompounderEmployee && canEditCompounder)
                                                         || (isSalesmanEmployee && canEditSalesman)
                                                         || (isManagerEmployee && canMutateManagers);
                                                     const canDeleteThis = isOwner
@@ -1991,6 +2302,10 @@ const PlatformEmployeesPage = ({
                                                         || (isAccountantEmployee && canDeleteAccountant)
                                                         || (isReceptionistEmployee && canDeleteReceptionist)
                                                         || (isKitchenStaffEmployee && canDeleteKitchenStaff)
+                                                        || (isPharmacistEmployee && canDeletePharmacist)
+                                                        || (isDoctorEmployee && canDeleteDoctorStaff)
+                                                        || (isNurseEmployee && canDeleteNurse)
+                                                        || (isCompounderEmployee && canDeleteCompounder)
                                                         || (isSalesmanEmployee && canDeleteSalesman)
                                                         || (isManagerEmployee && canMutateManagers);
                                                     const isActive =
@@ -2192,8 +2507,12 @@ const PlatformEmployeesPage = ({
                                 <p className={`text-sm ${textMuted}`}>
                                     {skipAppStep
                                         ? (managerMode
-                                            ? `Step 1 profile → Step 2 Collector/Accountant for ${scopedAppLabel} only.`
-                                            : `Step 1 profile → Step 2 Manager / Collector / Accountant for ${scopedAppLabel} only.`)
+                                            ? (isHhScoped
+                                                ? `Step 1 profile → Step 2 roles & responsibilities for ${scopedAppLabel} (Clinical staff roles).`
+                                                : `Step 1 profile → Step 2 Collector/Accountant for ${scopedAppLabel} only.`)
+                                            : (isHhScoped
+                                                ? `Step 1 profile → Step 2 Manager / Clinical staff roles for ${scopedAppLabel}.`
+                                                : `Step 1 profile → Step 2 Manager / Collector / Accountant for ${scopedAppLabel} only.`))
                                         : managerMode
                                             ? `Step 1 profile → Step 2 ${scopedAppLabel} (locked) → Step 3 Collector/Accountant by your permissions.`
                                             : 'Complete the employee, application, and role details.'}
@@ -2208,19 +2527,21 @@ const PlatformEmployeesPage = ({
                                     ? [
                                         [1, 'Employee details'],
                                         [3, managerMode
-                                            ? `${scopedAppLabel} · ${isMsScoped ? 'Salesman' : (isHmScoped ? 'Receptionist' : 'Collector / Accountant')}`
+                                            ? `${scopedAppLabel} · ${isMsScoped ? 'Salesman' : (isHhScoped ? 'Clinical staff roles' : (isHmScoped ? 'Receptionist' : 'Collector / Accountant'))}`
                                             : `${scopedAppLabel} · Roles`],
                                     ]
                                     : [
                                         [1, 'Employee details'],
                                         [2, (managerMode || isVfScoped || isChitScoped || isHmScoped || isMsScoped) ? `App (${scopedAppLabel})` : 'App details'],
                                         [3, managerMode
-                                            ? (isMsScoped ? 'Salesman' : (isHmScoped ? 'Receptionist' : 'Collector / Accountant'))
+                                            ? (isMsScoped ? 'Salesman' : (isHhScoped ? 'Clinical staff roles' : (isHmScoped ? 'Receptionist' : 'Collector / Accountant')))
                                             : ((isVfScoped || isChitScoped)
                                                 ? 'Manager · Collector / Accountant'
                                                 : (isMsScoped
                                                     ? 'Manager · Salesman'
-                                                    : (isHmScoped ? 'Manager · Receptionist' : 'Roles assign')))],
+                                                    : (isHhScoped
+                                                        ? 'Manager · Clinical staff roles'
+                                                        : (isHmScoped ? 'Manager · Receptionist' : 'Roles assign'))))],
                                     ]
                                 ).map(([step, label], index) => (
                                     <button
@@ -2385,15 +2706,27 @@ const PlatformEmployeesPage = ({
                                 <section>
                                     <h3 className="font-semibold text-gray-900">
                                         {managerMode
-                                            ? 'Collector / Accountant'
-                                            : ((isVfScoped || isChitScoped) ? 'Manager · Collector / Accountant' : 'Roles assign')}
+                                            ? (isHhScoped
+                                                ? 'Clinical staff roles'
+                                                : (isHmScoped
+                                                    ? 'Receptionist / Kitchen Staff'
+                                                    : (isMsScoped ? 'Salesman' : 'Collector / Accountant')))
+                                            : ((isVfScoped || isChitScoped)
+                                                ? 'Manager · Collector / Accountant'
+                                                : (isHhScoped
+                                                    ? 'Manager · Clinical staff roles'
+                                                    : 'Roles & responsibilities'))}
                                     </h3>
                                     <p className="text-sm text-gray-500 mt-1 mb-4">
                                         {managerMode
-                                            ? 'Choose Collector and/or Accountant. A role is enabled only if you have its Add permission (from People & Access).'
+                                            ? (isHhScoped
+                                                ? 'Choose a role (Receptionist, Pharmacist, Doctor, Nurse, Compounder), then tick responsibilities for that role. A role is enabled only if you have its Add permission.'
+                                                : 'Choose subordinate role(s). A role is enabled only if you have its Add permission (from People & Access).')
                                             : (isVfScoped || isChitScoped || selectedAppCodes.includes('CHIT_FUND') || selectedAppCodes.includes('VEHICLE_FINANCE'))
                                                 ? 'Assign Manager (duties & Administration), and/or Collector / Accountant with the same feature packages as on the Manager employees page.'
-                                                : 'Manager is pre-selected with all features enabled. Uncheck only what you want to remove.'}
+                                                : (isHhScoped
+                                                    ? 'Select Manager or a clinical staff role, then tick responsibilities (feature checkboxes) for that role.'
+                                                    : 'Manager is pre-selected with all features enabled. Uncheck only what you want to remove.')}
                                     </p>
                                     {managerMode && (
                                         <div className="mb-4 text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 space-y-1">
@@ -2502,6 +2835,36 @@ const PlatformEmployeesPage = ({
                                                                         {roleExpanded ? <FiMinus className="w-4 h-4" /> : <FiPlus className="w-4 h-4" />}
                                                                     </button>
                                                                 </div>
+                                                                {roleCode === 'DOCTOR' && selectedEnrollment && appCode === 'HOSPITAL_MANAGEMENT' && (
+                                                                    <div className="p-3 pl-6 space-y-3 border-t border-gray-100 bg-cyan-50/40">
+                                                                        <p className="text-sm font-semibold text-gray-800">Doctor clinical profile</p>
+                                                                        <HhSearchableSelect
+                                                                            label="Specialization *"
+                                                                            placeholder="Search specialization"
+                                                                            value={profile.specializationId}
+                                                                            options={hhSpecializations}
+                                                                            onChange={(value) => {
+                                                                                setProfile((current) => ({ ...current, specializationId: value }));
+                                                                                setEditorError('');
+                                                                            }}
+                                                                            emptyText="No specialization found. Add them in Specialization master."
+                                                                        />
+                                                                        <label className="block text-sm">
+                                                                            <span className="text-gray-600">Consultation fee</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                min="0"
+                                                                                step="0.01"
+                                                                                value={profile.consultationFee}
+                                                                                onChange={(event) => setProfile((current) => ({
+                                                                                    ...current,
+                                                                                    consultationFee: event.target.value,
+                                                                                }))}
+                                                                                className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                                                            />
+                                                                        </label>
+                                                                    </div>
+                                                                )}
                                                                 {roleExpanded && selectedEnrollment && roleFeatures.length > 0 && (
                                                                     <div className="p-3 pl-6 space-y-3 border-t border-gray-100">
                                                                         <label className="flex items-center gap-2 text-sm font-semibold text-red-700">

@@ -8,6 +8,7 @@ const HospitalManagementContext = createContext();
 const initialState = {
   hospital: null,
   doctors: [],
+  specializations: [],
   patients: [],
   appointments: [],
   wards: [],
@@ -52,6 +53,12 @@ const initialState = {
   templates: [],
   notificationSettings: null,
   patientPortalSummary: null,
+  opdVisits: [],
+  pharmacyOrders: [],
+  kitchenProducts: [],
+  kitchenOrders: [],
+  ipdAccount: null,
+  ipdCharges: [],
   isLoading: false,
   error: null,
 };
@@ -62,6 +69,8 @@ function reducer(state, action) {
       return { ...state, hospital: action.payload, isLoading: false };
     case 'SET_DOCTORS':
       return { ...state, doctors: action.payload, isLoading: false };
+    case 'SET_SPECIALIZATIONS':
+      return { ...state, specializations: action.payload, isLoading: false };
     case 'SET_PATIENTS':
       return { ...state, patients: action.payload, isLoading: false };
     case 'SET_APPOINTMENTS':
@@ -150,6 +159,18 @@ function reducer(state, action) {
       return { ...state, notificationSettings: action.payload, isLoading: false };
     case 'SET_PATIENT_PORTAL_SUMMARY':
       return { ...state, patientPortalSummary: action.payload, isLoading: false };
+    case 'SET_OPD_VISITS':
+      return { ...state, opdVisits: action.payload, isLoading: false };
+    case 'SET_PHARMACY_ORDERS':
+      return { ...state, pharmacyOrders: action.payload, isLoading: false };
+    case 'SET_KITCHEN_PRODUCTS':
+      return { ...state, kitchenProducts: action.payload, isLoading: false };
+    case 'SET_KITCHEN_ORDERS':
+      return { ...state, kitchenOrders: action.payload, isLoading: false };
+    case 'SET_IPD_ACCOUNT':
+      return { ...state, ipdAccount: action.payload, isLoading: false };
+    case 'SET_IPD_CHARGES':
+      return { ...state, ipdCharges: action.payload, isLoading: false };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
     case 'SET_ERROR':
@@ -187,13 +208,50 @@ export function HospitalManagementProvider({ children }) {
   const api = useCallback(async (path, options = {}) => {
     const { token, membershipId } = getAuth();
     if (!token) return { success: false, error: 'Not authenticated' };
-    const res = await fetch(`${API_BASE_URL}${path}`, {
+
+    const method = String(options.method || 'GET').toUpperCase();
+    let url = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+    // Always scope hospital APIs by membership (query) so PUT/PATCH find rows correctly
+    if (membershipId && url.includes('/hh/') && !/[?&]parent_membership_id=/.test(url)) {
+      url += `${url.includes('?') ? '&' : '?'}parent_membership_id=${encodeURIComponent(membershipId)}`;
+    }
+
+    let body = options.body;
+    if (
+      membershipId
+      && body
+      && typeof body === 'string'
+      && ['POST', 'PUT', 'PATCH'].includes(method)
+    ) {
+      try {
+        const parsed = JSON.parse(body);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          if (parsed.parentMembershipId == null && parsed.parent_membership_id == null) {
+            parsed.parentMembershipId = membershipId;
+            body = JSON.stringify(parsed);
+          }
+        }
+      } catch {
+        // keep original body (non-JSON)
+      }
+    }
+
+    const res = await fetch(url, {
       ...options,
+      body,
       headers: { ...authHeaders(token), ...(options.headers || {}) },
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.error) {
-      return { success: false, error: data.message || data.error || 'Request failed', data };
+      const detail = data.errors;
+      const detailMsg = typeof detail === 'string'
+        ? detail
+        : (Array.isArray(detail) ? detail.map((e) => e?.message || e).filter(Boolean).join(', ') : null);
+      return {
+        success: false,
+        error: detailMsg || data.message || data.error || 'Request failed',
+        data,
+      };
     }
     return { success: true, data: data.results ?? data.data ?? data, membershipId, message: data.message };
   }, [getAuth, authHeaders]);
@@ -238,8 +296,16 @@ export function HospitalManagementProvider({ children }) {
   const fetchDoctors = useCallback(async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     const result = await api(`/hh/doctors?${membershipQuery()}`);
-    if (result.success) dispatch({ type: 'SET_DOCTORS', payload: result.data || [] });
-    else dispatch({ type: 'SET_ERROR', payload: result.error });
+    const rows = Array.isArray(result.data)
+      ? result.data
+      : (Array.isArray(result.data?.results)
+        ? result.data.results
+        : (Array.isArray(result.data?.rows) ? result.data.rows : []));
+    if (result.success) dispatch({ type: 'SET_DOCTORS', payload: rows });
+    else {
+      dispatch({ type: 'SET_DOCTORS', payload: [] });
+      dispatch({ type: 'SET_ERROR', payload: result.error });
+    }
     return result;
   }, [api, membershipQuery]);
 
@@ -270,6 +336,39 @@ export function HospitalManagementProvider({ children }) {
     return result;
   }, [api, fetchDoctors]);
 
+  const fetchSpecializations = useCallback(async () => {
+    const result = await api(`/hh/specializations?${membershipQuery()}`);
+    if (result.success) dispatch({ type: 'SET_SPECIALIZATIONS', payload: result.data || [] });
+    return result;
+  }, [api, membershipQuery]);
+
+  const createSpecialization = useCallback(async (payload) => {
+    const result = await api('/hh/specializations', {
+      method: 'POST',
+      body: JSON.stringify(withMembership(payload)),
+    });
+    if (result.success) await fetchSpecializations();
+    return result;
+  }, [api, withMembership, fetchSpecializations]);
+
+  const updateSpecialization = useCallback(async (id, payload) => {
+    const result = await api(`/hh/specializations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (result.success) await fetchSpecializations();
+    return result;
+  }, [api, fetchSpecializations]);
+
+  const deleteSpecialization = useCallback(async (id) => {
+    const result = await api(`/hh/specializations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: 0 }),
+    });
+    if (result.success) await fetchSpecializations();
+    return result;
+  }, [api, fetchSpecializations]);
+
   const fetchPatients = useCallback(async (params = {}) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     const result = await api(`/hh/patients?${queryWithParams(params)}`);
@@ -296,6 +395,15 @@ export function HospitalManagementProvider({ children }) {
     return result;
   }, [api, fetchPatients]);
 
+  const deletePatient = useCallback(async (id) => {
+    const result = await api(`/hh/patients/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: 0 }),
+    });
+    if (result.success) await fetchPatients();
+    return result;
+  }, [api, fetchPatients]);
+
   const fetchAppointments = useCallback(async (params = {}) => {
     const result = await api(`/hh/appointments?${queryWithParams(params)}`);
     if (result.success) dispatch({ type: 'SET_APPOINTMENTS', payload: result.data || [] });
@@ -310,6 +418,16 @@ export function HospitalManagementProvider({ children }) {
     if (result.success) await fetchAppointments();
     return result;
   }, [api, withMembership, fetchAppointments]);
+
+  const fetchDoctorSlots = useCallback(async (doctorId, date) => {
+    if (!doctorId || !date) return { success: true, data: { slots: [], working: false } };
+    return api(`/hh/doctors/${doctorId}/slots?date=${encodeURIComponent(date)}`);
+  }, [api]);
+
+  const fetchCurrentDoctor = useCallback(async () => {
+    const result = await api(`/hh/doctors/me?${membershipQuery()}`);
+    return result;
+  }, [api, membershipQuery]);
 
   const updateAppointmentStatus = useCallback(async (id, status, extra = {}) => (
     api(`/hh/appointments/${id}/status`, {
@@ -443,15 +561,6 @@ export function HospitalManagementProvider({ children }) {
     return result;
   }, [api, withMembership, fetchMedicines]);
 
-  const updateMedicine = useCallback(async (id, payload) => {
-    const result = await api(`/hh/medicines/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    });
-    if (result.success) await fetchMedicines();
-    return result;
-  }, [api, fetchMedicines]);
-
   const fetchPharmacySales = useCallback(async (params = {}) => {
     const result = await api(`/hh/pharmacy/sales?${queryWithParams(params)}`);
     if (result.success) dispatch({ type: 'SET_PHARMACY_SALES', payload: result.data || [] });
@@ -463,6 +572,18 @@ export function HospitalManagementProvider({ children }) {
     if (result.success) dispatch({ type: 'SET_LOW_STOCK', payload: result.data || [] });
     return result;
   }, [api, membershipQuery]);
+
+  const updateMedicine = useCallback(async (id, payload) => {
+    const result = await api(`/hh/medicines/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(withMembership(payload)),
+    });
+    if (result.success) {
+      await fetchMedicines();
+      await fetchLowStock();
+    }
+    return result;
+  }, [api, withMembership, fetchMedicines, fetchLowStock]);
 
   const createPharmacySale = useCallback(async (payload) => {
     const result = await api('/hh/pharmacy/sales', {
@@ -498,11 +619,11 @@ export function HospitalManagementProvider({ children }) {
   const updatePharmacySupplier = useCallback(async (id, payload) => {
     const result = await api(`/hh/pharmacy/suppliers/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(payload),
+      body: JSON.stringify(withMembership(payload)),
     });
     if (result.success) await fetchPharmacySuppliers();
     return result;
-  }, [api, fetchPharmacySuppliers]);
+  }, [api, withMembership, fetchPharmacySuppliers]);
 
   const fetchPharmacyPurchases = useCallback(async (params = {}) => {
     const result = await api(`/hh/pharmacy/purchases?${queryWithParams(params)}`);
@@ -1127,25 +1248,44 @@ export function HospitalManagementProvider({ children }) {
     return result;
   }, [api, withMembership, fetchNotificationSettings]);
 
-  const patientPortalLogin = useCallback(async (phone, parentMembershipId) => {
+  const patientPortalLogin = useCallback(async (phone, password, parentMembershipId) => {
     const res = await fetch(`${API_BASE_URL}/hh/patient-portal/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, parentMembershipId }),
+      body: JSON.stringify({
+        phone,
+        password,
+        parentMembershipId: parentMembershipId || undefined,
+      }),
     });
     const data = await res.json().catch(() => ({}));
+    if (data.needsHospitalId || data.results?.hospitals) {
+      return {
+        success: false,
+        needsHospitalId: true,
+        error: data.message || 'Enter Hospital ID',
+        hospitals: data.results?.hospitals || data.hospitals || [],
+        data,
+      };
+    }
     if (!res.ok || data.error) {
       return { success: false, error: data.message || data.error || 'Login failed', data };
     }
     return { success: true, data: data.results ?? data.data ?? data };
   }, []);
 
-  const fetchPatientPortalSummary = useCallback(async (patientId, parentMembershipId) => {
+  const fetchPatientPortalSummary = useCallback(async (patientId, parentMembershipId, token) => {
     const q = new URLSearchParams({
-      parent_membership_id: parentMembershipId || getAuth().membershipId || '',
+      parent_membership_id: parentMembershipId || '',
       patient_id: patientId,
     });
-    const res = await fetch(`${API_BASE_URL}/hh/patient-portal/summary?${q}`);
+    const auth = token || getAuth().token;
+    const res = await fetch(`${API_BASE_URL}/hh/patient-portal/summary?${q}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
+      },
+    });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.error) {
       return { success: false, error: data.message || data.error || 'Request failed', data };
@@ -1154,6 +1294,248 @@ export function HospitalManagementProvider({ children }) {
     dispatch({ type: 'SET_PATIENT_PORTAL_SUMMARY', payload: summary });
     return { success: true, data: summary };
   }, [getAuth]);
+
+  const createPatientPortalKitchenOrder = useCallback(async ({ token, parentMembershipId, patientId, items, notes }) => {
+    const res = await fetch(`${API_BASE_URL}/hh/patient-portal/kitchen-orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        parentMembershipId,
+        patientId,
+        items,
+        notes: notes || null,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) {
+      return { success: false, error: data.message || data.errors || data.error || 'Order failed', data };
+    }
+    return { success: true, data: data.results ?? data.data ?? data };
+  }, []);
+
+  const fetchOpdVisits = useCallback(async (params = {}) => {
+    const result = await api(`/hh/opd/visits?${queryWithParams(params)}`);
+    if (result.success) dispatch({ type: 'SET_OPD_VISITS', payload: result.data || [] });
+    return result;
+  }, [api, queryWithParams]);
+
+  const createOpdVisit = useCallback(async (payload) => {
+    const result = await api('/hh/opd/visits', {
+      method: 'POST',
+      body: JSON.stringify(withMembership(payload)),
+    });
+    if (result.success) await fetchOpdVisits();
+    return result;
+  }, [api, withMembership, fetchOpdVisits]);
+
+  const updateOpdVisitStatus = useCallback(async (id, status, extra = {}) => {
+    const result = await api(`/hh/opd/visits/${id}/status?${membershipQuery()}`, {
+      method: 'PATCH',
+      body: JSON.stringify(withMembership({ status, ...extra })),
+    });
+    if (result.success) await fetchOpdVisits();
+    return result;
+  }, [api, membershipQuery, withMembership, fetchOpdVisits]);
+
+  const startOpdVisit = useCallback(async (id, payload = {}) => {
+    const result = await api(`/hh/opd/visits/${id}/start?${membershipQuery()}`, {
+      method: 'POST',
+      body: JSON.stringify(withMembership(payload)),
+    });
+    if (result.success) await fetchOpdVisits();
+    return result;
+  }, [api, membershipQuery, withMembership, fetchOpdVisits]);
+
+  const fetchPharmacyOrders = useCallback(async (params = {}) => {
+    const result = await api(`/hh/pharmacy/orders?${queryWithParams(params)}`);
+    if (result.success) {
+      const rows = Array.isArray(result.data)
+        ? result.data
+        : (result.data?.orders || result.data?.results || []);
+      dispatch({ type: 'SET_PHARMACY_ORDERS', payload: rows });
+    }
+    return result;
+  }, [api, queryWithParams]);
+
+  const prescribeOpdVisit = useCallback(async (id, payload) => {
+    const result = await api(`/hh/opd/visits/${id}/prescribe?${membershipQuery()}`, {
+      method: 'POST',
+      body: JSON.stringify(withMembership(payload)),
+    });
+    if (result.success) {
+      await fetchOpdVisits();
+      await fetchPharmacyOrders();
+    }
+    return result;
+  }, [api, membershipQuery, withMembership, fetchOpdVisits, fetchPharmacyOrders]);
+
+  const admitFromOpdVisit = useCallback(async (id, payload) => {
+    const result = await api(`/hh/opd/visits/${id}/admit?${membershipQuery()}`, {
+      method: 'POST',
+      body: JSON.stringify(withMembership(payload)),
+    });
+    if (result.success) {
+      await fetchOpdVisits();
+      await fetchAdmissions();
+      await fetchBeds();
+    }
+    return result;
+  }, [api, membershipQuery, withMembership, fetchOpdVisits, fetchAdmissions, fetchBeds]);
+
+  const getPharmacyOrder = useCallback(async (id) => (
+    api(`/hh/pharmacy/orders/${id}?${membershipQuery()}`)
+  ), [api, membershipQuery]);
+
+  const updatePharmacyOrderStatus = useCallback(async (id, status, extra = {}) => {
+    const result = await api(`/hh/pharmacy/orders/${id}/status?${membershipQuery()}`, {
+      method: 'PATCH',
+      body: JSON.stringify(withMembership({ status, ...extra })),
+    });
+    if (result.success) await fetchPharmacyOrders();
+    return result;
+  }, [api, membershipQuery, withMembership, fetchPharmacyOrders]);
+
+  const updatePharmacyOrderItems = useCallback(async (id, items) => {
+    const result = await api(`/hh/pharmacy/orders/${id}/items?${membershipQuery()}`, {
+      method: 'PATCH',
+      body: JSON.stringify(withMembership({ items })),
+    });
+    return result;
+  }, [api, membershipQuery, withMembership]);
+
+  const billPharmacyOrder = useCallback(async (id, payload = {}) => {
+    const result = await api(`/hh/pharmacy/orders/${id}/bill?${membershipQuery()}`, {
+      method: 'POST',
+      body: JSON.stringify(withMembership(payload)),
+    });
+    if (result.success) await fetchPharmacyOrders();
+    return result;
+  }, [api, membershipQuery, withMembership, fetchPharmacyOrders]);
+
+  const payPharmacyOrder = useCallback(async (id, payload = {}) => {
+    const result = await api(`/hh/pharmacy/orders/${id}/pay?${membershipQuery()}`, {
+      method: 'POST',
+      body: JSON.stringify(withMembership(payload)),
+    });
+    if (result.success) await fetchPharmacyOrders();
+    return result;
+  }, [api, membershipQuery, withMembership, fetchPharmacyOrders]);
+
+  const fetchIpdAccounts = useCallback(async (params = {}) => {
+    const result = await api(`/hh/ipd/accounts?${queryWithParams(params)}`);
+    return result;
+  }, [api, queryWithParams]);
+
+  const fetchIpdAccount = useCallback(async (id) => {
+    const result = await api(`/hh/ipd/accounts/${id}?${membershipQuery()}`);
+    if (result.success) dispatch({ type: 'SET_IPD_ACCOUNT', payload: result.data });
+    return result;
+  }, [api, membershipQuery]);
+
+  const fetchIpdCharges = useCallback(async (accountId) => {
+    const result = await api(`/hh/ipd/accounts/${accountId}/charges?${membershipQuery()}`);
+    if (result.success) dispatch({ type: 'SET_IPD_CHARGES', payload: result.data || [] });
+    return result;
+  }, [api, membershipQuery]);
+
+  const addIpdCharge = useCallback(async (accountId, payload) => {
+    const result = await api(`/hh/ipd/accounts/${accountId}/charges`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (result.success) await fetchIpdCharges(accountId);
+    return result;
+  }, [api, fetchIpdCharges]);
+
+  const addIpdWardMedicines = useCallback(async (accountId, payload) => {
+    const result = await api(`/hh/ipd/accounts/${accountId}/ward-medicines`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (result.success) {
+      await fetchIpdCharges(accountId);
+      await fetchPharmacyOrders();
+    }
+    return result;
+  }, [api, fetchIpdCharges, fetchPharmacyOrders]);
+
+  const updateDischargeSummary = useCallback(async (accountId, summary) => {
+    const result = await api(`/hh/ipd/accounts/${accountId}/discharge-summary`, {
+      method: 'PUT',
+      body: JSON.stringify({ dischargeSummary: summary, discharge_summary: summary }),
+    });
+    if (result.success) await fetchIpdAccount(accountId);
+    return result;
+  }, [api, fetchIpdAccount]);
+
+  const settleIpdAccount = useCallback(async (accountId, payload = {}) => {
+    const result = await api(`/hh/ipd/accounts/${accountId}/settle`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (result.success) {
+      await fetchIpdAccount(accountId);
+      await fetchAdmissions();
+    }
+    return result;
+  }, [api, fetchIpdAccount, fetchAdmissions]);
+
+  const lookupInpatient = useCallback(async (q) => {
+    const params = new URLSearchParams({ q: String(q || '').trim() });
+    return api(`/hh/inpatients/lookup?${membershipQuery()}&${params.toString()}`);
+  }, [api, membershipQuery]);
+
+  const fetchKitchenProducts = useCallback(async (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.activeOnly) q.set('activeOnly', '1');
+    const suffix = q.toString() ? `&${q.toString()}` : '';
+    const result = await api(`/hh/kitchen/products?${membershipQuery()}${suffix}`);
+    if (result.success) dispatch({ type: 'SET_KITCHEN_PRODUCTS', payload: result.data || [] });
+    return result;
+  }, [api, membershipQuery]);
+
+  const createKitchenProduct = useCallback(async (payload) => {
+    const result = await api('/hh/kitchen/products', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return result;
+  }, [api]);
+
+  const updateKitchenProduct = useCallback(async (id, payload) => {
+    const result = await api(`/hh/kitchen/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    return result;
+  }, [api]);
+
+  const fetchKitchenOrders = useCallback(async (params = {}) => {
+    const result = await api(`/hh/kitchen/orders?${queryWithParams(params)}`);
+    if (result.success) dispatch({ type: 'SET_KITCHEN_ORDERS', payload: result.data || [] });
+    return result;
+  }, [api, queryWithParams]);
+
+  const createKitchenOrder = useCallback(async (payload) => {
+    const result = await api('/hh/kitchen/orders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (result.success) await fetchKitchenOrders();
+    return result;
+  }, [api, fetchKitchenOrders]);
+
+  const updateKitchenOrderStatus = useCallback(async (id, payload) => {
+    const result = await api(`/hh/kitchen/orders/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    if (result.success) await fetchKitchenOrders();
+    return result;
+  }, [api, fetchKitchenOrders]);
 
   const value = {
     ...state,
@@ -1164,11 +1546,18 @@ export function HospitalManagementProvider({ children }) {
     createDoctor,
     updateDoctor,
     deleteDoctor,
+    fetchSpecializations,
+    createSpecialization,
+    updateSpecialization,
+    deleteSpecialization,
     fetchPatients,
     createPatient,
     updatePatient,
+    deletePatient,
     fetchAppointments,
     createAppointment,
+    fetchDoctorSlots,
+    fetchCurrentDoctor,
     updateAppointmentStatus,
     fetchWards,
     createWard,
@@ -1269,6 +1658,33 @@ export function HospitalManagementProvider({ children }) {
     updateNotificationSettings,
     patientPortalLogin,
     fetchPatientPortalSummary,
+    createPatientPortalKitchenOrder,
+    fetchOpdVisits,
+    createOpdVisit,
+    updateOpdVisitStatus,
+    startOpdVisit,
+    prescribeOpdVisit,
+    admitFromOpdVisit,
+    fetchPharmacyOrders,
+    getPharmacyOrder,
+    updatePharmacyOrderStatus,
+    updatePharmacyOrderItems,
+    billPharmacyOrder,
+    payPharmacyOrder,
+    fetchIpdAccounts,
+    fetchIpdAccount,
+    fetchIpdCharges,
+    addIpdCharge,
+    addIpdWardMedicines,
+    updateDischargeSummary,
+    settleIpdAccount,
+    lookupInpatient,
+    fetchKitchenProducts,
+    createKitchenProduct,
+    updateKitchenProduct,
+    fetchKitchenOrders,
+    createKitchenOrder,
+    updateKitchenOrderStatus,
     api,
   };
 

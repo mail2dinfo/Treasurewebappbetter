@@ -220,7 +220,7 @@ export const PlatformAccessProvider = ({ children }) => {
         const isVfFeature = key.startsWith('vf_') || key.startsWith('vf.');
         const roleCode = String(activeContext?.roleCode || '').toUpperCase();
         // Owner bypass only for owner/user context — never when acting as Manager/Collector.
-        const staffRoleActive = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN'].includes(roleCode);
+        const staffRoleActive = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN', 'PHARMACIST', 'DOCTOR', 'NURSE', 'COMPOUNDER'].includes(roleCode);
         if (session?.isOwner && !staffRoleActive) return true;
 
         // Fail closed for VF/HM/HH staff until session/context is known.

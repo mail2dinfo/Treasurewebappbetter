@@ -49,9 +49,16 @@ import MuttonStallPublicLandingPage from './pages/muttonStall/MuttonStallPublicL
 import HospitalManagementAdminLayout, {
   HospitalManagementManagerLayout,
   HospitalManagementReceptionistLayout,
+  HospitalManagementPharmacistLayout,
+  HospitalManagementDoctorLayout,
+  HospitalManagementNurseLayout,
+  HospitalManagementCompounderLayout,
+  HospitalManagementKitchenLayout,
 } from './components/hospitalManagement/HospitalManagementAdminLayout';
 import HospitalPatientPortalLogin from './pages/hospitalManagement/patientPortal/HospitalPatientPortalLogin';
 import HospitalPatientPortalHome from './pages/hospitalManagement/patientPortal/HospitalPatientPortalHome';
+import HospitalManagementDoctorLogin from './pages/hospitalManagement/HospitalManagementDoctorLogin';
+import HospitalManagementStaffLogin from './pages/hospitalManagement/HospitalManagementStaffLogin';
 
 // Legacy layouts for backward compatibility (can be removed later)
 import CollectorLayout from './components/collector/CollectorLayout';
@@ -149,10 +156,22 @@ function App() {
 
                         {/* Hospital Management App Routes */}
                         <Route exact path="/hospital-management/patient" component={HospitalPatientPortalLogin} />
-                        <Route exact path="/hospital-management/patient/home" component={HospitalPatientPortalHome} />
+                        <Route path="/hospital-management/patient" component={HospitalPatientPortalHome} />
+                        <Route exact path="/hospital-management/doctor/login" component={HospitalManagementDoctorLogin} />
+                        <Route exact path="/hospital-management/manager/login" component={HospitalManagementStaffLogin} />
+                        <Route exact path="/hospital-management/receptionist/login" component={HospitalManagementStaffLogin} />
+                        <Route exact path="/hospital-management/pharmacist/login" component={HospitalManagementStaffLogin} />
+                        <Route exact path="/hospital-management/nurse/login" component={HospitalManagementStaffLogin} />
+                        <Route exact path="/hospital-management/compounder/login" component={HospitalManagementStaffLogin} />
+                        <Route exact path="/hospital-management/kitchen/login" component={HospitalManagementStaffLogin} />
                         <Route path="/hospital-management/user" component={HospitalManagementAdminLayout} />
                         <Route path="/hospital-management/manager" component={HospitalManagementManagerLayout} />
                         <Route path="/hospital-management/receptionist" component={HospitalManagementReceptionistLayout} />
+                        <Route path="/hospital-management/pharmacist" component={HospitalManagementPharmacistLayout} />
+                        <Route path="/hospital-management/doctor" component={HospitalManagementDoctorLayout} />
+                        <Route path="/hospital-management/nurse" component={HospitalManagementNurseLayout} />
+                        <Route path="/hospital-management/compounder" component={HospitalManagementCompounderLayout} />
+                        <Route path="/hospital-management/kitchen" component={HospitalManagementKitchenLayout} />
 
                         {/* Legacy Routes for Backward Compatibility */}
                         <Route path="/customer" render={() => <Redirect to="/chit-fund/subscriber" />} />

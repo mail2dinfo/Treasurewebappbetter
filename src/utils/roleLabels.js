@@ -7,7 +7,10 @@ const ROLE_CODE_LABELS = {
     RECEPTIONIST: 'Receptionist',
     KITCHEN_STAFF: 'Kitchen Staff',
     SALESMAN: 'Salesman',
+    PHARMACIST: 'Pharmacist',
     DOCTOR: 'Doctor',
+    NURSE: 'Nurse',
+    COMPOUNDER: 'Compounder',
 };
 
 export const formatRoleLabel = (value) => {
@@ -55,6 +58,9 @@ export const getLoggedInRoleLabel = ({
 
     const path = String(pathname || '');
     if (path.includes('/kitchenstaff') || path.includes('/kitchen')) return 'Kitchen Staff';
+    if (path.includes('/pharmacist')) return 'Pharmacist';
+    if (path.includes('/compounder')) return 'Compounder';
+    if (path.includes('/nurse')) return 'Nurse';
     if (path.includes('/receptionist')) return 'Receptionist';
     if (path.includes('/salesman')) return 'Salesman';
     if (path.includes('/doctor')) return 'Doctor';

@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from 'react';
 import { usePlatformAccess } from '../../context/platformAccess_context';
-import { HH_NAV_ANY } from '../../utils/hhPermissionCatalog';
+import { HH_NAV_ANY, HH_STAFF_ROLES } from '../../utils/hhPermissionCatalog';
 
 /**
  * Hospital Management permission helpers.
- * Owners bypass; Managers/Receptionists use granted feature keys.
+ * Owners bypass; Manager + clinical staff roles use granted feature keys.
  */
 export const useHhPermission = () => {
   const platform = usePlatformAccess();
@@ -13,9 +13,9 @@ export const useHhPermission = () => {
   const enforceAccess = Boolean(
     platform?.isAvailable
     && appCode === 'HOSPITAL_MANAGEMENT'
-    && ['MANAGER', 'RECEPTIONIST'].includes(roleCode)
+    && (roleCode === 'MANAGER' || HH_STAFF_ROLES.includes(roleCode))
   );
-  const isHhOpsRole = ['MANAGER', 'RECEPTIONIST'].includes(roleCode);
+  const isHhOpsRole = roleCode === 'MANAGER' || HH_STAFF_ROLES.includes(roleCode);
 
   const can = useCallback((featureKey) => {
     if (!enforceAccess) return true;
@@ -34,6 +34,10 @@ export const useHhPermission = () => {
     doctors: canAny(HH_NAV_ANY.doctors),
     patients: canAny(HH_NAV_ANY.patients),
     appointments: !enforceAccess || isHhOpsRole || canAny(HH_NAV_ANY.appointments),
+    reception: canAny(HH_NAV_ANY.reception),
+    doctorDesk: canAny(HH_NAV_ANY.doctorDesk),
+    pharmacyDesk: canAny(HH_NAV_ANY.pharmacyDesk),
+    kitchenDesk: canAny(HH_NAV_ANY.kitchenDesk),
     wards: canAny(HH_NAV_ANY.wards),
     admissions: canAny(HH_NAV_ANY.admissions),
     billing: canAny(HH_NAV_ANY.billing),

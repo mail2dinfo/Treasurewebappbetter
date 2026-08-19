@@ -9,10 +9,13 @@ import HospitalManagementNavbar from './HospitalManagementNavbar';
 import HospitalManagementAppMenuBar from './HospitalManagementAppMenuBar';
 import PrivateRoute from '../../pages/PrivateRoute';
 import HospitalManagementDashboard from '../../pages/hospitalManagement/HospitalManagementDashboard';
-import HospitalManagementHospitalPage from '../../pages/hospitalManagement/HospitalManagementHospitalPage';
 import HospitalManagementDoctorsPage from '../../pages/hospitalManagement/HospitalManagementDoctorsPage';
 import HospitalManagementPatientsPage from '../../pages/hospitalManagement/HospitalManagementPatientsPage';
 import HospitalManagementAppointmentsPage from '../../pages/hospitalManagement/HospitalManagementAppointmentsPage';
+import HospitalManagementReceptionPage from '../../pages/hospitalManagement/HospitalManagementReceptionPage';
+import HospitalManagementDoctorDeskPage from '../../pages/hospitalManagement/HospitalManagementDoctorDeskPage';
+import HospitalManagementPharmacyDeskPage from '../../pages/hospitalManagement/HospitalManagementPharmacyDeskPage';
+import HospitalManagementKitchenDeskPage from '../../pages/hospitalManagement/HospitalManagementKitchenDeskPage';
 import HospitalManagementWardsBedsPage from '../../pages/hospitalManagement/HospitalManagementWardsBedsPage';
 import HospitalManagementAdmissionsPage from '../../pages/hospitalManagement/HospitalManagementAdmissionsPage';
 import HospitalManagementBillingPage from '../../pages/hospitalManagement/HospitalManagementBillingPage';
@@ -35,23 +38,48 @@ import {
   HH_BASE_PATH,
   HH_MANAGER_BASE_PATH,
   HH_RECEPTIONIST_BASE_PATH,
+  HH_PHARMACIST_BASE_PATH,
+  HH_DOCTOR_BASE_PATH,
+  HH_NURSE_BASE_PATH,
+  HH_COMPOUNDER_BASE_PATH,
+  HH_KITCHEN_BASE_PATH,
+  HH_ROLE_HOME_SUFFIX,
   HhBasePathProvider,
   getHhBasePathForRole,
   useHhBasePath,
 } from './hospitalManagementMenuItems';
+import { HH_STAFF_ROLES } from '../../utils/hhPermissionCatalog';
+import HhHospitalLiveAlerts from './HhHospitalLiveAlerts';
 
 const HhPermissionGate = ({ featureKeys, children }) => {
   const basePath = useHhBasePath();
-  const { canAny, enforceAccess, isHhOpsRole, nav } = useHhPermission();
-  const isAppointments = Array.isArray(featureKeys)
-    && featureKeys.some((k) => String(k).includes('hh_appointment'));
-  if (enforceAccess && isAppointments && (isHhOpsRole || nav.appointments)) {
+  const { canAny, enforceAccess, isHhOpsRole, nav, isOwner, roleCode } = useHhPermission();
+  const keys = Array.isArray(featureKeys) ? featureKeys : [];
+  const role = String(roleCode || '').toUpperCase();
+  const isAppointments = keys.some((k) => String(k).includes('hh_appointment'));
+  const isPharmacyDesk = keys.some((k) => String(k) === 'hh_pharmacy_desk');
+  const isReception = keys.some((k) => String(k) === 'hh_reception_desk');
+  const isDoctorDesk = keys.some((k) => String(k) === 'hh_doctor_desk');
+
+  // Owners always pass; clinical desks stay open when related nav access exists.
+  if (!enforceAccess || isOwner) return children;
+  if (isAppointments && (isHhOpsRole || nav.appointments)) return children;
+  if (isReception && (nav.reception || role === 'RECEPTIONIST' || role === 'MANAGER')) return children;
+  if (isDoctorDesk && (nav.doctorDesk || role === 'DOCTOR' || role === 'MANAGER')) return children;
+  if (isPharmacyDesk && (nav.pharmacyDesk || nav.pharmacy || role === 'PHARMACIST' || role === 'COMPOUNDER' || role === 'MANAGER')) {
     return children;
   }
-  if (enforceAccess && !canAny(featureKeys)) {
-    return <Redirect to={`${basePath}/dashboard`} />;
-  }
-  return children;
+  if (canAny(keys)) return children;
+
+  return (
+    <div className="max-w-lg mx-auto px-4 py-16 text-center space-y-3">
+      <h1 className="text-lg font-semibold text-gray-900">Access not granted</h1>
+      <p className="text-sm text-gray-500">You do not have permission for this hospital module.</p>
+      <a href={`${basePath}/dashboard`} className="inline-block text-sm font-medium text-cyan-800 hover:underline">
+        Back to dashboard
+      </a>
+    </div>
+  );
 };
 
 const PermissionRoute = ({ component: Component, featureKeys, ...rest }) => (
@@ -98,17 +126,31 @@ const HhEmployeesGateway = () => {
   return <HhOwnerEmployeesPage />;
 };
 
+const HhRoleHomeRedirect = () => {
+  const basePath = useHhBasePath();
+  const { roleCode } = useHhPermission();
+  const suffix = HH_ROLE_HOME_SUFFIX[String(roleCode || '').toUpperCase()] || '/dashboard';
+  return <Redirect to={`${basePath}${suffix}`} />;
+};
+
+const STAFF_BASE_PATHS = new Set([
+  HH_PHARMACIST_BASE_PATH,
+  HH_DOCTOR_BASE_PATH,
+  HH_NURSE_BASE_PATH,
+  HH_COMPOUNDER_BASE_PATH,
+  HH_KITCHEN_BASE_PATH,
+]);
+
 const HhRoleBaseGuard = ({ basePath, children }) => {
   const location = useLocation();
   const { enforceAccess, roleCode, isOwner } = useHhPermission();
+  const role = String(roleCode || '').toUpperCase();
 
-  const expected = getHhBasePathForRole(roleCode, { isOwner: isOwner && !enforceAccess });
-  if (enforceAccess && expected !== basePath && (
-    roleCode === 'MANAGER' || roleCode === 'RECEPTIONIST'
-  )) {
+  const expected = getHhBasePathForRole(role, { isOwner: isOwner && !enforceAccess });
+  if (enforceAccess && expected !== basePath && (role === 'MANAGER' || HH_STAFF_ROLES.includes(role))) {
     const suffix = location.pathname.startsWith(basePath)
       ? location.pathname.slice(basePath.length)
-      : '/dashboard';
+      : (HH_ROLE_HOME_SUFFIX[role] || '/dashboard');
     return <Redirect to={`${expected}${suffix || '/dashboard'}${location.search || ''}`} />;
   }
 
@@ -122,7 +164,9 @@ const HhRoleBaseGuard = ({ basePath, children }) => {
   return children;
 };
 
-const HospitalManagementAdminShell = ({ basePath }) => (
+const HospitalManagementAdminShell = ({ basePath }) => {
+  const useRoleHome = STAFF_BASE_PATHS.has(basePath);
+  return (
   <HhBasePathProvider basePath={basePath}>
     <HhRoleBaseGuard basePath={basePath}>
       <BillingProvider appCode="HOSPITAL_MANAGEMENT" billingPath={`${HH_BASE_PATH}/billing`}>
@@ -130,14 +174,28 @@ const HospitalManagementAdminShell = ({ basePath }) => (
           <div className="min-h-screen bg-gray-50">
             <HospitalManagementNavbar />
             <HospitalManagementAppMenuBar />
+            <HhHospitalLiveAlerts />
             <div className="min-h-[calc(100vh-112px)]">
+              {/* Switch children must be Route/Redirect only — Fragments break matching in RR v5 */}
               <Switch>
-                <PrivateRoute exact path={basePath} component={HospitalManagementDashboard} />
-                <PrivateRoute exact path={`${basePath}/dashboard`} component={HospitalManagementDashboard} />
-                <PermissionRoute exact path={`${basePath}/hospital`} component={HospitalManagementHospitalPage} featureKeys={HH_NAV_ANY.hospital} />
+                <PrivateRoute
+                  exact
+                  path={basePath}
+                  component={useRoleHome ? HhRoleHomeRedirect : HospitalManagementDashboard}
+                />
+                <PrivateRoute
+                  exact
+                  path={`${basePath}/dashboard`}
+                  component={useRoleHome ? HhRoleHomeRedirect : HospitalManagementDashboard}
+                />
+                <Redirect exact from={`${basePath}/hospital`} to={`${basePath}/adminsettings`} />
                 <PermissionRoute exact path={`${basePath}/doctors`} component={HospitalManagementDoctorsPage} featureKeys={HH_NAV_ANY.doctors} />
                 <PermissionRoute exact path={`${basePath}/patients`} component={HospitalManagementPatientsPage} featureKeys={HH_NAV_ANY.patients} />
                 <PermissionRoute exact path={`${basePath}/appointments`} component={HospitalManagementAppointmentsPage} featureKeys={HH_NAV_ANY.appointments} />
+                <PermissionRoute exact path={`${basePath}/reception`} component={HospitalManagementReceptionPage} featureKeys={HH_NAV_ANY.reception} />
+                <PermissionRoute exact path={`${basePath}/doctor-desk`} component={HospitalManagementDoctorDeskPage} featureKeys={HH_NAV_ANY.doctorDesk} />
+                <PermissionRoute exact path={`${basePath}/pharmacy-desk`} component={HospitalManagementPharmacyDeskPage} featureKeys={HH_NAV_ANY.pharmacyDesk} />
+                <PermissionRoute exact path={`${basePath}/kitchen-desk`} component={HospitalManagementKitchenDeskPage} featureKeys={HH_NAV_ANY.kitchenDesk} />
                 <PermissionRoute exact path={`${basePath}/wards-beds`} component={HospitalManagementWardsBedsPage} featureKeys={HH_NAV_ANY.wards} />
                 <PermissionRoute exact path={`${basePath}/admissions`} component={HospitalManagementAdmissionsPage} featureKeys={HH_NAV_ANY.admissions} />
                 <PermissionRoute exact path={`${basePath}/hospital-billing`} component={HospitalManagementBillingPage} featureKeys={HH_NAV_ANY.billing} />
@@ -153,10 +211,13 @@ const HospitalManagementAdminShell = ({ basePath }) => (
                 <PermissionRoute exact path={`${basePath}/extra-admin`} component={HospitalManagementExtraAdminPage} featureKeys={HH_NAV_ANY.extraAdmin} />
                 <PermissionRoute exact path={`${basePath}/employees`} component={HhEmployeesGateway} featureKeys={HH_NAV_ANY.employees} />
                 <PermissionRoute exact path={`${basePath}/adminsettings`} component={HospitalManagementAdminSettingsPage} featureKeys={HH_NAV_ANY.adminSettings} />
-                {basePath === HH_BASE_PATH && (
+                {basePath === HH_BASE_PATH ? (
                   <PrivateRoute exact path={`${basePath}/billing`} component={MyBillingPage} />
-                )}
-                <Route path={basePath} component={HospitalManagementDashboard} />
+                ) : null}
+                <Route
+                  path={basePath}
+                  component={useRoleHome ? HhRoleHomeRedirect : HospitalManagementDashboard}
+                />
               </Switch>
             </div>
             <ToastContainer position="top-right" autoClose={3000} />
@@ -165,7 +226,8 @@ const HospitalManagementAdminShell = ({ basePath }) => (
       </BillingProvider>
     </HhRoleBaseGuard>
   </HhBasePathProvider>
-);
+  );
+};
 
 const HospitalManagementAdminLayout = ({ basePath = HH_BASE_PATH }) => (
   <HospitalManagementProvider>
@@ -179,6 +241,26 @@ export const HospitalManagementManagerLayout = () => (
 
 export const HospitalManagementReceptionistLayout = () => (
   <HospitalManagementAdminLayout basePath={HH_RECEPTIONIST_BASE_PATH} />
+);
+
+export const HospitalManagementPharmacistLayout = () => (
+  <HospitalManagementAdminLayout basePath={HH_PHARMACIST_BASE_PATH} />
+);
+
+export const HospitalManagementDoctorLayout = () => (
+  <HospitalManagementAdminLayout basePath={HH_DOCTOR_BASE_PATH} />
+);
+
+export const HospitalManagementNurseLayout = () => (
+  <HospitalManagementAdminLayout basePath={HH_NURSE_BASE_PATH} />
+);
+
+export const HospitalManagementCompounderLayout = () => (
+  <HospitalManagementAdminLayout basePath={HH_COMPOUNDER_BASE_PATH} />
+);
+
+export const HospitalManagementKitchenLayout = () => (
+  <HospitalManagementAdminLayout basePath={HH_KITCHEN_BASE_PATH} />
 );
 
 export default HospitalManagementAdminLayout;

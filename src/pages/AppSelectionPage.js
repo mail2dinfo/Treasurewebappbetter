@@ -201,7 +201,11 @@ const APP_ROUTES = {
         USER: '/hospital-management/user/dashboard',
         MANAGER: '/hospital-management/manager/dashboard',
         RECEPTIONIST: '/hospital-management/receptionist/dashboard',
-        DOCTOR: '/hospital-management/user/dashboard',
+        PHARMACIST: '/hospital-management/pharmacist/pharmacy-desk',
+        DOCTOR: '/hospital-management/doctor/doctor-desk',
+        NURSE: '/hospital-management/nurse/admissions',
+        COMPOUNDER: '/hospital-management/compounder/pharmacy-desk',
+        KITCHEN_STAFF: '/hospital-management/kitchen/kitchen-desk',
         ACCOUNTANT: '/hospital-management/user/dashboard',
         COLLECTOR: '/hospital-management/user/dashboard',
     },
@@ -226,6 +230,10 @@ const PLATFORM_ACCOUNT_ROLE = {
     'kitchen staff': 'KITCHEN_STAFF',
     kitchen_staff: 'KITCHEN_STAFF',
     salesman: 'SALESMAN',
+    pharmacist: 'PHARMACIST',
+    doctor: 'DOCTOR',
+    nurse: 'NURSE',
+    compounder: 'COMPOUNDER',
 };
 
 const resolveRoute = (app, role) => (
@@ -250,7 +258,11 @@ const accountNameToRoleCode = (accountName) => {
     if (PLATFORM_ACCOUNT_ROLE[key]) return PLATFORM_ACCOUNT_ROLE[key];
     // Membership names are sometimes "Chit Collector" / "VF Manager", etc.
     if (key.includes('kitchen')) return 'KITCHEN_STAFF';
+    if (key.includes('pharmacist')) return 'PHARMACIST';
+    if (key.includes('compounder')) return 'COMPOUNDER';
+    if (key.includes('nurse')) return 'NURSE';
     if (key.includes('receptionist')) return 'RECEPTIONIST';
+    if (key.includes('doctor')) return 'DOCTOR';
     if (key.includes('salesman') || key.includes('sales man')) return 'SALESMAN';
     if (key.includes('accountant')) return 'ACCOUNTANT';
     if (key.includes('collector')) return 'COLLECTOR';
@@ -754,7 +766,7 @@ const AppSelectionPage = () => {
             const roles = Array.isArray(app.roles) ? app.roles : [];
             const staffRoles = roles.filter((role) => {
                 const code = String(role.roleCode || '').toUpperCase();
-                return ['USER', 'OWNER', 'MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN'].includes(code);
+                return ['USER', 'OWNER', 'MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN', 'PHARMACIST', 'DOCTOR', 'NURSE', 'COMPOUNDER'].includes(code);
             });
 
             if (!staffRoles.length) {

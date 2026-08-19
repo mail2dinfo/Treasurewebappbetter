@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { FiCamera, FiBriefcase, FiUpload, FiX } from "react-icons/fi";
 
-const LogoUploader = ({ handleSetImage, currentImage, onRemove }) => {
+const LogoUploader = ({
+    handleSetImage,
+    currentImage,
+    onRemove,
+    label = "Company Logo",
+    imageFit = "cover",
+    disabled = false,
+}) => {
     const [previewUrl, setPreviewUrl] = useState(currentImage);
     const [isHovered, setIsHovered] = useState(false);
 
@@ -34,7 +41,7 @@ const LogoUploader = ({ handleSetImage, currentImage, onRemove }) => {
         <div className="text-center">
             <div
                 className="relative inline-block group cursor-pointer"
-                onMouseEnter={() => setIsHovered(true)}
+                onMouseEnter={() => !disabled && setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
             >
                 {/* Logo Container */}
@@ -42,8 +49,8 @@ const LogoUploader = ({ handleSetImage, currentImage, onRemove }) => {
                     {previewUrl ? (
                         <img
                             src={previewUrl}
-                            alt="Company Logo"
-                            className="w-full h-full object-cover"
+                            alt={label}
+                            className={`w-full h-full ${imageFit === "contain" ? "object-contain" : "object-cover"}`}
                             onError={(e) => {
                                 e.target.style.display = 'none';
                                 e.target.nextSibling.style.display = 'flex';
@@ -68,8 +75,9 @@ const LogoUploader = ({ handleSetImage, currentImage, onRemove }) => {
                     )}
 
                     {/* Remove button */}
-                    {previewUrl && (
+                    {previewUrl && !disabled && (
                         <button
+                            type="button"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleRemove();
@@ -82,11 +90,12 @@ const LogoUploader = ({ handleSetImage, currentImage, onRemove }) => {
                 </div>
 
                 {/* Upload Button */}
-                <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-full shadow-lg cursor-pointer flex items-center justify-center hover:from-red-600 hover:to-red-700 transition-all duration-200 transform hover:scale-110 group">
+                <label className={`absolute -bottom-2 -right-2 w-10 h-10 bg-gradient-to-r from-red-500 to-red-600 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 group ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:from-red-600 hover:to-red-700 transform hover:scale-110"}`}>
                     <input
                         type="file"
                         accept=".png, .jpg, .jpeg"
                         onChange={handleFileChange}
+                        disabled={disabled}
                         className="hidden"
                     />
                     <FiCamera className="w-5 h-5 text-white" />
@@ -95,7 +104,7 @@ const LogoUploader = ({ handleSetImage, currentImage, onRemove }) => {
 
             {/* Instructions */}
             <div className="mt-4 space-y-1">
-                <p className="text-sm text-gray-600 font-medium">Company Logo</p>
+                <p className="text-sm text-gray-600 font-medium">{label}</p>
                 <p className="text-xs text-gray-500">
                     Click the camera icon to upload a logo
                 </p>

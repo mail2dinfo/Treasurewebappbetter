@@ -5,8 +5,8 @@ import { useUserContext } from '../../context/user_context';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { downloadImage } from '../../utils/downloadImage';
-import MyTreasureBrand from '../MyTreasureBrand';
 import { useBilling } from '../../context/billing_context';
+import { useHospitalManagement } from '../../context/hospitalManagement/HospitalManagementContext';
 import { getNavBillingBadge } from '../../utils/billingPaymentUtils';
 import { HH_BASE_PATH, useHhBasePath } from './hospitalManagementMenuItems';
 import { useHhPermission } from './useHhPermission';
@@ -56,6 +56,7 @@ const HospitalManagementNavbar = () => {
   const platform = usePlatformAccess();
   const { isOwner } = useHhPermission();
   const basePath = useHhBasePath();
+  const { hospital, fetchHospital } = useHospitalManagement();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('https://i.imgur.com/ndu6pfe.png');
 
@@ -97,11 +98,31 @@ const HospitalManagementNavbar = () => {
     if (user) fetchImage();
   }, [user]);
 
+  useEffect(() => {
+    fetchHospital();
+  }, [fetchHospital]);
+
   return (
     <header className="bg-gradient-to-r from-cyan-700 via-cyan-800 to-teal-900 sticky top-0 z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-14">
-          <MyTreasureBrand to={dashboardPath} subtitle="Hospital Management" inverse />
+          <button type="button" onClick={() => history.push(dashboardPath)} className="flex items-center gap-2 min-w-0 text-left">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/95 shadow-sm">
+              {hospital?.logo_url || hospital?.logoUrl ? (
+                <img
+                  src={hospital.logo_url || hospital.logoUrl}
+                  alt={hospital.logo_name || hospital.logoName || hospital.name || 'Hospital logo'}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <span className="text-lg font-bold text-cyan-800">{String(hospital?.name || 'H').slice(0, 1)}</span>
+              )}
+            </span>
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-bold text-white sm:text-base">{hospital?.name || 'Hospital Management'}</span>
+              <span className="block truncate text-[11px] text-cyan-100">{hospital?.logo_name || hospital?.logoName || 'Hospital Management'}</span>
+            </span>
+          </button>
 
           <div className="flex items-center space-x-2 sm:space-x-3">
             <button

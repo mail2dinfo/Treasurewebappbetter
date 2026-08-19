@@ -352,6 +352,15 @@ main {
   padding-bottom: 2rem;
 }
 
+/* Patient / hospital pages: stack sections vertically.
+   Unscoped `main { display: flex }` in old module CSS was forcing a horizontal split. */
+main.hh-page-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
 .bidcontainer {
   position: relative;
   width: 30vw;

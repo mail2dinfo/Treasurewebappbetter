@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { FiSettings, FiUsers, FiUser, FiActivity, FiBookOpen, FiExternalLink } from 'react-icons/fi';
+import { FiSettings, FiUsers, FiUser, FiActivity, FiBookOpen, FiClipboard, FiExternalLink } from 'react-icons/fi';
 import PersonalSettings from '../../components/PersonalSettings';
 import PlatformEmployeesPage from '../PlatformEmployeesPage';
 import { useHhPermission } from '../../components/hospitalManagement/useHhPermission';
 import { HH_NAV_ANY } from '../../utils/hhPermissionCatalog';
 import { useHhBasePath } from '../../components/hospitalManagement/hospitalManagementMenuItems';
 import { useHospitalManagement } from '../../context/hospitalManagement/HospitalManagementContext';
+import { HospitalProfileForm } from './HospitalManagementHospitalPage';
+import HhSpecializationMaster from '../../components/hospitalManagement/HhSpecializationMaster';
 
 const ALL_MENU_ITEMS = [
   {
@@ -16,6 +17,13 @@ const ALL_MENU_ITEMS = [
     description: 'Profile, contact & registration',
     icon: FiActivity,
     featureKeys: HH_NAV_ANY.hospital,
+  },
+  {
+    id: 'specializations',
+    label: 'Specialization master',
+    description: 'Doctor specialties for dropdowns',
+    icon: FiClipboard,
+    featureKeys: HH_NAV_ANY.doctors,
   },
   {
     id: 'ledger-categories',
@@ -27,7 +35,7 @@ const ALL_MENU_ITEMS = [
   {
     id: 'employees',
     label: 'Employees',
-    description: 'Managers, receptionists and access',
+    description: 'Add Manager / clinical staff / Kitchen Staff + responsibilities',
     icon: FiUsers,
     featureKeys: null,
   },
@@ -39,33 +47,6 @@ const ALL_MENU_ITEMS = [
     featureKeys: null,
   },
 ];
-
-const HospitalProfileSummary = () => {
-  const { hospital, fetchHospital } = useHospitalManagement();
-  const basePath = useHhBasePath();
-
-  useEffect(() => {
-    fetchHospital();
-  }, [fetchHospital]);
-
-  return (
-    <div className="space-y-3">
-      <h2 className="text-sm font-semibold text-gray-900">Hospital setup summary</h2>
-      {hospital ? (
-        <dl className="text-sm space-y-2">
-          <div><dt className="text-gray-500">Name</dt><dd className="font-medium text-gray-900">{hospital.name || '—'}</dd></div>
-          <div><dt className="text-gray-500">Phone</dt><dd className="font-medium text-gray-900">{hospital.phone || '—'}</dd></div>
-          <div><dt className="text-gray-500">Registration</dt><dd className="font-medium text-gray-900">{hospital.registration_no || hospital.registrationNo || '—'}</dd></div>
-        </dl>
-      ) : (
-        <p className="text-sm text-gray-500">No hospital profile yet.</p>
-      )}
-      <Link to={`${basePath}/hospital`} className="inline-flex items-center gap-2 bg-cyan-700 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-cyan-800">
-        Open hospital profile
-      </Link>
-    </div>
-  );
-};
 
 const LedgerCategoriesPanel = () => {
   const { ledgerCategories, fetchLedgerCategories, createLedgerCategory, deleteLedgerCategory } = useHospitalManagement();
@@ -80,7 +61,7 @@ const LedgerCategoriesPanel = () => {
     e.preventDefault();
     if (!categoryName.trim()) return toast.error('Category name required');
     setSaving(true);
-    const result = await createLedgerCategory({ categoryName: categoryName.trim() });
+    const result = await createLedgerCategory({ name: categoryName.trim() });
     setSaving(false);
     if (result.success) {
       toast.success('Category added');
@@ -89,7 +70,7 @@ const LedgerCategoriesPanel = () => {
   };
 
   const onDelete = async (item) => {
-    if (!window.confirm(`Delete category "${item.category_name || item.categoryName}"?`)) return;
+    if (!window.confirm(`Delete category "${item.name || item.category_name || item.categoryName}"?`)) return;
     const result = await deleteLedgerCategory(item.id);
     if (result.success) toast.success('Category deleted');
     else toast.error(result.error || 'Failed');
@@ -105,7 +86,7 @@ const LedgerCategoriesPanel = () => {
       <ul className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
         {(ledgerCategories || []).map((item) => (
           <li key={item.id} className="px-4 py-3 flex justify-between items-center text-sm">
-            <span>{item.category_name || item.categoryName}</span>
+            <span>{item.name || item.category_name || item.categoryName}</span>
             {!item.is_system && (
               <button type="button" onClick={() => onDelete(item)} className="text-xs text-red-700">Delete</button>
             )}
@@ -117,7 +98,7 @@ const LedgerCategoriesPanel = () => {
 };
 
 const HospitalManagementAdminSettingsPage = () => {
-  const { enforceAccess, roleCode, canAny } = useHhPermission();
+  const { enforceAccess, roleCode, can, canAny } = useHhPermission();
   const basePath = useHhBasePath();
   const managerMode = Boolean(enforceAccess && roleCode === 'MANAGER');
 
@@ -143,7 +124,7 @@ const HospitalManagementAdminSettingsPage = () => {
             </span>
             <div className="min-w-0">
               <h1 className="text-xl sm:text-2xl font-semibold text-[#333] tracking-tight">Admin Settings</h1>
-              <p className="mt-1 text-sm text-[#888]">Hospital setup, ledger categories, employees, and your profile</p>
+              <p className="mt-1 text-sm text-[#888]">Hospital setup, specialization master, ledger categories, employees, and your profile</p>
             </div>
           </div>
         </header>
@@ -184,7 +165,8 @@ const HospitalManagementAdminSettingsPage = () => {
 
           <section className="min-w-0">
             <div className={`rounded-2xl border border-gray-200 bg-white shadow-sm ${isWide ? 'p-2 sm:p-3 overflow-visible' : 'p-4 sm:p-6'}`}>
-              {activeMenu === 'hospital' && <HospitalProfileSummary />}
+              {activeMenu === 'hospital' && <HospitalProfileForm />}
+              {activeMenu === 'specializations' && <HhSpecializationMaster canManage={can('hh_doctor_manage')} embedded />}
               {activeMenu === 'ledger-categories' && <LedgerCategoriesPanel />}
               {activeMenu === 'personalsettings' && <PersonalSettings />}
               {activeMenu === 'employees' && (
@@ -198,7 +180,7 @@ const HospitalManagementAdminSettingsPage = () => {
               )}
               <div className="mt-6 pt-4 border-t border-gray-100">
                 <p className="text-xs font-semibold uppercase text-gray-500 mb-2">Patient portal</p>
-                <p className="text-sm text-gray-600 mb-2">Share this link with patients to view appointments and bills.</p>
+                <p className="text-sm text-gray-600 mb-2">Share this link with patients. They sign in with phone + password (default: first 4 digits of the phone). Inpatients can also see ward/bed and order food.</p>
                 <a href="/hospital-management/patient" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm text-cyan-700 hover:text-cyan-900 font-medium">
                   /hospital-management/patient
                   <FiExternalLink className="w-4 h-4" />
