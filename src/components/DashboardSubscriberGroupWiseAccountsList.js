@@ -215,42 +215,70 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
                 {filteredItems.length} record{filteredItems.length === 1 ? '' : 's'}
             </p>
 
-            <div className="subscriber-list">
-                <div className="subscriber-groupwise-header-row">
+            <div className="subscriber-groupwise-list">
+                <div className="subscriber-groupwise-header-row recv-header-row">
                     <p>Subscriber</p>
-                    <p>Group</p>
-                    <p>Phone</p>
                     <p>Total</p>
                     <p>Paid</p>
                     <p>Outstanding</p>
                 </div>
 
                 {filteredItems.length > 0 ? (
-                    filteredItems.map((item, index) => (
-                        <article
-                            className={`account-grid-row ${Number(item.outstanding_due) > 0 ? '' : 'paid-row'}`}
-                            key={`${item.subscriber_id || index}-${item.group_id || item.group_name || index}`}
-                        >
-                            <span data-label="Subscriber">{item.subscriber_name}</span>
-                            <span data-label="Group">{item.group_name}</span>
-                            <span data-label="Phone">{item.phone}</span>
-                            <span data-label="Total">{item.receivable_amount}</span>
-                            <span data-label="Paid">{item.received_amount}</span>
-                            <span data-label="Outstanding">{item.outstanding_due}</span>
-                        </article>
-                    ))
+                    filteredItems.map((item, index) => {
+                        const dueHigh = Number(item.outstanding_due) > 0;
+                        return (
+                            <article
+                                className={`recv-row ${dueHigh ? '' : 'is-paid'}`}
+                                key={`${item.subscriber_id || index}-${item.group_id || item.group_name || index}`}
+                            >
+                                <div className="recv-identity">
+                                    <p className="recv-name">{item.subscriber_name || '—'}</p>
+                                    <p className="recv-meta">
+                                        <span>{item.group_name || '—'}</span>
+                                        {item.phone ? <span>{item.phone}</span> : null}
+                                    </p>
+                                </div>
+                                <div className="recv-amounts">
+                                    <div className="recv-amt">
+                                        <span>Total</span>
+                                        <strong>₹{formatAmount(item.receivable_amount)}</strong>
+                                    </div>
+                                    <div className="recv-amt">
+                                        <span>Paid</span>
+                                        <strong>₹{formatAmount(item.received_amount)}</strong>
+                                    </div>
+                                    <div className={`recv-amt ${dueHigh ? 'is-due' : ''}`}>
+                                        <span>Due</span>
+                                        <strong>₹{formatAmount(item.outstanding_due)}</strong>
+                                    </div>
+                                </div>
+                            </article>
+                        );
+                    })
                 ) : (
                     <p className="no-results">No matching records found.</p>
                 )}
 
                 {filteredItems.length > 0 && (
-                    <article className="account-grid-row total-row">
-                        <span data-label="Subscriber">Total</span>
-                        <span data-label="Group" />
-                        <span data-label="Phone" />
-                        <span data-label="Total">{formatAmount(columnTotals.total)}</span>
-                        <span data-label="Paid">{formatAmount(columnTotals.paid)}</span>
-                        <span data-label="Outstanding">{formatAmount(columnTotals.outstanding)}</span>
+                    <article className="recv-row recv-total">
+                        <div className="recv-identity">
+                            <p className="recv-name">Total</p>
+                            <p className="recv-meta">{filteredItems.length} record{filteredItems.length === 1 ? '' : 's'}</p>
+                        </div>
+                        <div className="recv-amounts">
+                            <div className="recv-amt">
+                                <span>Total</span>
+                                <strong>₹{formatAmount(columnTotals.total)}</strong>
+                            </div>
+                            <div className="recv-amt">
+                                <span>Paid</span>
+                                <strong>₹{formatAmount(columnTotals.paid)}</strong>
+                            </div>
+                            <div className="recv-amt is-due">
+                                <span>Due</span>
+                                <strong>₹{formatAmount(columnTotals.outstanding)}</strong>
+                            </div>
+                        </div>
                     </article>
                 )}
             </div>

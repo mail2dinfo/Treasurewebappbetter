@@ -348,49 +348,73 @@ const DashboardAreaWiseAccountsList = ({ items }) => {
                 </div>
             </div>
 
-            {/* HEADER ROW */}
-            <div className="area-wise-header-row">
-                <p>Area</p>
-                <p>Subscriber Name</p>
-                <p>Phone</p>
-                <p>Total</p>
-                <p>Paid</p>
-                <p>Due</p>
-            </div>
-
             {/* DATA ROWS */}
             <div className="area-wise-list">
+                <div className="area-wise-header-row recv-header-row">
+                    <p>Subscriber</p>
+                    <p>Total</p>
+                    <p>Paid</p>
+                    <p>Due</p>
+                </div>
                 {filteredItems.length > 0 ? (
                     filteredItems.map((item, index) => {
                         const { aob, name, phone, rbtotal, rctotal, rbdue } = item;
-                        const isPaid = rbdue === 0;
+                        const isPaid = Number(rbdue) === 0;
+                        const dueHigh = Number(rbdue) > 0;
 
                         return (
-                            <div
-                                className={`area-wise-data-row ${isPaid ? 'area-wise-paid-row' : ''}`}
+                            <article
+                                className={`recv-row ${isPaid ? 'is-paid' : ''}`}
                                 key={index}
                             >
-                                <p>{aob}</p>
-                                <p>{name.length > 10 ? name.slice(0, 10) + '...' : name}</p>
-                                <p>{phone}</p>
-                                <p>{rbtotal}</p>
-                                <p>{rctotal}</p>
-                                <p>{rbdue}</p>
-                            </div>
+                                <div className="recv-identity">
+                                    <p className="recv-name">{name || '—'}</p>
+                                    <p className="recv-meta">
+                                        <span>{aob || '—'}</span>
+                                        {phone ? <span>{phone}</span> : null}
+                                    </p>
+                                </div>
+                                <div className="recv-amounts">
+                                    <div className="recv-amt">
+                                        <span>Total</span>
+                                        <strong>₹{formatAmount(rbtotal)}</strong>
+                                    </div>
+                                    <div className="recv-amt">
+                                        <span>Paid</span>
+                                        <strong>₹{formatAmount(rctotal)}</strong>
+                                    </div>
+                                    <div className={`recv-amt ${dueHigh ? 'is-due' : ''}`}>
+                                        <span>Due</span>
+                                        <strong>₹{formatAmount(rbdue)}</strong>
+                                    </div>
+                                </div>
+                            </article>
                         );
                     })
                 ) : (
                     <p className="no-results">No matching results found.</p>
                 )}
                 {filteredItems.length > 0 && (
-                    <div className="area-wise-data-row area-wise-total-row">
-                        <p>Total</p>
-                        <p />
-                        <p />
-                        <p>{formatAmount(columnTotals.total)}</p>
-                        <p>{formatAmount(columnTotals.paid)}</p>
-                        <p>{formatAmount(columnTotals.due)}</p>
-                    </div>
+                    <article className="recv-row recv-total">
+                        <div className="recv-identity">
+                            <p className="recv-name">Total</p>
+                            <p className="recv-meta">{filteredItems.length} subscriber{filteredItems.length === 1 ? '' : 's'}</p>
+                        </div>
+                        <div className="recv-amounts">
+                            <div className="recv-amt">
+                                <span>Total</span>
+                                <strong>₹{formatAmount(columnTotals.total)}</strong>
+                            </div>
+                            <div className="recv-amt">
+                                <span>Paid</span>
+                                <strong>₹{formatAmount(columnTotals.paid)}</strong>
+                            </div>
+                            <div className="recv-amt is-due">
+                                <span>Due</span>
+                                <strong>₹{formatAmount(columnTotals.due)}</strong>
+                            </div>
+                        </div>
+                    </article>
                 )}
             </div>
         </div>
