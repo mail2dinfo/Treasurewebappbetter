@@ -91,8 +91,37 @@ const DeleteGroupAccountModal = ({
                     <span>Earned premium</span>
                     <span className="font-semibold">{will.earned_premium ?? 0}</span>
                   </li>
+                  <li className="flex justify-between px-3 py-2">
+                    <span>Ledger entries</span>
+                    <span className="font-semibold">{will.ledger_entries ?? 0}</span>
+                  </li>
                 </ul>
               </div>
+
+              {Array.isArray(preview?.ledger_accounts) && preview.ledger_accounts.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                    Ledger closing balance after delete
+                  </h3>
+                  <ul className="text-sm border border-gray-200 rounded-lg divide-y divide-gray-100">
+                    {preview.ledger_accounts.map((row) => (
+                      <li key={row.ledger_account_id} className="px-3 py-2">
+                        <div className="flex justify-between gap-3">
+                          <span className="font-medium text-gray-800">{row.account_name}</span>
+                          <span className="font-semibold whitespace-nowrap">
+                            {Number(row.current_balance ?? 0).toFixed(2)} →{' '}
+                            {Number(row.new_closing_balance ?? 0).toFixed(2)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {row.entries} entries · credit {Number(row.credit_reversed ?? 0).toFixed(2)} · debit{' '}
+                          {Number(row.debit_reversed ?? 0).toFixed(2)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-3 text-sm text-blue-900">
                 <p className="font-semibold mb-1">Next auction date</p>

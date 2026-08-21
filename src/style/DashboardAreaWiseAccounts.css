@@ -106,8 +106,8 @@
 
 .recv-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 2.7fr);
-  gap: 8px 12px;
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 0.9fr));
+  gap: 8px;
   padding: 12px 14px;
   border-bottom: 1px solid #f0f0f0;
   align-items: center;
@@ -136,10 +136,7 @@
 }
 
 .recv-amounts {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  min-width: 0;
+  display: contents;
 }
 
 .recv-amt {
@@ -241,6 +238,10 @@
   }
 
   .recv-amounts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    min-width: 0;
     background: #f8fafc;
     border-radius: 10px;
     padding: 10px 6px;

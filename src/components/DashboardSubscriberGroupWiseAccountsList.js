@@ -78,21 +78,21 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
 
     const handleGeneratePDF = () => {
         const formattedData = filteredItems.map((item) => ({
-            subscriber_name: item.subscriber_name,
-            group_name: item.group_name,
-            phone: item.phone,
-            receivable_amount: item.receivable_amount,
-            received_amount: item.received_amount,
-            outstanding_due: item.outstanding_due,
+            subscriber_name: item.subscriber_name || '',
+            group_name: item.group_name || '',
+            phone: item.phone || '',
+            receivable_amount: formatAmount(item.receivable_amount),
+            received_amount: formatAmount(item.received_amount),
+            outstanding_due: formatAmount(item.outstanding_due),
         }));
         if (formattedData.length > 0) {
             formattedData.push({
                 subscriber_name: 'Total',
                 group_name: '',
                 phone: '',
-                receivable_amount: columnTotals.total,
-                received_amount: columnTotals.paid,
-                outstanding_due: columnTotals.outstanding,
+                receivable_amount: formatAmount(columnTotals.total),
+                received_amount: formatAmount(columnTotals.paid),
+                outstanding_due: formatAmount(columnTotals.outstanding),
             });
         }
         setPdfData(formattedData);
@@ -147,12 +147,12 @@ const DashboardSubscriberGroupWiseAccountsList = ({ items = [] }) => {
                                 <Mypdf
                                     tableData={pdfData}
                                     tableHeaders={[
-                                        { title: 'Subscriber', value: 'subscriber_name' },
-                                        { title: 'Group Name', value: 'group_name' },
-                                        { title: 'Phone', value: 'phone' },
-                                        { title: 'Total', value: 'receivable_amount' },
-                                        { title: 'Paid', value: 'received_amount' },
-                                        { title: 'Due', value: 'outstanding_due' },
+                                        { title: 'Subscriber', value: 'subscriber_name', flex: 1.5 },
+                                        { title: 'Group Name', value: 'group_name', flex: 1.8 },
+                                        { title: 'Phone', value: 'phone', flex: 1.1 },
+                                        { title: 'Total', value: 'receivable_amount', flex: 0.8, align: 'right' },
+                                        { title: 'Paid', value: 'received_amount', flex: 0.8, align: 'right' },
+                                        { title: 'Due', value: 'outstanding_due', flex: 0.8, align: 'right' },
                                     ]}
                                     heading={`Subscriber Groupwise Receivable — ${selectedGroupLabel}`}
                                     companyData={userCompany}

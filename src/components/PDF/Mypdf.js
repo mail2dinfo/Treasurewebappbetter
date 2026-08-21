@@ -5,10 +5,10 @@ import PDFHeader from './PDFHeader';
 
 const styles = StyleSheet.create({
     page: {
-        paddingTop: 35,
-        paddingBottom: 48,
-        paddingHorizontal: 48,
-        boxSizing: "border-box",
+        paddingTop: 28,
+        paddingBottom: 36,
+        paddingHorizontal: 28,
+        boxSizing: 'border-box',
     },
     heading: {
         fontSize: 20,

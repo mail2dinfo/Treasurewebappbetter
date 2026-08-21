@@ -154,100 +154,114 @@
 }
 
 /* Table Header */
-.subscriber-groupwise-header-row {
+.subscriber-groupwise-header-row,
+.recv-header-row {
   background-color: #d32f2f;
   color: #fff;
   display: grid;
-  grid-template-columns: 1.8fr 1.8fr 1.5fr 1fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 0.9fr));
   font-weight: 600;
-  padding: 12px;
+  padding: 12px 14px;
   border-radius: 6px 6px 0 0;
-  font-size: 14px;
+  font-size: 13px;
+  gap: 8px;
 }
 
-.subscriber-groupwise-header-row p {
+.subscriber-groupwise-header-row p,
+.recv-header-row p {
   color: #fff;
   margin: 0;
   font-weight: 600;
 }
 
-/* Table Row */
-.subscriber-groupwise-data-row {
+.recv-header-row p:not(:first-child) {
+  text-align: right;
+}
+
+.subscriber-groupwise-wrapper .recv-row {
   display: grid;
-  grid-template-columns: 1.8fr 1.8fr 1.5fr 1fr 1fr 1fr;
-  padding: 10px 12px;
+  grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 0.9fr));
+  gap: 8px;
+  padding: 12px 14px;
   border-bottom: 1px solid #f0f0f0;
-  font-size: 14px;
   align-items: center;
-  color: #333;
+  background: #fff;
 }
 
-.subscriber-groupwise-data-row:hover {
-  background-color: #f9f9f9;
+.subscriber-groupwise-wrapper .recv-identity {
+  min-width: 0;
 }
 
-/* Paid Row Highlight */
-.paid-row {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-}
-
-/* Table grid (subscriber group wise list) */
-.subscriber-groupwise-wrapper .account-grid-header,
-.subscriber-groupwise-wrapper .account-grid-row {
-  display: grid;
-  grid-template-columns: 1.8fr 1.8fr 1.5fr 1fr 1fr 1fr;
-  padding: 10px 12px;
-  font-size: 14px;
-  align-items: center;
-}
-
-.subscriber-groupwise-wrapper .account-grid-header {
-  background-color: #d32f2f;
-  color: #fff;
-  font-weight: 600;
-  border-radius: 6px 6px 0 0;
-  padding: 12px;
-}
-
-.subscriber-groupwise-wrapper .account-grid-header p,
-.subscriber-groupwise-wrapper .account-grid-header span {
-  color: #fff;
+.subscriber-groupwise-wrapper .recv-name {
   margin: 0;
-  font-weight: 600;
-}
-
-.subscriber-groupwise-wrapper .account-grid-row {
-  border-bottom: 1px solid #f0f0f0;
-  color: #333;
-  background-color: #fff;
-  border-radius: 0;
-}
-
-.subscriber-groupwise-wrapper .account-grid-row.total-row {
+  font-size: 14px;
   font-weight: 700;
+  color: #111827;
+  overflow-wrap: anywhere;
+}
+
+.subscriber-groupwise-wrapper .recv-meta {
+  margin: 4px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.subscriber-groupwise-wrapper .recv-amounts {
+  display: contents;
+}
+
+.subscriber-groupwise-wrapper .recv-amt {
+  min-width: 0;
+  text-align: right;
+}
+
+.subscriber-groupwise-wrapper .recv-amt span {
+  display: none;
+}
+
+.subscriber-groupwise-wrapper .recv-amt strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  overflow-wrap: anywhere;
+}
+
+.subscriber-groupwise-wrapper .recv-amt.is-due strong {
+  color: #b91c1c;
+}
+
+.subscriber-groupwise-wrapper .recv-row.is-paid {
+  background-color: #f0fdf4;
+}
+
+.subscriber-groupwise-wrapper .recv-row.recv-total {
   background-color: #d32f2f;
-  color: #fff;
-  border-top: 2px solid #b71c1c;
   border-bottom: none;
   border-radius: 0 0 6px 6px;
 }
 
-.subscriber-groupwise-wrapper .account-grid-row.total-row span {
+.subscriber-groupwise-wrapper .recv-row.recv-total .recv-name,
+.subscriber-groupwise-wrapper .recv-row.recv-total .recv-meta,
+.subscriber-groupwise-wrapper .recv-row.recv-total .recv-amt strong {
   color: #fff;
-  font-weight: 700;
 }
 
-/* List Container */
+.subscriber-groupwise-wrapper .recv-row.recv-total .recv-meta {
+  color: #fecaca;
+}
+
 .subscriber-groupwise-list {
   display: flex;
   flex-direction: column;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .subscriber-groupwise-wrapper {
-    padding: 0.75rem;
+    padding: 0;
     box-shadow: none;
     margin-bottom: 0;
     max-width: 100%;
@@ -257,6 +271,8 @@
   .subscriber-groupwise-header {
     flex-direction: column;
     align-items: stretch;
+    padding: 0 2px 12px;
+    gap: 8px;
   }
 
   .filter-section {
@@ -280,60 +296,73 @@
   }
 
   .subscriber-groupwise-header-row,
-  .subscriber-groupwise-wrapper .account-grid-header {
+  .recv-header-row {
     display: none;
   }
 
-  .subscriber-groupwise-wrapper .account-grid-row,
-  .subscriber-groupwise-data-row {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    gap: 0;
-    min-width: 0;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    padding: 10px 12px;
-    background: #fff;
-  }
-
-  .subscriber-groupwise-wrapper .account-grid-row span,
-  .subscriber-groupwise-data-row span {
+  .subscriber-groupwise-wrapper .recv-row {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: stretch;
     gap: 12px;
-    padding: 7px 0;
-    border-bottom: 1px dashed #ececec;
-    font-size: 13px;
+    margin-bottom: 10px;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  .subscriber-groupwise-wrapper .recv-name {
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  .subscriber-groupwise-wrapper .recv-amounts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
     min-width: 0;
-    overflow-wrap: anywhere;
-  }
-
-  .subscriber-groupwise-wrapper .account-grid-row span:last-child,
-  .subscriber-groupwise-data-row span:last-child {
-    border-bottom: none;
-  }
-
-  .subscriber-groupwise-wrapper .account-grid-row span:empty {
-    display: none;
-  }
-
-  .subscriber-groupwise-wrapper .account-grid-row span::before,
-  .subscriber-groupwise-data-row span::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: #6b7280;
-    flex: 0 0 38%;
-    max-width: 38%;
-  }
-
-  .subscriber-groupwise-wrapper .account-grid-row.total-row {
-    background-color: #d32f2f;
+    background: #f8fafc;
     border-radius: 10px;
+    padding: 10px 6px;
   }
 
-  .subscriber-groupwise-wrapper .account-grid-row.total-row span::before {
-    color: #ffcdd2;
+  .subscriber-groupwise-wrapper .recv-amt {
+    text-align: center;
+    padding: 0 4px;
+  }
+
+  .subscriber-groupwise-wrapper .recv-amt + .recv-amt {
+    border-left: 1px solid #e5e7eb;
+  }
+
+  .subscriber-groupwise-wrapper .recv-amt span {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #6b7280;
+  }
+
+  .subscriber-groupwise-wrapper .recv-amt strong {
+    font-size: 13px;
+  }
+
+  .subscriber-groupwise-wrapper .recv-row.recv-total {
+    border-radius: 14px;
+  }
+
+  .subscriber-groupwise-wrapper .recv-row.recv-total .recv-amounts {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .subscriber-groupwise-wrapper .recv-row.recv-total .recv-amt span {
+    color: #fecaca;
+  }
+
+  .subscriber-groupwise-wrapper .recv-row.recv-total .recv-amt + .recv-amt {
+    border-left-color: rgba(255, 255, 255, 0.2);
   }
 }

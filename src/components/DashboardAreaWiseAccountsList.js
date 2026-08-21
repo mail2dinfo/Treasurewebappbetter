@@ -318,12 +318,12 @@ const DashboardAreaWiseAccountsList = ({ items }) => {
                                 <Mypdf
                                     tableData={pdfData}
                                     tableHeaders={[
-                                        { title: 'Area', value: 'aob' },
-                                        { title: 'Subscriber Name', value: 'name' },
-                                        { title: 'Phone', value: 'phone' },
-                                        { title: 'Total', value: 'total' },
-                                        { title: 'Paid', value: 'paid' },
-                                        { title: 'Due', value: 'due' },
+                                        { title: 'Area', value: 'aob', flex: 1.3 },
+                                        { title: 'Subscriber Name', value: 'name', flex: 1.6 },
+                                        { title: 'Phone', value: 'phone', flex: 1.1 },
+                                        { title: 'Total', value: 'total', flex: 0.8, align: 'right' },
+                                        { title: 'Paid', value: 'paid', flex: 0.8, align: 'right' },
+                                        { title: 'Due', value: 'due', flex: 0.8, align: 'right' },
                                     ]}
                                     heading="Areawise Receivable"
                                     companyData={userCompany}
