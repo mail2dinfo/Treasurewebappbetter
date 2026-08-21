@@ -20,54 +20,86 @@ const todayISO = () => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
+const toISODate = (value) => {
+  if (!value) return '';
+  const raw = String(value);
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const addOneMonthSameDate = (isoDate) => {
+  const iso = toISODate(isoDate);
+  if (!iso) return '';
+  const [year, month, day] = iso.split('-').map(Number);
+  const next = new Date(year, month, day);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`;
+};
+
+const formatDisplayDate = (isoDate) => {
+  const iso = toISODate(isoDate);
+  if (!iso) return '—';
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  });
+};
+
+const formatMoney = (value) =>
+  `₹${Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+
 const AddAdaptiveGroupAccountModal = ({
   open,
   onClose,
-  groupId,
   subscribers,
   defaultEmi,
   defaultCommission,
+  groupAmount,
+  defaultInstallmentDate,
   saving,
   onSubmit,
 }) => {
+  const [step, setStep] = useState('form');
   const [auctDate, setAuctDate] = useState(todayISO());
   const [groupSubscriberId, setGroupSubscriberId] = useState('');
-  const [askedAmount, setAskedAmount] = useState('');
-  const [commision, setCommision] = useState(String(defaultCommission || 0));
   const [customerAmount, setCustomerAmount] = useState('');
-  const [balanceAmount, setBalanceAmount] = useState('');
-  const [reserveAmount, setReserveAmount] = useState('0');
+  const [commision, setCommision] = useState('');
   const [customerDue, setCustomerDue] = useState('');
   const [auctionProfitAmount, setAuctionProfitAmount] = useState('0');
   const [nextAuctDate, setNextAuctDate] = useState('');
   const [recipientMenuOpen, setRecipientMenuOpen] = useState(false);
 
   const isPrizeDone = (s) => Number(s?.group_won) === 1;
+  const groupAmountNum = Number(groupAmount) || 0;
+  const prizeNum = Number(customerAmount) || 0;
+  const askedAmount = Math.round((groupAmountNum - prizeNum) * 100) / 100;
 
   const calcCustomerDueFromShare = (subscriber) => {
     const emi = Number(defaultEmi) || 0;
     const sharePct = Number(subscriber?.accountshare_percentage);
     const pct = Number.isFinite(sharePct) ? sharePct : 100;
-    // 100% share → full EMI; 50% → half EMI, etc.
     const due = (emi * pct) / 100;
     return String(Number.isFinite(due) ? Math.round(due * 100) / 100 : 0);
   };
 
   useEffect(() => {
     if (!open) return;
-    setAuctDate(todayISO());
-    const firstEligible = (subscribers || []).find((s) => !isPrizeDone(s));
-    setGroupSubscriberId(firstEligible?.group_subscriber_id || '');
-    setAskedAmount('');
-    setCommision(String(defaultCommission || 0));
+    const startDate = toISODate(defaultInstallmentDate) || todayISO();
+    setStep('form');
+    setAuctDate(startDate);
+    setGroupSubscriberId('');
     setCustomerAmount('');
-    setBalanceAmount('');
-    setReserveAmount('0');
-    setCustomerDue(firstEligible ? calcCustomerDueFromShare(firstEligible) : String(defaultEmi || 0));
+    setCommision(String(defaultCommission || 0));
+    setCustomerDue('');
     setAuctionProfitAmount('0');
-    setNextAuctDate('');
+    setNextAuctDate(addOneMonthSameDate(startDate));
     setRecipientMenuOpen(false);
-  }, [open, subscribers, defaultEmi, defaultCommission]);
+  }, [open, subscribers, defaultEmi, defaultCommission, defaultInstallmentDate]);
 
   if (!open) return null;
 
@@ -90,38 +122,56 @@ const AddAdaptiveGroupAccountModal = ({
     if (sub) setCustomerDue(calcCustomerDueFromShare(sub));
   };
 
+  const handleInstallmentDateChange = (value) => {
+    setAuctDate(value);
+    setNextAuctDate(addOneMonthSameDate(value));
+  };
+
+  const buildPayload = () => ({
+    auct_date: auctDate,
+    group_subscriber_id: groupSubscriberId,
+    asked_amount: Number.isFinite(askedAmount) ? askedAmount : 0,
+    commision: Number(commision) || 0,
+    customer_amount: prizeNum,
+    balance_amount: Number.isFinite(askedAmount) ? askedAmount : 0,
+    reserve_amount: 0,
+    customer_due: Number(customerDue) || 0,
+    auction_profit_amount: Number(auctionProfitAmount) || 0,
+    next_auct_date: nextAuctDate || undefined,
+    advance_next_date: true,
+  });
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!auctDate) {
+      toast.error('Enter installment date');
+      return;
+    }
+    if (!customerAmount || prizeNum <= 0) {
+      toast.error('Enter prize / customer amount');
+      return;
+    }
+    if (prizeNum > groupAmountNum) {
+      toast.error('Prize / customer amount cannot be greater than group amount');
+      return;
+    }
     if (!groupSubscriberId) {
-      toast.error('Select prize recipient (payable)');
+      toast.error('Choose prize recipient (subscriber)');
       return;
     }
     if (selectedSubscriber && isPrizeDone(selectedSubscriber)) {
       toast.error('This subscriber already has Payment - Done. Choose another recipient.');
       return;
     }
-    if (!customerAmount || Number(customerAmount) <= 0) {
-      toast.error('Enter prize / customer amount');
-      return;
-    }
     if (customerDue === '' || Number(customerDue) < 0) {
       toast.error('Enter customer due (base EMI for receivables)');
       return;
     }
+    setStep('confirm');
+  };
 
-    onSubmit({
-      auct_date: auctDate,
-      group_subscriber_id: groupSubscriberId,
-      asked_amount: Number(askedAmount) || 0,
-      commision: Number(commision) || 0,
-      customer_amount: Number(customerAmount),
-      balance_amount: Number(balanceAmount || askedAmount) || 0,
-      reserve_amount: Number(reserveAmount) || 0,
-      customer_due: Number(customerDue) || 0,
-      auction_profit_amount: Number(auctionProfitAmount) || 0,
-      next_auct_date: nextAuctDate || undefined,
-      advance_next_date: true,
-    });
+  const handleConfirm = () => {
+    onSubmit(buildPayload());
   };
 
   return (
@@ -139,9 +189,74 @@ const AddAdaptiveGroupAccountModal = ({
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {step === 'confirm' ? (
+            <>
+              <p className="text-sm text-gray-600">
+                Review the allotment details before saving. Nothing is saved until you confirm.
+              </p>
+              <ul className="text-sm border border-gray-200 rounded-lg divide-y divide-gray-100">
+                <li className="flex justify-between gap-3 px-3 py-2">
+                  <span className="text-gray-600">Installment date</span>
+                  <span className="font-semibold text-gray-900">{formatDisplayDate(auctDate)}</span>
+                </li>
+                <li className="flex justify-between gap-3 px-3 py-2">
+                  <span className="text-gray-600">Prize / customer amount</span>
+                  <span className="font-semibold text-gray-900">{formatMoney(prizeNum)}</span>
+                </li>
+                <li className="flex justify-between gap-3 px-3 py-2">
+                  <span className="text-gray-600">Group amount</span>
+                  <span className="font-semibold text-gray-900">{formatMoney(groupAmountNum)}</span>
+                </li>
+                <li className="flex justify-between gap-3 px-3 py-2">
+                  <span className="text-gray-600">Bid amount</span>
+                  <span className="font-semibold text-gray-900">{formatMoney(askedAmount)}</span>
+                </li>
+                <li className="flex justify-between gap-3 px-3 py-2">
+                  <span className="text-gray-600">Commission</span>
+                  <span className="font-semibold text-gray-900">{formatMoney(commision)}</span>
+                </li>
+                <li className="flex justify-between gap-3 px-3 py-2">
+                  <span className="text-gray-600">Customer due</span>
+                  <span className="font-semibold text-gray-900">{formatMoney(customerDue)}</span>
+                </li>
+                <li className="flex justify-between gap-3 px-3 py-2">
+                  <span className="text-gray-600">Auction profit amount</span>
+                  <span className="font-semibold text-gray-900">{formatMoney(auctionProfitAmount)}</span>
+                </li>
+                <li className="flex justify-between gap-3 px-3 py-2">
+                  <span className="text-gray-600">Next installment date</span>
+                  <span className="font-semibold text-gray-900">{formatDisplayDate(nextAuctDate)}</span>
+                </li>
+                <li className="flex justify-between gap-3 px-3 py-2">
+                  <span className="text-gray-600">Prize recipient</span>
+                  <span className="font-semibold text-gray-900 text-right">
+                    {selectedSubscriber ? recipientLabel(selectedSubscriber) : '—'}
+                  </span>
+                </li>
+              </ul>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStep('form')}
+                  disabled={saving}
+                  className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  disabled={saving}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 font-medium disabled:opacity-50"
+                >
+                  {saving ? 'Saving…' : 'Confirm'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
           <p className="text-sm text-gray-600">
             Manual allotment — creates group account, receivables by share %, and payable for the selected winner.
-            Existing auction groups are not affected.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -150,12 +265,49 @@ const AddAdaptiveGroupAccountModal = ({
               <input
                 type="date"
                 value={auctDate}
-                onChange={(e) => setAuctDate(e.target.value)}
+                onChange={(e) => handleInstallmentDateChange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                 required
               />
             </div>
-            <div className="relative">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Prize / customer amount *</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={customerAmount}
+                onChange={(e) => setCustomerAmount(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bid Amount *</label>
+              <input
+                type="number"
+                step="0.01"
+                value={Number.isFinite(askedAmount) ? askedAmount : ''}
+                readOnly
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-800"
+              />
+              <p className="text-[11px] text-gray-500 mt-1">
+                Group amount {formatMoney(groupAmountNum)} minus prize {formatMoney(prizeNum)}
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Next installment date (optional)</label>
+              <input
+                type="date"
+                value={nextAuctDate}
+                onChange={(e) => setNextAuctDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              />
+              <p className="text-[11px] text-gray-500 mt-1">
+                Defaults to the same date next month from installment date.
+              </p>
+            </div>
+            <div className="relative md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Prize recipient (payable) *</label>
               <button
                 type="button"
@@ -168,7 +320,7 @@ const AddAdaptiveGroupAccountModal = ({
                     ? recipientLabel(selectedSubscriber)
                     : eligibleSubscribers.length === 0
                       ? 'No recipients available'
-                      : 'Select subscriber'}
+                      : 'Choose subscriber'}
                 </span>
                 <span className="text-gray-400 text-xs shrink-0">{recipientMenuOpen ? '▲' : '▼'}</span>
               </button>
@@ -206,53 +358,12 @@ const AddAdaptiveGroupAccountModal = ({
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Bid Amount</label>
-              <input
-                type="number"
-                step="0.01"
-                value={askedAmount}
-                onChange={(e) => setAskedAmount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Commission</label>
               <input
                 type="number"
                 step="0.01"
                 value={commision}
                 onChange={(e) => setCommision(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Prize / customer amount *</label>
-              <input
-                type="number"
-                step="0.01"
-                value={customerAmount}
-                onChange={(e) => setCustomerAmount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Balance amount</label>
-              <input
-                type="number"
-                step="0.01"
-                value={balanceAmount}
-                onChange={(e) => setBalanceAmount(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Reserve amount</label>
-              <input
-                type="number"
-                step="0.01"
-                value={reserveAmount}
-                onChange={(e) => setReserveAmount(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -281,15 +392,6 @@ const AddAdaptiveGroupAccountModal = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Next installment date (optional)</label>
-              <input
-                type="date"
-                value={nextAuctDate}
-                onChange={(e) => setNextAuctDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-              />
-            </div>
           </div>
 
           <div className="flex gap-3 pt-2">
@@ -305,9 +407,11 @@ const AddAdaptiveGroupAccountModal = ({
               disabled={saving || eligibleSubscribers.length === 0}
               className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 font-medium disabled:opacity-50"
             >
-              {saving ? 'Saving…' : 'Save allotment'}
+              Save allotment
             </button>
           </div>
+            </>
+          )}
         </form>
       </div>
     </div>
@@ -457,10 +561,11 @@ const AdaptiveGroupsContent = ({ data, onRefresh }) => {
       <AddAdaptiveGroupAccountModal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
-        groupId={groupId}
         subscribers={subscribers}
         defaultEmi={emi}
         defaultCommission={commissionAmount}
+        groupAmount={data?.results?.amount}
+        defaultInstallmentDate={data?.results?.nextAuctionDate}
         saving={saving}
         onSubmit={submitAllotment}
       />
