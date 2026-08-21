@@ -1,9 +1,10 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import PDFHeader from '../../PDF/PDFHeader';
+import { PDF_UNICODE_FONT } from '../../PDF/registerPdfUnicodeFont';
 
 const styles = StyleSheet.create({
-    page: { padding: 36, fontSize: 10, fontFamily: 'Helvetica', lineHeight: 1.5 },
+    page: { padding: 36, fontSize: 10, fontFamily: PDF_UNICODE_FONT, lineHeight: 1.5 },
     title: {
         fontSize: 16,
         fontWeight: 'bold',

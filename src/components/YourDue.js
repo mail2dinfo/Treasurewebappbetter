@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FiArrowLeft, FiArrowUp, FiDownload } from 'react-icons/fi';
 import { FaMoneyBillWave, FaCheckCircle, FaExclamationCircle, FaPlus, FaMinus } from "react-icons/fa";
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { PDFDownloadLink, pdf } from '@react-pdf/renderer';
 import AuctionWinnerReceiptPdf from '../components/PDF/AuctionWinnerReceiptPdf';
 import ReceivableReceitPdf from '../components/PDF/ReceivableReceitPdf';
 import { useUserContext } from '../context/user_context';
@@ -20,6 +20,24 @@ const normalizeAmount = (value) => {
     if (value === '' || value === null || value === undefined) return 0;
     const num = Number(value);
     return Number.isNaN(num) ? 0 : num;
+};
+
+const safePdfFileName = (value) =>
+    String(value || '')
+        .replace(/[\\/:*?"<>|]+/g, '-')
+        .replace(/\s+/g, '_')
+        .slice(0, 80) || 'bill';
+
+const downloadPdfDocument = async (documentNode, fileName) => {
+    const blob = await pdf(documentNode).toBlob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
 
 const getPaymentsList = (item) => {
@@ -48,9 +66,43 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
     const [totalOutstanding, setTotalOutstanding] = useState('0');
     const [showScrollButton, setShowScrollButton] = useState(false);
     const [expandedRowIndex, setExpandedRowIndex] = useState(null);
+    const [downloadingBillId, setDownloadingBillId] = useState(null);
+    const companyForPdf = Array.isArray(userCompany) ? userCompany[0] : userCompany;
 
     const toggleExpandRow = (index) => {
         setExpandedRowIndex(expandedRowIndex === index ? null : index);
+    };
+
+    const handleDownloadBill = async (payment, name, formattedAuctionDate, groupName) => {
+        const fileName = `Receipt-${safePdfFileName(payment.id)}-${safePdfFileName(name)}-${safePdfFileName(formattedAuctionDate)}.pdf`;
+        setDownloadingBillId(payment.id);
+        try {
+            await downloadPdfDocument(
+                <ReceivableReceitPdf
+                    receivableData={{
+                        subscriberName: name,
+                        billNumber: payment.id,
+                        paymentId: payment.id,
+                        paymentType: payment.payment_type,
+                        paymentMethod: payment.payment_method,
+                        groupName,
+                        auctionDate: formattedAuctionDate,
+                        createdAt: payment.created_at
+                            ? new Date(payment.created_at).toLocaleDateString()
+                            : null,
+                        created_at: payment.created_at,
+                        paymentAmount: payment.payment_amount,
+                    }}
+                    companyData={companyForPdf}
+                />,
+                fileName
+            );
+        } catch (error) {
+            console.error('Bill PDF download failed:', error);
+            window.alert(error?.message || 'Could not download bill. Please try again.');
+        } finally {
+            setDownloadingBillId(null);
+        }
     };
 
     useEffect(() => {
@@ -301,36 +353,15 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                                                                 <td className="px-3 py-2 text-sm text-gray-600">{payment.payment_method || '-'}</td>
                                                                 <td className="px-3 py-2 text-sm text-gray-600">{payment.payment_type || '-'}</td>
                                                                 <td className="px-3 py-2">
-                                                                    <PDFDownloadLink
-                                                                        key={`your-due-payment-${payment.id}`}
-                                                                        document={
-                                                                            <ReceivableReceitPdf
-                                                                                receivableData={{
-                                                                                    subscriberName: name,
-                                                                                    billNumber: payment.id,
-                                                                                    paymentId: payment.id,
-                                                                                    paymentType: payment.payment_type,
-                                                                                    paymentMethod: payment.payment_method,
-                                                                                    groupName,
-                                                                                    auctionDate: formattedAuctionDate,
-                                                                                    createdAt: payment.created_at
-                                                                                        ? new Date(payment.created_at).toLocaleDateString()
-                                                                                        : null,
-                                                                                    created_at: payment.created_at,
-                                                                                    paymentAmount: payment.payment_amount,
-                                                                                }}
-                                                                                companyData={userCompany}
-                                                                            />
-                                                                        }
-                                                                        fileName={`Receipt-${payment.id}-${name}-${formattedAuctionDate}.pdf`}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDownloadBill(payment, name, formattedAuctionDate, groupName)}
+                                                                        disabled={downloadingBillId === payment.id}
+                                                                        className="px-3 py-1 bg-custom-red text-white text-xs rounded-md border-none cursor-pointer flex items-center gap-1 hover:bg-red-700 transition-colors duration-200 shadow-sm hover:shadow-md disabled:opacity-60"
                                                                     >
-                                                                        {({ loading }) => (
-                                                                            <button className="px-3 py-1 bg-custom-red text-white text-xs rounded-md border-none cursor-pointer flex items-center gap-1 hover:bg-red-700 transition-colors duration-200 shadow-sm hover:shadow-md">
-                                                                                <FiDownload size={12} />
-                                                                                {loading ? 'Preparing...' : `Billno ${payment.id}`}
-                                                                            </button>
-                                                                        )}
-                                                                    </PDFDownloadLink>
+                                                                        <FiDownload size={12} />
+                                                                        {downloadingBillId === payment.id ? 'Preparing...' : `Billno ${payment.id}`}
+                                                                    </button>
                                                                 </td>
                                                             </tr>
                                                         ))}
@@ -400,10 +431,10 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                                                             amount: groupData?.results?.amount || groupData?.amount || 'N/A',
                                                             startDate: formatDate(groupData?.results?.startDate) || formatDate(groupData?.results?.start_date) || formatDate(groupData?.startDate) || formatDate(groupData?.start_date) || 'N/A',
                                                         }}
-                                                        companyData={userCompany}
+                                                        companyData={companyForPdf}
                                                     />
                                                 }
-                                                fileName={`Auction_Receipt_${name}_${formattedAuctionDate}.pdf`}
+                                                fileName={`Auction_Receipt_${safePdfFileName(name)}_${safePdfFileName(formattedAuctionDate)}.pdf`}
                                                 className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105"
                                             >
                                                 {({ loading }) => (
@@ -491,10 +522,10 @@ const YourDue = ({ data, GroupWiseOverallUserDuedata, groupDetailsData }) => {
                                                             amount: groupData?.results?.amount || groupData?.amount || 'N/A',
                                                             startDate: formatDate(groupData?.results?.startDate) || formatDate(groupData?.results?.start_date) || formatDate(groupData?.startDate) || formatDate(groupData?.start_date) || 'N/A',
                                                         }}
-                                                        companyData={userCompany}
+                                                        companyData={companyForPdf}
                                                     />
                                                 }
-                                                fileName={`Auction_Receipt_${name}_${formattedAuctionDate}.pdf`}
+                                                fileName={`Auction_Receipt_${safePdfFileName(name)}_${safePdfFileName(formattedAuctionDate)}.pdf`}
                                                 className="inline-flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
                                             >
                                                 {({ loading }) => (

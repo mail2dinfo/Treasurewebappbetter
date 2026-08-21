@@ -4,13 +4,16 @@ import {
     Document, Page, Text, View, StyleSheet
 } from '@react-pdf/renderer';
 import PDFHeader from './PDFHeader';
+import { PDF_UNICODE_FONT, registerPdfUnicodeFont } from './registerPdfUnicodeFont';
+
+registerPdfUnicodeFont();
 
 // PDF styles
 const styles = StyleSheet.create({
     page: {
         padding: 20,
         fontSize: 10,
-        fontFamily: 'Helvetica'
+        fontFamily: PDF_UNICODE_FONT
     },
     section: {
         marginBottom: 20,

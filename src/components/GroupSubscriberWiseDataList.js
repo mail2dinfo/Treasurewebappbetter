@@ -102,61 +102,42 @@ const GroupSubscriberWiseDataList = ({ items }) => {
 
     // Table Component - Exact GroupAccountList pattern
     const renderSubscriberWiseTable = () => (
-        <div className="overflow-x-auto -mx-2 px-2">
-            <div className="min-w-[720px]">
-            <div className="bg-custom-red text-white rounded-lg overflow-hidden">
-                <div className="grid grid-cols-5 gap-4 p-4 text-sm font-semibold">
-                    <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span>Subscriber</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                        </svg>
-                        <span>Total Amount</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>Paid Amount</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        <span>Outstanding</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <span>Actions</span>
-                    </div>
+        <div className="w-full min-w-0 overflow-hidden">
+            <div className="bg-custom-red text-white rounded-t-lg overflow-hidden">
+                <div
+                    className="grid items-center gap-2 px-3 py-3 text-xs sm:text-sm font-semibold"
+                    style={{ gridTemplateColumns: 'minmax(0, 1.8fr) repeat(3, minmax(0, 1fr)) 72px' }}
+                >
+                    <span className="truncate">Subscriber</span>
+                    <span className="text-right truncate">Total</span>
+                    <span className="text-right truncate">Paid</span>
+                    <span className="text-right truncate">Due</span>
+                    <span className="text-center">View</span>
                 </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-b-lg">
+            <div className="bg-white border border-t-0 border-gray-200 rounded-b-lg">
                 {items?.map((item) => (
-                    <div key={item.subscriber_id} className="grid grid-cols-5 gap-2 p-4 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200">
-                        <div className="text-gray-900 font-medium">
+                    <div
+                        key={item.subscriber_id}
+                        className="grid items-center gap-2 px-3 py-3 text-sm border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
+                        style={{ gridTemplateColumns: 'minmax(0, 1.8fr) repeat(3, minmax(0, 1fr)) 72px' }}
+                    >
+                        <div className="min-w-0 font-medium text-gray-900 break-words leading-snug">
                             {item.name}
                         </div>
-                        <div className="font-bold text-custom-red">
+                        <div className="text-right font-bold text-custom-red tabular-nums whitespace-nowrap">
                             ₹{item.total_supposed_to_pay ?? 0}
                         </div>
-                        <div className="font-medium text-green-600">
+                        <div className="text-right font-medium text-green-600 tabular-nums whitespace-nowrap">
                             ₹{item.total_paid_amount ?? 0}
                         </div>
-                        <div className={`font-medium ${(item.total_outstanding_balance ?? 0) > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                        <div className={`text-right font-medium tabular-nums whitespace-nowrap ${(item.total_outstanding_balance ?? 0) > 0 ? 'text-red-600' : 'text-gray-600'}`}>
                             ₹{item.total_outstanding_balance ?? 0}
                         </div>
-                        <div className="flex items-center">
+                        <div className="flex justify-center">
                             <button
-                                className="px-3 py-1 bg-custom-red text-white text-sm rounded-md hover:bg-red-700 transition-colors duration-200 shadow-sm hover:shadow-md"
+                                type="button"
+                                className="px-3 py-1 bg-custom-red text-white text-xs sm:text-sm rounded-md hover:bg-red-700 transition-colors duration-200 shadow-sm shrink-0"
                                 onClick={() => openModal(item)}
                             >
                                 View
@@ -164,7 +145,6 @@ const GroupSubscriberWiseDataList = ({ items }) => {
                         </div>
                     </div>
                 ))}
-            </div>
             </div>
         </div>
     );

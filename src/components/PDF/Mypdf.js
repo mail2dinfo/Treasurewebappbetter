@@ -2,6 +2,9 @@ import React from 'react';
 import { Document, Page, View, StyleSheet } from '@react-pdf/renderer';
 import PDFTable from './PDFTable';
 import PDFHeader from './PDFHeader';
+import { PDF_UNICODE_FONT, registerPdfUnicodeFont } from './registerPdfUnicodeFont';
+
+registerPdfUnicodeFont();
 
 const styles = StyleSheet.create({
     page: {
@@ -9,6 +12,7 @@ const styles = StyleSheet.create({
         paddingBottom: 36,
         paddingHorizontal: 28,
         boxSizing: 'border-box',
+        fontFamily: PDF_UNICODE_FONT,
     },
     heading: {
         fontSize: 20,

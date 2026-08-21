@@ -1,13 +1,14 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import PDFHeader from './PDFHeader'; // Keep this as your existing header component
+import { PDF_UNICODE_FONT } from './registerPdfUnicodeFont';
 
 
 const styles = StyleSheet.create({
     page: {
         padding: 40,
         fontSize: 10,
-        fontFamily: 'Helvetica',
+        fontFamily: PDF_UNICODE_FONT,
         lineHeight: 1.4,
     },
     headerSpacing: {

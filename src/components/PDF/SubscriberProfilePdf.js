@@ -1,6 +1,7 @@
 import React from 'react';
 import { Document, Page, View, Text, StyleSheet, Image } from '@react-pdf/renderer';
 import PDFHeader from './PDFHeader';
+import { PDF_UNICODE_FONT } from './registerPdfUnicodeFont';
 
 
 const styles = StyleSheet.create({
@@ -9,6 +10,7 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     paddingHorizontal: 30,
     fontSize: 9,
+    fontFamily: PDF_UNICODE_FONT,
   },
   sectionHeadingContainer: {
     backgroundColor: '#000000',

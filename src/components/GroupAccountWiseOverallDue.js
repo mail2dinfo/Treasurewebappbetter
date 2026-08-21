@@ -23,9 +23,13 @@ const GroupAccountWiseOverallDue = ({ data }) => {
     }
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <GroupAccountWiseResult accountWiseData={accountWiseData} />
-            <GroupSubscriberWiseResult subscriberWiseData={subscriberWiseData} />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start pt-2">
+            <div className="min-w-0">
+                <GroupAccountWiseResult accountWiseData={accountWiseData} />
+            </div>
+            <div className="min-w-0">
+                <GroupSubscriberWiseResult subscriberWiseData={subscriberWiseData} />
+            </div>
         </div>
     );
 };

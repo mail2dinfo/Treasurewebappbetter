@@ -95,48 +95,35 @@ const GroupAccountWiseDataList = ({ items }) => {
 
     // Table Component - Exact GroupAccountList pattern
     const renderAuctionWiseTable = () => (
-        <div className="overflow-x-auto">
-            <div className="bg-custom-red text-white rounded-lg overflow-hidden">
-                <div className="grid grid-cols-4 gap-4 p-4 text-sm font-semibold">
-                    <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span>Auction Date</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                        </svg>
-                        <span>Total Amount</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>Paid Amount</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        <span>Outstanding</span>
-                    </div>
+        <div className="w-full min-w-0 overflow-hidden">
+            <div className="bg-custom-red text-white rounded-t-lg">
+                <div
+                    className="grid items-center gap-2 px-3 py-3 text-xs sm:text-sm font-semibold"
+                    style={{ gridTemplateColumns: 'minmax(0, 1.3fr) repeat(3, minmax(0, 1fr))' }}
+                >
+                    <span className="truncate">Auction Date</span>
+                    <span className="text-right truncate">Total</span>
+                    <span className="text-right truncate">Paid</span>
+                    <span className="text-right truncate">Due</span>
                 </div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-b-lg">
+            <div className="bg-white border border-t-0 border-gray-200 rounded-b-lg">
                 {items?.map((item, index) => (
-                    <div key={index} className="grid grid-cols-4 gap-2 p-4 text-sm border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200">
-                        <div className="text-gray-700 font-medium">
+                    <div
+                        key={index}
+                        className="grid items-center gap-2 px-3 py-3 text-sm border-b border-gray-100 last:border-b-0 hover:bg-gray-50"
+                        style={{ gridTemplateColumns: 'minmax(0, 1.3fr) repeat(3, minmax(0, 1fr))' }}
+                    >
+                        <div className="min-w-0 text-gray-700 font-medium truncate">
                             {formatDate(item.auct_date)}
                         </div>
-                        <div className="font-bold text-custom-red">
+                        <div className="text-right font-bold text-custom-red tabular-nums whitespace-nowrap">
                             ₹{item.total_supposed_to_pay ?? 0}
                         </div>
-                        <div className="font-medium text-green-600">
+                        <div className="text-right font-medium text-green-600 tabular-nums whitespace-nowrap">
                             ₹{item.total_paid_amount ?? 0}
                         </div>
-                        <div className={`font-medium ${(item.total_outstanding_balance ?? 0) > 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                        <div className={`text-right font-medium tabular-nums whitespace-nowrap ${(item.total_outstanding_balance ?? 0) > 0 ? 'text-red-600' : 'text-gray-600'}`}>
                             ₹{item.total_outstanding_balance ?? 0}
                         </div>
                     </div>
