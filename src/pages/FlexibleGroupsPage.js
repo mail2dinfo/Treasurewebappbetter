@@ -51,6 +51,15 @@ const scheduleDueNumber = (receivables = []) =>
 const isDelayedJoiner = (row, scheduleDue) =>
   Number(row.due_number) > 0 && Number(row.due_number) < Number(scheduleDue);
 
+const shareDueAmount = (due, pct) => {
+  const dueNum = Number(due);
+  if (!Number.isFinite(dueNum) || dueNum < 0) return 0;
+  let p = Number(pct);
+  if (!Number.isFinite(p) || p <= 0) p = 100;
+  if (p > 0 && p <= 1) p *= 100;
+  return Math.floor((dueNum * p) / 100);
+};
+
 const recipientLabel = (s) => `${s.name || s.firstname || s.phone} · ${s.phone || ''}`;
 
 const DueProcessedModal = ({ open, month, tenure, onClose }) => {
@@ -300,12 +309,39 @@ const AddDuesModal = ({
     if (!ready || !preview?.receivables) return;
     if (toISODate(preview.auct_date) && toISODate(preview.auct_date) !== toISODate(auctDate)) return;
     const recs = preview.receivables;
+    const currentDueNo = scheduleDueNumber(recs);
+    const base = Number(emiValue);
     const next = {};
     recs.forEach((row) => {
-      next[String(row.group_subscriber_id)] = '';
+      const key = String(row.group_subscriber_id);
+      if (isDelayedJoiner(row, currentDueNo)) {
+        next[key] = '';
+      } else if (Number.isFinite(base) && base > 0) {
+        next[key] = String(shareDueAmount(base, row.accountshare_percentage));
+      } else {
+        next[key] = '';
+      }
     });
     setRowEmis(next);
   }, [ready, preview, auctDate]);
+
+  useEffect(() => {
+    if (!ready || !preview?.receivables) return;
+    const recs = preview.receivables;
+    const currentDueNo = scheduleDueNumber(recs);
+    const base = Number(emiValue);
+    setRowEmis((prev) => {
+      const next = { ...prev };
+      recs.forEach((row) => {
+        if (isDelayedJoiner(row, currentDueNo)) return;
+        const key = String(row.group_subscriber_id);
+        next[key] = Number.isFinite(base) && base > 0
+          ? String(shareDueAmount(base, row.accountshare_percentage))
+          : '';
+      });
+      return next;
+    });
+  }, [emiValue, ready, preview]);
 
   if (!open) return null;
 
@@ -327,18 +363,6 @@ const AddDuesModal = ({
 
   const applyOnSchedule = (value) => {
     setEmiValue(value);
-    const base = Number(value);
-    if (!Number.isFinite(base) || base < 0) return;
-    setRowEmis((prev) => {
-      const next = { ...prev };
-      (preview?.receivables || []).forEach((row) => {
-        if (isDelayedJoiner(row, scheduleDueNumber(preview?.receivables || []))) return;
-        const pct = Number(row.accountshare_percentage);
-        const sharePct = Number.isFinite(pct) ? pct : 100;
-        next[String(row.group_subscriber_id)] = String(Math.floor((base * sharePct) / 100));
-      });
-      return next;
-    });
   };
 
   const missingAmounts = rows.filter((row) => row.emi == null);
@@ -417,6 +441,8 @@ const AddDuesModal = ({
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 py-2 text-left">Subscriber</th>
+                      <th className="px-3 py-2 text-left">Ticket</th>
+                      <th className="px-3 py-2 text-left">Share</th>
                       <th className="px-3 py-2 text-left">Due no.</th>
                       <th className="px-3 py-2 text-left">Amount</th>
                     </tr>
@@ -425,6 +451,8 @@ const AddDuesModal = ({
                     {rows.map((row) => (
                       <tr key={row.group_subscriber_id} className="border-t">
                         <td className="px-3 py-2 font-semibold">{row.name}</td>
+                        <td className="px-3 py-2">{row.accountshare_id || '—'}</td>
+                        <td className="px-3 py-2">{Number(row.accountshare_percentage) || 100}%</td>
                         <td className="px-3 py-2">
                           {row.due_number}
                           {tenure || row.tenure ? ` / ${tenure || row.tenure}` : ''}
@@ -481,7 +509,7 @@ const AddDuesModal = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Applied only to members on the current due. Late joiners stay empty until you enter an amount.
+                Full-ticket due. Split tickets (for example 1A / 1B at 50%) get this amount × their share.
               </p>
             </div>
           </div>
@@ -502,6 +530,8 @@ const AddDuesModal = ({
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 py-2 text-left">Subscriber</th>
+                      <th className="px-3 py-2 text-left">Ticket</th>
+                      <th className="px-3 py-2 text-left">Share</th>
                       <th className="px-3 py-2 text-left">Due no.</th>
                       <th className="px-3 py-2 text-left">Due</th>
                     </tr>
@@ -515,6 +545,8 @@ const AddDuesModal = ({
                             <div className="text-xs text-amber-700">Late joiner — enter due manually</div>
                           )}
                         </td>
+                        <td className="px-3 py-2">{row.accountshare_id || '—'}</td>
+                        <td className="px-3 py-2">{Number(row.accountshare_percentage) || 100}%</td>
                         <td className="px-3 py-2">{row.due_number} / {tenure || row.tenure}</td>
                         <td className="px-3 py-2">
                           <input
@@ -537,7 +569,7 @@ const AddDuesModal = ({
                     ))}
                     {!rows.length && (
                       <tr>
-                        <td colSpan={3} className="px-3 py-6 text-center text-gray-500">
+                        <td colSpan={5} className="px-3 py-6 text-center text-gray-500">
                           No subscribers still need dues
                         </td>
                       </tr>
