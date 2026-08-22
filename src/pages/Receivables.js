@@ -1,11 +1,14 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useReceivablesContext } from '../context/receivables_context';
 import loadingImage from '../images/preloader.gif';
-import { FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiGrid, FiList, FiRefreshCw } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiGrid, FiList, FiRefreshCw, FiDownload } from 'react-icons/fi';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 import ReceivablePayementModal from '../components/ReceivablePayementModal';
 import { useAobContext } from '../context/aob_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
+import { useUserContext } from '../context/user_context';
+import Mypdf from '../components/PDF/Mypdf';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -14,6 +17,7 @@ const Receivable = () => {
   const enforceReceivableAccess = platform?.isAvailable && !platform.isOwner;
   const canPayReceivable = !enforceReceivableAccess || platform.hasPermission('chit_receivables_pay');
   const { fetchReceivables, receivables, isLoading } = useReceivablesContext();
+  const { user } = useUserContext();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedReceivable, setSelectedReceivable] = useState(null);
   const { aobs, fetchAobs } = useAobContext();
@@ -129,6 +133,52 @@ const Receivable = () => {
 
     return groupMatch && subscriberMatch && areaMatch;
   });
+
+  const pdfHeaders = [
+    { title: 'Subscriber', value: 'name' },
+    { title: 'Phone', value: 'phone' },
+    { title: 'Group', value: 'group_name' },
+    { title: 'Date', value: 'auct_date' },
+    { title: 'Area', value: 'area' },
+    { title: 'Total', value: 'total' },
+    { title: 'Paid', value: 'paid' },
+    { title: 'Due', value: 'due' },
+  ];
+
+  const pdfRows = useMemo(() => {
+    const rows = filteredReceivables.map((item) => ({
+      name: item.name || '—',
+      phone: item.phone || '—',
+      group_name: item.group_name || '—',
+      auct_date: formatDate(item.auct_date),
+      area: item.area || item.aob || '—',
+      total: Number(item.rbtotal || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+      paid: Number(item.rbpaid || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+      due: Number(item.rbdue || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+    }));
+    if (rows.length) {
+      const totals = filteredReceivables.reduce(
+        (acc, item) => {
+          acc.total += parseFloat(item.rbtotal || 0);
+          acc.paid += parseFloat(item.rbpaid || 0);
+          acc.due += parseFloat(item.rbdue || 0);
+          return acc;
+        },
+        { total: 0, paid: 0, due: 0 }
+      );
+      rows.push({
+        name: 'TOTAL',
+        phone: '',
+        group_name: '',
+        auct_date: '',
+        area: `${rows.length} records`,
+        total: totals.total.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+        paid: totals.paid.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+        due: totals.due.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+      });
+    }
+    return rows;
+  }, [filteredReceivables]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -754,6 +804,30 @@ const Receivable = () => {
                     <FiRefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
                     <span className="hidden sm:inline">Refresh</span>
                   </button>
+                  {filteredReceivables.length > 0 && (
+                    <PDFDownloadLink
+                      document={
+                        <Mypdf
+                          tableData={pdfRows}
+                          tableHeaders={pdfHeaders}
+                          heading="Receivables Outstanding"
+                          companyData={user?.results?.userCompany || []}
+                        />
+                      }
+                      fileName={`Receivables_${new Date().toISOString().slice(0, 10)}.pdf`}
+                    >
+                      {({ loading }) => (
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white text-custom-red rounded-lg hover:bg-red-50 transition-colors font-semibold"
+                          title="Download PDF"
+                        >
+                          <FiDownload className="w-5 h-5" />
+                          <span className="hidden sm:inline">{loading ? 'Preparing…' : 'Download PDF'}</span>
+                        </button>
+                      )}
+                    </PDFDownloadLink>
+                  )}
                   <div className="bg-white/20 rounded-lg px-3 sm:px-4 py-2 text-center ml-auto sm:ml-0">
                     <span className="text-white font-semibold text-base sm:text-lg">{receivables.length}</span>
                     <p className="text-red-100 text-xs sm:text-sm">Total Records</p>

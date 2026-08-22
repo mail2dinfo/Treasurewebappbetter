@@ -330,16 +330,19 @@ import Scenario1Modal from "./Scenario1Modal";
 import Scenario2Modal from "./Scenario2Modal";
 import Scenario3Modal from "./Scenario3Modal";
 import Scenario4Modal from "./Scenario4Modal";
-import { useLocation } from "react-router-dom";
+import { useHistory, useLocation } from "react-router-dom";
+import { FiUserPlus } from "react-icons/fi";
 import { usePlatformAccess } from "../context/platformAccess_context";
 
 const GroupsSubscriber = () => {
   const location = useLocation();
+  const history = useHistory();
   const platform = usePlatformAccess();
   const isManagerPath = location.pathname.startsWith('/chit-fund/manager');
   const canDeleteSubscriber = !isManagerPath
     || platform.hasPermission('chit_subscriber_delete');
   const canManageSubscribers = canDeleteSubscriber;
+  const canAddSubscriber = !isManagerPath || platform.hasPermission('chit_subscriber_add');
 
   const { data, deleteGroupSubscriberbyCompositekey, checkDeletionScenario } = useGroupDetailsContext();
 
@@ -544,15 +547,30 @@ const GroupsSubscriber = () => {
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
 
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
             <h3 className="text-3xl font-bold text-gray-800 mb-2">Group Subscribers</h3>
             <p className="text-gray-600">Total Members: <span className="font-semibold text-red-600">{groupSubscriber.length}</span></p>
           </div>
-          <div className="hidden md:block">
-            <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
-              <p className="text-sm text-gray-500">Active Members</p>
-              <p className="text-2xl font-bold text-green-600">{groupSubscriber.filter((_, index) => index % 3 !== 0).length}</p>
+          <div className="flex items-center gap-3">
+            {String(data?.results?.type || '').toUpperCase() === 'FLEXIBLE' && canAddSubscriber && data?.results?.groupId && (
+              <button
+                type="button"
+                onClick={() => {
+                  const base = isManagerPath ? '/chit-fund/manager' : '/chit-fund/user';
+                  history.push(`${base}/addgroupsubscriber/${data.results.groupId}`);
+                }}
+                className="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 rounded-lg shadow-md flex items-center gap-2"
+              >
+                <FiUserPlus size={16} />
+                Add subscriber
+              </button>
+            )}
+            <div className="hidden md:block">
+              <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+                <p className="text-sm text-gray-500">Active Members</p>
+                <p className="text-2xl font-bold text-green-600">{groupSubscriber.filter((_, index) => index % 3 !== 0).length}</p>
+              </div>
             </div>
           </div>
         </div>

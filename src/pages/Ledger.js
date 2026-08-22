@@ -1,13 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { PDFDownloadLink } from "@react-pdf/renderer";
 import LedgerTable from "../components/LedgerTable";
 import AddEntryModal from "../components/AddEntryModal";
 import FilterBar from "../components/FilterBar";
 import LedgerHeader from "../components/LedgerHeader";
 import AddAccountModal from "../components/AddAccountModal";
+import Mypdf from "../components/PDF/Mypdf";
 import "../style/ledger.css";
-import { useLedgerAccountContext } from "../context/ledgerAccount_context"; // 👈 context import
+import { useLedgerAccountContext } from "../context/ledgerAccount_context";
 import { useLedgerEntryContext } from "../context/ledgerEntry_context";
 import { useLedgerCategoryContext } from "../context/ledgerCategory_context";
+import { useUserContext } from "../context/user_context";
 
 
 
@@ -15,6 +18,7 @@ const LedgerPage = () => {
   const { ledgerAccounts, fetchLedgerAccounts, deleteLedgerAccount } = useLedgerAccountContext();
   const { ledgerEntries, fetchLedgerEntries, setPage } = useLedgerEntryContext();
   const { categories } = useLedgerCategoryContext();
+  const { user } = useUserContext();
 
   const accounts = Array.isArray(ledgerAccounts) ? ledgerAccounts : [];
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -98,6 +102,53 @@ const LedgerPage = () => {
     a.click();
   };
 
+  const formatPdfDate = (value) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    return `${String(date.getDate()).padStart(2, "0")}-${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`;
+  };
+
+  const entriesArray = Array.isArray(entries?.results) ? entries.results : (Array.isArray(entries) ? entries : []);
+  const pdfHeaders = [
+    { title: "Date", value: "date" },
+    { title: "Account", value: "account" },
+    { title: "Category", value: "category" },
+    { title: "CR Amount", value: "credit" },
+    { title: "DB Amount", value: "debit" },
+    { title: "Description", value: "description" },
+  ];
+  const pdfRows = useMemo(() => {
+    const rows = entriesArray.map((entry) => ({
+      date: formatPdfDate(entry.transacted_date),
+      account: entry.account?.account_name || "",
+      category: entry.category || "",
+      credit: entry.entry_type === "CREDIT"
+        ? Number(entry.amount || 0).toLocaleString("en-IN")
+        : "",
+      debit: entry.entry_type === "DEBIT"
+        ? Number(entry.amount || 0).toLocaleString("en-IN")
+        : "",
+      description: entry.description || "",
+    }));
+    if (rows.length) {
+      const totalCredit = entriesArray
+        .filter((entry) => entry.entry_type === "CREDIT")
+        .reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+      const totalDebit = entriesArray
+        .filter((entry) => entry.entry_type === "DEBIT")
+        .reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
+      rows.push({
+        date: "TOTAL",
+        account: "",
+        category: `${entriesArray.length} entries`,
+        credit: totalCredit.toLocaleString("en-IN"),
+        debit: totalDebit.toLocaleString("en-IN"),
+        description: "",
+      });
+    }
+    return rows;
+  }, [entriesArray]);
+
   return (
     <div className={`ledger-page ${showModal || showAccountModal ? "blurred" : ""}`}>
       {/* Header with account dropdown */}
@@ -124,6 +175,25 @@ const LedgerPage = () => {
           <button onClick={handleDownloadCSV} className="add-entry-btn">
             ⬇️ Download CSV
           </button>
+          {pdfRows.length > 0 && (
+            <PDFDownloadLink
+              document={
+                <Mypdf
+                  tableData={pdfRows}
+                  tableHeaders={pdfHeaders}
+                  heading="Ledger Entries"
+                  companyData={user?.results?.userCompany || []}
+                />
+              }
+              fileName={`Ledger_${new Date().toISOString().slice(0, 10)}.pdf`}
+            >
+              {({ loading }) => (
+                <button type="button" className="add-entry-btn">
+                  {loading ? "Preparing PDF…" : "⬇️ Download PDF"}
+                </button>
+              )}
+            </PDFDownloadLink>
+          )}
         </div>
       </div>
 

@@ -3,6 +3,7 @@ import reducer from '../reducers/user_reducer'
 import { SIDEBAR_CLOSE, SIDEBAR_OPEN } from '../actions'
 import { clearAllAuthStorage } from '../utils/clearAuthStorage'
 import { API_BASE_URL } from '../utils/apiConfig'
+import { toApiUserRole } from '../utils/roleLabels'
 
 const initialState = {
   isSidebarOpen: false,
@@ -18,7 +19,10 @@ export const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole'));
+  const [userRole, setUserRole] = useState(() => {
+    const stored = localStorage.getItem('userRole');
+    return stored ? toApiUserRole(stored) : null;
+  });
   const heartbeatRef = useRef(null);
 
   const persistSessionId = (sessionId) => {
@@ -76,13 +80,12 @@ export const UserProvider = ({ children }) => {
         const userData = JSON.parse(savedUser);
         setUser(userData);
         setIsLoggedIn(true);
-        if (!localStorage.getItem('userRole')) {
-          const restoredRole = userData?.results?.userAccounts?.[0]?.accountName;
-          if (restoredRole) {
-            setUserRole(restoredRole);
-            localStorage.setItem('userRole', restoredRole);
-          }
-        }
+        const storedRole = localStorage.getItem('userRole');
+        const restoredRole = toApiUserRole(
+          storedRole || userData?.results?.userAccounts?.[0]?.accountName || 'User'
+        );
+        setUserRole(restoredRole);
+        localStorage.setItem('userRole', restoredRole);
       } catch (error) {
         console.error('Error parsing saved user data:', error);
         clearAllAuthStorage();
@@ -171,12 +174,14 @@ export const UserProvider = ({ children }) => {
   }
 
   const updateUserRole = (role) => {
-    setUserRole(role);
-    if (role) {
-      localStorage.setItem('userRole', role);
-    } else {
+    if (!role) {
+      setUserRole(null);
       localStorage.removeItem('userRole');
+      return;
     }
+    const apiRole = toApiUserRole(role);
+    setUserRole(apiRole);
+    localStorage.setItem('userRole', apiRole);
   };
 
   return (

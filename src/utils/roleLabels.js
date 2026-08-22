@@ -1,5 +1,15 @@
+/** RBAC header roles are only User / Manager (plus staff). Never send Owner. */
+export const toApiUserRole = (role) => {
+    const raw = String(role || '').trim();
+    if (!raw) return 'User';
+    const key = raw.toLowerCase().replace(/[\s_]+/g, '');
+    if (key === 'owner' || key === 'user') return 'User';
+    if (key === 'manager') return 'Manager';
+    return raw;
+};
+
 const ROLE_CODE_LABELS = {
-    OWNER: 'Owner',
+    OWNER: 'User',
     USER: 'User',
     MANAGER: 'Manager',
     COLLECTOR: 'Collector',
@@ -54,7 +64,7 @@ export const getLoggedInRoleLabel = ({
         return formatRoleLabel(accountName);
     }
 
-    if (platform?.isOwner) return 'Owner';
+    if (platform?.isOwner) return 'User';
 
     const path = String(pathname || '');
     if (path.includes('/kitchenstaff') || path.includes('/kitchen')) return 'Kitchen Staff';

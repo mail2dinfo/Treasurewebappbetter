@@ -5,11 +5,13 @@ import { FiTrash2, FiAlertTriangle, FiLoader, FiSearch, FiFilter, FiX } from 're
 import 'react-toastify/dist/ReactToastify.css';
 
 const ManageGroups = () => {
-    const { state, deleteGroup } = useGroupsDetailsContext();
+    const { state, deleteGroup, previewDeleteGroup } = useGroupsDetailsContext();
     const { groups, isLoading, error } = state;
     const [deletingGroupId, setDeletingGroupId] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedGroup, setSelectedGroup] = useState(null);
+    const [deletePreview, setDeletePreview] = useState(null);
+    const [loadingPreview, setLoadingPreview] = useState(false);
 
     // Filter states
     const [searchTerm, setSearchTerm] = useState('');
@@ -35,9 +37,21 @@ const ManageGroups = () => {
         setAmountFilter('');
     };
 
-    const handleDeleteClick = (group) => {
+    const handleDeleteClick = async (group) => {
         setSelectedGroup(group);
+        setDeletePreview(null);
         setShowDeleteModal(true);
+        setLoadingPreview(true);
+        try {
+            const preview = await previewDeleteGroup(group.id);
+            setDeletePreview(preview);
+        } catch (previewError) {
+            toast.error(previewError.message || 'Failed to load delete preview');
+            setShowDeleteModal(false);
+            setSelectedGroup(null);
+        } finally {
+            setLoadingPreview(false);
+        }
     };
 
     const handleConfirmDelete = async () => {
@@ -59,6 +73,8 @@ const ManageGroups = () => {
     const handleCancelDelete = () => {
         setShowDeleteModal(false);
         setSelectedGroup(null);
+        setDeletePreview(null);
+        setLoadingPreview(false);
     };
 
     const formatCurrency = (amount) => {
@@ -281,45 +297,103 @@ const ManageGroups = () => {
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && selectedGroup && (
-                <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-                    <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                        <div className="mt-3 text-center">
-                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                                <FiAlertTriangle className="h-6 w-6 text-red-600" />
-                            </div>
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <div className="fixed inset-0 bg-black/60 overflow-y-auto h-full w-full z-50 p-4">
+                    <div className="relative top-10 mx-auto p-0 border w-full max-w-lg shadow-lg rounded-2xl bg-white overflow-hidden">
+                        <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                <FiTrash2 className="h-5 w-5" />
                                 Delete Group
                             </h3>
-                            <div className="mt-2 px-7 py-3">
-                                <p className="text-sm text-gray-500 mb-4">
-                                    Are you sure you want to delete the group <strong>"{selectedGroup.group_name}"</strong>?
-                                </p>
-                                <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
-                                    <p className="text-sm text-red-800">
-                                        <strong>Warning:</strong> This action will permanently delete all data associated with this group including:
-                                    </p>
-                                    <ul className="text-sm text-red-700 mt-1 list-disc list-inside">
-                                        <li>Group information and settings</li>
-                                        <li>All financial transactions</li>
-                                        <li>Member subscriptions</li>
-                                        <li>All historical records</li>
-                                    </ul>
-                                </div>
-                                <p className="text-sm text-red-600 font-medium">
-                                    This action cannot be undone!
+                            <button
+                                type="button"
+                                onClick={handleCancelDelete}
+                                disabled={deletingGroupId === selectedGroup.id}
+                                className="text-white/80 hover:text-white"
+                            >
+                                <FiX className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                                <FiAlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                                <p>
+                                    Delete <strong>"{selectedGroup.group_name}"</strong> permanently.
+                                    This cannot be undone.
                                 </p>
                             </div>
-                            <div className="flex space-x-3 px-4 py-3">
+
+                            {loadingPreview ? (
+                                <p className="text-sm text-gray-500 flex items-center gap-2">
+                                    <FiLoader className="animate-spin h-4 w-4" />
+                                    Loading what will be deleted…
+                                </p>
+                            ) : deletePreview ? (
+                                <>
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                                            Records that will be deleted
+                                        </h4>
+                                        <ul className="text-sm border border-gray-200 rounded-lg divide-y divide-gray-100">
+                                            {[
+                                                ['Receivables', deletePreview.will_delete?.receivables],
+                                                ['Receipts', deletePreview.will_delete?.receipts],
+                                                ['Payables', deletePreview.will_delete?.payables],
+                                                ['Payments', deletePreview.will_delete?.payments],
+                                                ['Ledger entries', deletePreview.will_delete?.ledger_entries],
+                                                ['Group accounts', deletePreview.will_delete?.group_accounts],
+                                                ['Group subscribers', deletePreview.will_delete?.group_subscribers],
+                                                ['Earned premium', deletePreview.will_delete?.earned_premium],
+                                                ['Auction bids', deletePreview.will_delete?.auction],
+                                                ['Group', deletePreview.will_delete?.groups],
+                                            ].map(([label, count]) => (
+                                                <li key={label} className="flex justify-between px-3 py-2">
+                                                    <span>{label}</span>
+                                                    <span className="font-semibold">{count ?? 0}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+
+                                    {Array.isArray(deletePreview.ledger_accounts) && deletePreview.ledger_accounts.length > 0 && (
+                                        <div>
+                                            <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                                                Ledger closing balance after delete
+                                            </h4>
+                                            <ul className="text-sm border border-gray-200 rounded-lg divide-y divide-gray-100">
+                                                {deletePreview.ledger_accounts.map((row) => (
+                                                    <li key={row.ledger_account_id} className="px-3 py-2">
+                                                        <div className="flex justify-between gap-3">
+                                                            <span className="font-medium text-gray-800">{row.account_name}</span>
+                                                            <span className="font-semibold whitespace-nowrap">
+                                                                {Number(row.current_balance ?? 0).toFixed(2)} →{' '}
+                                                                {Number(row.new_closing_balance ?? 0).toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-500 mt-1">
+                                                            {row.entries} entries · credit {Number(row.credit_reversed ?? 0).toFixed(2)} · debit{' '}
+                                                            {Number(row.debit_reversed ?? 0).toFixed(2)}
+                                                        </p>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-sm text-red-600">Unable to load delete preview.</p>
+                            )}
+
+                            <div className="flex space-x-3 pt-2">
                                 <button
                                     onClick={handleCancelDelete}
-                                    className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                                    className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md hover:bg-gray-300"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleConfirmDelete}
-                                    disabled={deletingGroupId === selectedGroup.id}
-                                    className="flex-1 px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={deletingGroupId === selectedGroup.id || loadingPreview || !deletePreview}
+                                    className="flex-1 px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md hover:bg-red-700 disabled:opacity-50"
                                 >
                                     {deletingGroupId === selectedGroup.id ? 'Deleting...' : 'Delete'}
                                 </button>

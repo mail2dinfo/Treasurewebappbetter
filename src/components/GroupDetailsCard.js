@@ -7,7 +7,25 @@ import { useUserContext } from "../context/user_context";
 import { usePlatformAccess } from "../context/platformAccess_context";
 import { Gavel } from "lucide-react";
 
-const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, startTime, endTime, commisionType, is_commision_taken, commision, emi, isGroupProgress, groupType }) => {
+const GroupDetailsCard = ({
+    groups,
+    yourdue,
+    customerdue,
+    nextAuctionDate,
+    startTime,
+    endTime,
+    commisionType,
+    is_commision_taken,
+    commision,
+    emi,
+    isGroupProgress,
+    groupType,
+    compact = false,
+    payablesSettled,
+    payablesTotal,
+    dueMonthsProcessed,
+    dueMonthsTotal,
+}) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const { user } = useUserContext();
     const platform = usePlatformAccess();
@@ -129,47 +147,76 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
         // Redirect to the YourDuePage for the specific groupId
         history.push(`${basePath}/groups/${groupId}/customer-due`);
     };
+    const isFlexible = String(groupType || "").toUpperCase() === "FLEXIBLE";
+    const circleSize = compact ? 'w-28 h-28 sm:w-32 sm:h-32' : 'w-20 h-20';
+    const circleText = compact ? 'text-white font-bold text-base sm:text-xl' : 'text-white font-bold text-lg';
+    const highlightCols = isFlexible
+        ? (canViewReceivables ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2')
+        : (canViewReceivables ? 'grid-cols-3' : 'grid-cols-1');
+
     return (
-        <div className="bg-white border border-gray-200 rounded-xl shadow-lg relative mt-6">
+        <div className={`bg-white border border-gray-200 rounded-xl shadow-lg relative ${compact ? 'mt-4' : 'mt-6'}`}>
             {/* Header */}
-            <div className="absolute -top-4 left-6 bg-custom-red text-white px-4 py-1 rounded-full text-sm font-medium shadow-md">
+            <div className={`absolute -top-3 left-4 bg-custom-red text-white ${compact ? 'px-4 py-1 text-sm' : 'px-4 py-1 text-sm'} rounded-full font-medium shadow-md`}>
                 Group Highlights
             </div>
 
-            <div className="p-6 pt-8">
-                <div className={`grid ${canViewReceivables ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1'} gap-4 mb-8`}>
-                    {/* Groups Count */}
+            <div className={compact ? 'p-5 pt-8 sm:p-6 sm:pt-9' : 'p-6 pt-8'}>
+                <div className={`grid ${highlightCols} ${compact ? 'gap-3 sm:gap-6 mb-0' : 'gap-4 mb-8'}`}>
+                    {isFlexible ? (
+                        <>
+                            <div className="text-center">
+                                <div className={`${circleSize} bg-gradient-to-br from-teal-500 to-teal-700 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg px-2`}>
+                                    <span className={circleText}>
+                                        {payablesSettled || 0} / {payablesTotal || 0}
+                                    </span>
+                                </div>
+                                <p className="text-sm font-medium text-gray-700">Payables</p>
+                                <p className="text-xs text-gray-500">Prize settled / Members</p>
+                            </div>
+                            <div className="text-center">
+                                <div className={`${circleSize} bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg px-2`}>
+                                    <span className={circleText}>
+                                        {dueMonthsProcessed || 0} / {dueMonthsTotal || 0}
+                                    </span>
+                                </div>
+                                <p className="text-sm font-medium text-gray-700">Receivables</p>
+                                <p className="text-xs text-gray-500">Due months processed</p>
+                            </div>
+                        </>
+                    ) : (
                     <div className="text-center">
-                        <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg">
-                            <span className="text-white font-bold text-lg">
+                        <div className={`${circleSize} bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg px-2`}>
+                            <span className={circleText}>
                                 {groups[0]?.groupsCompleted || 0} / {groups[0]?.totalTenture || 0}
                             </span>
                         </div>
-                        <p className="text-sm font-medium text-gray-700">Groups</p>
+                        <p className={`${compact ? 'text-sm' : 'text-sm'} font-medium text-gray-700`}>Groups</p>
                         <p className="text-xs text-gray-500">Completed / Total</p>
                     </div>
+                    )}
 
                     {canViewReceivables && (
                         <>
                             {/* Your Due */}
                             <div className="text-center cursor-pointer group" onClick={handleYourDueClick}>
-                                <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                    <span className="text-white font-bold text-lg">
+                                <div className={`${circleSize} bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:shadow-xl transition-all duration-300 px-2`}>
+                                    <span className={circleText}>
                                         ₹{yourdue[0]?.pending_amount || 0}
                                     </span>
                                 </div>
-                                <p className="text-sm font-medium text-gray-700">Your Due</p>
+                                <p className={`${compact ? 'text-sm' : 'text-sm'} font-medium text-gray-700`}>Your Due</p>
                                 <p className="text-xs text-gray-500">Pending Amount</p>
                             </div>
 
                             {/* Customer Due */}
                             <div className="text-center cursor-pointer group" onClick={handleCustomerDueClick}>
-                                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:shadow-xl transition-all duration-300">
-                                    <span className="text-white font-bold text-lg">
+                                <div className={`${circleSize} bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg group-hover:shadow-xl transition-all duration-300 px-2`}>
+                                    <span className={circleText}>
                                         ₹{customerdue[0]?.pending_amount || 0}
                                     </span>
                                 </div>
-                                <p className="text-sm font-medium text-gray-700">Customer Due</p>
+                                <p className={`${compact ? 'text-sm' : 'text-sm'} font-medium text-gray-700`}>Customer Due</p>
                                 <p className="text-xs text-gray-500">Pending Amount</p>
                             </div>
                         </>
@@ -177,7 +224,7 @@ const GroupDetailsCard = ({ groups, yourdue, customerdue, nextAuctionDate, start
                 </div>
 
                 {/* Auction Details */}
-                {canManageAuctions && (
+                {!compact && canManageAuctions && (
                     <>
                     <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4 mb-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">

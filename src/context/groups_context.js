@@ -143,6 +143,20 @@ export const GroupsDetailsProvider = ({ children }) => {
         }
     };
 
+    const previewDeleteGroup = async (groupId) => {
+        const response = await fetch(`${API_BASE_URL}/groups/${groupId}/complete/delete-preview`, {
+            headers: {
+                Authorization: `Bearer ${user?.results?.token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) {
+            throw new Error(data.message || 'Failed to load delete preview');
+        }
+        return data.results || data;
+    };
+
     return (
         <GroupsDetailsContext.Provider
             value={{
@@ -151,6 +165,7 @@ export const GroupsDetailsProvider = ({ children }) => {
                 fetchAllGroups,
                 fetchGroupById,
                 deleteGroup,
+                previewDeleteGroup,
             }}
         >
             {children}

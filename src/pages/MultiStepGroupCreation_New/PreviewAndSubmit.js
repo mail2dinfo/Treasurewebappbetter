@@ -1,10 +1,13 @@
 import React, { useContext, useEffect, useState, useMemo } from "react";
 import AppContext from "./Context";
 import { API_BASE_URL } from "../../utils/apiConfig";
+import { toApiUserRole } from "../../utils/roleLabels";
 import { useHistory } from "react-router-dom";
 import { useUserContext } from "../../context/user_context";
 import { usePlatformAccess } from "../../context/platformAccess_context";
 import { v4 as uuidv4 } from "uuid";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function PreviewAndSubmit() {
   const { groupDetails } = useContext(AppContext);
@@ -117,23 +120,28 @@ export default function PreviewAndSubmit() {
   const handleSubmit = async () => {
     setIsLoading(true);
 
-    if (isLoggedIn) {
-      // Logged-in: send to backend
+    const token = user?.results?.token;
+    if (isLoggedIn && token) {
+      const subscriberCount = Number(groupDetails.groupNoOfSub) || 0;
+      const monthCount = Number(groupDetails.groupNoOfMonths) || 0;
+      const amount = Number(groupDetails.groupAmt) || 0;
       const emi =
         groupDetails.groupType === "Fixed"
-          ? groupDetails.groupAmt / groupDetails.groupNoOfMonths
-          : groupDetails.groupAmt / groupDetails.groupNoOfSub;
+          ? (monthCount ? amount / monthCount : 0)
+          : (subscriberCount ? amount / subscriberCount : 0);
+
+      const roleHeader = toApiUserRole(userRole);
 
       const groupData = {
         groupId: null,
         groupName: groupDetails.groupName,
-        amount: groupDetails.groupAmt,
+        amount,
         type: groupDetails.groupType,
-        noOfSubscribers: groupDetails.groupNoOfSub,
+        noOfSubscribers: subscriberCount,
         tenure:
           groupDetails.groupType === "Fixed"
-            ? groupDetails.groupNoOfMonths
-            : groupDetails.groupNoOfSub,
+            ? monthCount
+            : subscriberCount,
         groupProgress: "FUTURE",
         auctDate: groupDetails.firstAuctDate,
         auctStartTime: groupDetails.auctStartTime,
@@ -142,8 +150,8 @@ export default function PreviewAndSubmit() {
         collectedBy: user.results.userId,
         commissionType: groupDetails.commType,
         commissionMonth: 0,
-        commissionPercentage: groupDetails.commPercentage,
-        commissionAmount: groupDetails.commAmt,
+        commissionPercentage: Number(groupDetails.commPercentage) || 0,
+        commissionAmount: Number(groupDetails.commAmt) || 0,
         auctionPlace: groupDetails.auctPlace,
         nextAuctDate: groupDetails.firstAuctDate,
         auctionMode: groupDetails.auctFreq,
@@ -158,23 +166,30 @@ export default function PreviewAndSubmit() {
         const response = await fetch(`${API_BASE_URL}/groups`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${user.results.token}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-            "X-User-Role": userRole,
+            "X-User-Role": roleHeader,
           },
           body: JSON.stringify(groupData),
         });
 
-        if (response.ok) {
-          const grpJsonObject = await response.json();
-          groupDetails.setGroupId(grpJsonObject.results.id);
+        const grpJsonObject = await response.json().catch(() => ({}));
+        if (response.ok && !grpJsonObject.error) {
+          const createdId = grpJsonObject.results?.id;
+          if (createdId) groupDetails.setGroupId(createdId);
           updateContext.setStep(updateContext.currentPage + 1);
           localStorage.removeItem("unauthenticatedGroup");
+          toast.success(grpJsonObject.message || "Group created successfully");
         } else {
-          console.error("Failed to submit group details");
+          const message =
+            grpJsonObject.errors
+            || grpJsonObject.message
+            || "Failed to submit group details";
+          toast.error(typeof message === "string" ? message : JSON.stringify(message));
         }
       } catch (error) {
         console.error("Error submitting group details:", error);
+        toast.error(error.message || "Error submitting group details");
       }
     } else {
       // Not logged-in: save to localStorage and redirect
@@ -216,6 +231,7 @@ export default function PreviewAndSubmit() {
 
   return (
     <div className="max-w-4xl mx-auto my-6 bg-white rounded-3xl shadow-xl transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 overflow-hidden border border-gray-100">
+      <ToastContainer position="top-right" autoClose={4000} />
       <div className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white p-8 text-center relative">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"></div>
         <div className="relative z-10">
