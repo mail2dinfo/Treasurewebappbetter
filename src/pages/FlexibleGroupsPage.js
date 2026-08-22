@@ -3,7 +3,7 @@ import { useParams, useHistory, useLocation } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import styled from 'styled-components';
-import { FiPlus, FiX, FiList } from 'react-icons/fi';
+import { FiPlus, FiX, FiList, FiTrash2, FiAlertTriangle } from 'react-icons/fi';
 import loadingImage from '../images/preloader.gif';
 import { useGroupDetailsContext } from '../context/group_context';
 import { useUserContext } from '../context/user_context';
@@ -60,7 +60,14 @@ const shareDueAmount = (due, pct) => {
   return Math.floor((dueNum * p) / 100);
 };
 
-const recipientLabel = (s) => `${s.name || s.firstname || s.phone} · ${s.phone || ''}`;
+const payableSubscriberLabel = (s) => {
+  const name = s.name || s.firstname || s.phone || 'Subscriber';
+  const ticket = s.accountshare_id ? `Ticket ${s.accountshare_id}` : 'Ticket —';
+  let pct = Number(s.accountshare_percentage);
+  if (!Number.isFinite(pct) || pct <= 0) pct = 100;
+  if (pct > 0 && pct <= 1) pct *= 100;
+  return `${name} · ${ticket} · ${pct}%`;
+};
 
 const DueProcessedModal = ({ open, month, tenure, onClose }) => {
   if (!open || !month) return null;
@@ -122,6 +129,94 @@ const DueProcessedModal = ({ open, month, tenure, onClose }) => {
   );
 };
 
+const DeleteFlexibleAccountModal = ({
+  open,
+  onClose,
+  preview,
+  loadingPreview,
+  deleting,
+  onConfirm,
+  kind,
+}) => {
+  if (!open) return null;
+  const will = preview?.will_delete || {};
+  const account = preview?.group_account || {};
+  const label = kind === 'payable' ? 'prize payable' : 'monthly due';
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto shadow-2xl">
+        <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-white">Delete {label}</h2>
+          <button type="button" onClick={onClose} disabled={deleting} className="text-white/80 hover:text-white p-2">
+            <FiX className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          {loadingPreview ? (
+            <p className="text-sm text-gray-500">Loading delete impact…</p>
+          ) : !preview ? (
+            <p className="text-sm text-red-600">Unable to load delete preview.</p>
+          ) : (
+            <>
+              <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <FiAlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+                <p>
+                  Only the last {label} can be deleted. Date:{' '}
+                  <strong>{formatDisplayDate(account.auct_date)}</strong>
+                </p>
+              </div>
+              <ul className="text-sm border border-gray-200 rounded-lg divide-y">
+                {[
+                  ['Group accounts', will.group_accounts ?? 1],
+                  ['Payables', will.payables ?? 0],
+                  ['Payments', will.payments ?? 0],
+                  ['Receivables', will.receivables ?? 0],
+                  ['Receipts', will.receipts ?? 0],
+                  ['Ledger entries', will.ledger_entries ?? 0],
+                ].map(([name, count]) => (
+                  <li key={name} className="flex justify-between px-3 py-2">
+                    <span>{name}</span>
+                    <span className="font-semibold">{count}</span>
+                  </li>
+                ))}
+              </ul>
+              {Array.isArray(preview?.ledger_accounts) && preview.ledger_accounts.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-2">Ledger after delete</h3>
+                  <ul className="text-sm border border-gray-200 rounded-lg divide-y">
+                    {preview.ledger_accounts.map((row) => (
+                      <li key={row.ledger_account_id} className="px-3 py-2 flex justify-between gap-3">
+                        <span>{row.account_name}</span>
+                        <span className="font-semibold whitespace-nowrap">
+                          {Number(row.current_balance ?? 0).toFixed(2)} → {Number(row.new_closing_balance ?? 0).toFixed(2)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </>
+          )}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} disabled={deleting} className="flex-1 px-4 py-3 bg-gray-100 rounded-lg">
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={deleting || loadingPreview || !preview}
+              className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg disabled:opacity-50"
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AddPayableModal = ({
   open,
   onClose,
@@ -135,6 +230,7 @@ const AddPayableModal = ({
   const [auctDate, setAuctDate] = useState(todayISO());
   const [groupSubscriberId, setGroupSubscriberId] = useState('');
   const [customerAmount, setCustomerAmount] = useState('');
+  const [confirming, setConfirming] = useState(false);
 
   const paidIds = new Set((paidSubscriberIds || []).map((id) => String(id)));
   const unpaidSubscribers = (subscribers || []).filter((s) => {
@@ -142,11 +238,19 @@ const AddPayableModal = ({
     return id && !paidIds.has(String(id));
   });
 
+  const selectedSharePct = (sub) => {
+    let pct = Number(sub?.accountshare_percentage);
+    if (!Number.isFinite(pct) || pct <= 0) pct = 100;
+    if (pct > 0 && pct <= 1) pct *= 100;
+    return pct;
+  };
+
   useEffect(() => {
     if (!open) return;
     setAuctDate(toISODate(defaultDate) || todayISO());
     setGroupSubscriberId('');
     setCustomerAmount('');
+    setConfirming(false);
   }, [open, defaultDate]);
 
   if (!open) return null;
@@ -164,13 +268,17 @@ const AddPayableModal = ({
       return;
     }
     if (!groupSubscriberId) {
-      toast.error('Choose customer');
+      toast.error('Choose subscriber');
       return;
     }
     if (!customerAmount || prizeNum <= 0) {
       toast.error('Enter prize amount');
       return;
     }
+    setConfirming(true);
+  };
+
+  const handleConfirm = () => {
     onSubmit({
       auct_date: auctDate,
       group_subscriber_id: groupSubscriberId,
@@ -183,14 +291,63 @@ const AddPayableModal = ({
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto shadow-2xl">
         <div className="bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">Add payable</h2>
+          <h2 className="text-lg font-bold text-white">
+            {confirming ? 'Confirm payable' : 'Add payable'}
+          </h2>
           <button type="button" onClick={onClose} className="text-white/80 hover:text-white p-2">
             <FiX className="w-5 h-5" />
           </button>
         </div>
+        {confirming ? (
+          <div className="p-6 space-y-4">
+            <p className="text-sm text-gray-600">
+              Review this prize payable. It will be created for the subscriber below.
+            </p>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Date</span>
+                <span className="font-semibold">{formatDisplayDate(auctDate)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Subscriber</span>
+                <span className="font-semibold">{selected?.name || selected?.firstname}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Ticket</span>
+                <span className="font-semibold">{selected?.accountshare_id || '—'}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Share</span>
+                <span className="font-semibold">{selectedSharePct(selected)}%</span>
+              </div>
+              <div className="flex justify-between text-sm pt-2 border-t">
+                <span className="text-gray-500">Prize amount</span>
+                <span className="font-extrabold text-teal-800">{formatMoney(prizeNum)}</span>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={saving}
+                className="flex-1 px-4 py-3 bg-gray-100 rounded-lg"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleConfirm}
+                className="flex-1 px-4 py-3 bg-teal-700 text-white rounded-lg disabled:opacity-50"
+              >
+                {saving ? 'Processing…' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <p className="text-sm text-gray-600">
-            Creates a payable for one customer who has not received a prize yet.
+            Creates a payable for one subscriber who has not received a prize yet. Share % comes from group subscribers.
           </p>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
@@ -203,7 +360,7 @@ const AddPayableModal = ({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Subscriber *</label>
             {unpaidSubscribers.length ? (
               <select
                 value={groupSubscriberId}
@@ -214,7 +371,7 @@ const AddPayableModal = ({
                 <option value="">Choose subscriber</option>
                 {unpaidSubscribers.map((s) => (
                   <option key={s.group_subscriber_id || s.id} value={s.group_subscriber_id || s.id}>
-                    {recipientLabel(s)}
+                    {payableSubscriberLabel(s)}
                   </option>
                 ))}
               </select>
@@ -236,10 +393,20 @@ const AddPayableModal = ({
               required
             />
           </div>
-          {selected && prizeNum > 0 && (
+          {selected && (
             <div className="rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
               <p className="text-xl font-extrabold text-gray-900">{selected.name || selected.firstname}</p>
-              <p className="text-2xl font-extrabold text-teal-800 mt-1">{formatMoney(prizeNum)}</p>
+              <p className="text-sm text-teal-800 mt-1">
+                Ticket {selected.accountshare_id || '—'} · {(() => {
+                  let pct = Number(selected.accountshare_percentage);
+                  if (!Number.isFinite(pct) || pct <= 0) pct = 100;
+                  if (pct > 0 && pct <= 1) pct *= 100;
+                  return `${pct}% share`;
+                })()}
+              </p>
+              {prizeNum > 0 && (
+                <p className="text-2xl font-extrabold text-teal-800 mt-1">{formatMoney(prizeNum)}</p>
+              )}
             </div>
           )}
           <div className="flex gap-3 pt-2">
@@ -255,6 +422,7 @@ const AddPayableModal = ({
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );
@@ -612,6 +780,10 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [preview, setPreview] = useState(null);
   const [selectedDueMonth, setSelectedDueMonth] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deletePreview, setDeletePreview] = useState(null);
+  const [loadingDeletePreview, setLoadingDeletePreview] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const results = data?.results || {};
   const {
@@ -652,6 +824,57 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
   const authHeaders = {
     Authorization: `Bearer ${user?.results?.token}`,
     'Content-Type': 'application/json',
+  };
+
+  useEffect(() => {
+    if (!deleteTarget?.groupAccountId || !groupId) return undefined;
+    let cancelled = false;
+    const load = async () => {
+      setLoadingDeletePreview(true);
+      setDeletePreview(null);
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/flexible-groups/${groupId}/accounts/${deleteTarget.groupAccountId}/delete-preview`,
+          { headers: authHeaders }
+        );
+        const body = await res.json();
+        if (!res.ok || body.error) throw new Error(body.message || 'Failed to load delete preview');
+        if (!cancelled) setDeletePreview(body.results || body);
+      } catch (error) {
+        if (!cancelled) {
+          toast.error(error.message);
+          setDeleteTarget(null);
+        }
+      } finally {
+        if (!cancelled) setLoadingDeletePreview(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [deleteTarget, groupId, user?.results?.token]);
+
+  const confirmDeleteAccount = async () => {
+    if (!deleteTarget?.groupAccountId) return;
+    setDeletingAccount(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/flexible-groups/${groupId}/accounts/${deleteTarget.groupAccountId}`,
+        { method: 'DELETE', headers: authHeaders }
+      );
+      const body = await res.json();
+      if (!res.ok || body.error) throw new Error(body.message || 'Failed to delete');
+      toast.success(body.message || 'Deleted');
+      setDeleteTarget(null);
+      setDeletePreview(null);
+      if (onRefresh) await onRefresh();
+      await loadStatus();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setDeletingAccount(false);
+    }
   };
 
   const submitPayable = async (payload) => {
@@ -723,6 +946,14 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
 
   const payables = dueStatus?.payables || [];
   const dueMonths = dueStatus?.due_months || [];
+  const lastPayable = payables.reduce((latest, row) => {
+    if (!latest) return row;
+    return Number(row.sequence_number || 0) >= Number(latest.sequence_number || 0) ? row : latest;
+  }, null);
+  const lastDueMonth = dueMonths.reduce((latest, row) => {
+    if (!latest) return row;
+    return Number(row.sequence_number || 0) >= Number(latest.sequence_number || 0) ? row : latest;
+  }, null);
 
   return (
     <>
@@ -807,7 +1038,7 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Payables</h3>
-                  <p className="text-xs text-gray-500">Prize for one customer at a time.</p>
+                  <p className="text-xs text-gray-500">Prize for one subscriber at a time. Trash is only on the last payable.</p>
                 </div>
                 <button
                   type="button"
@@ -823,8 +1054,9 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 py-2 text-left">Date</th>
-                      <th className="px-3 py-2 text-left">Customer</th>
+                      <th className="px-3 py-2 text-left">Subscriber</th>
                       <th className="px-3 py-2 text-left">Prize</th>
+                      <th className="px-3 py-2 text-right"> </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -833,11 +1065,23 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
                         <td className="px-3 py-2">{formatDisplayDate(p.auct_date)}</td>
                         <td className="px-3 py-2 font-semibold">{p.name || p.firstname}</td>
                         <td className="px-3 py-2 font-bold">{formatMoney(p.payable_amount)}</td>
+                        <td className="px-3 py-2 text-right">
+                          {lastPayable && p.group_account_id === lastPayable.group_account_id && (
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget({ kind: 'payable', groupAccountId: p.group_account_id })}
+                              className="inline-flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg"
+                              title="Delete last payable"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
                     {!payables.length && (
                       <tr>
-                        <td colSpan={3} className="px-3 py-6 text-center text-gray-500">No payables yet</td>
+                        <td colSpan={4} className="px-3 py-6 text-center text-gray-500">No payables yet</td>
                       </tr>
                     )}
                   </tbody>
@@ -876,14 +1120,26 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
                     <span className="text-sm font-bold text-gray-900">
                       {formatDisplayDate(month.auct_date)}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDueMonth(month)}
-                      className="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    >
-                      <FiList size={14} />
-                      Dues processed
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDueMonth(month)}
+                        className="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold"
+                      >
+                        <FiList size={14} />
+                        Dues processed
+                      </button>
+                      {lastDueMonth && month.group_account_id === lastDueMonth.group_account_id && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget({ kind: 'due', groupAccountId: month.group_account_id })}
+                          className="inline-flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1.5 rounded-lg"
+                          title="Delete last monthly due"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
                 {!dueMonths.length && (
@@ -912,6 +1168,19 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
         month={selectedDueMonth}
         tenure={dueStatus?.tenure || results.totalTenture}
         onClose={() => setSelectedDueMonth(null)}
+      />
+      <DeleteFlexibleAccountModal
+        open={Boolean(deleteTarget)}
+        kind={deleteTarget?.kind}
+        preview={deletePreview}
+        loadingPreview={loadingDeletePreview}
+        deleting={deletingAccount}
+        onClose={() => {
+          if (deletingAccount) return;
+          setDeleteTarget(null);
+          setDeletePreview(null);
+        }}
+        onConfirm={confirmDeleteAccount}
       />
       <AddDuesModal
         open={showDues}
