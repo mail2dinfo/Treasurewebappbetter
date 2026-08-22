@@ -25,6 +25,7 @@ import ChitFundManagerHome from './ChitFundManagerHome';
 // Chit Fund Manager Pages (Limited access - no billing, employees, etc.)
 import GroupsPage from '../../pages/GroupsPage';
 import AdaptiveGroupsPage from '../../pages/AdaptiveGroupsPage';
+import FlexibleGroupsPage from '../../pages/FlexibleGroupsPage';
 import DashboardPage from '../../pages/DashboardPage';
 import Subscribers from '../Subscribers';
 import GroupStepForm from '../../pages/MultiStepGroupCreation_New/MultiStepForm';
@@ -113,6 +114,7 @@ const ChitFundManagerLayout = () => {
                                                     <Route exact path="/chit-fund/manager/subscriber/:id/update-password" render={(props) => guardedRoute(SubscriberPasswordUpdate, 'chit_subscriber_change_password', props)} />
                                                     <Route exact path="/chit-fund/manager/subscriber/:id" render={(props) => guardedRoute(SubscriberProfile, 'chit_subscriber_view', props)} />
                                                     <Route exact path="/chit-fund/manager/adaptive-groups/:groupId" render={(props) => guardedRoute(AdaptiveGroupsPage, CHIT_NAV_ANY.groups, props)} />
+                                                    <Route exact path="/chit-fund/manager/flexible-groups/:groupId" render={(props) => guardedRoute(FlexibleGroupsPage, CHIT_NAV_ANY.groups, props)} />
                                                     <Route exact path="/chit-fund/manager/groups/:groupId/auctions/winner/:reserve/winner" render={(props) => guardedRoute(Winner, 'chit_auction_manage', props)} />
                                                     <Route path="/chit-fund/manager/groups/:groupId/auctions" render={(props) => guardedRoute(AuctionsPage, 'chit_auction_manage', props)} />
                                                     <Route exact path="/chit-fund/manager/groups/:groupId/your-due" render={(props) => guardedRoute(UserDue, CHIT_NAV_ANY.receivables, props)} />

@@ -35,10 +35,12 @@ const ProgressCircles = ({ groupDetails, selectedCircle, onCircleClick, auctionS
 
     const dynamicCreditAmount = calculateDynamicCredit();
 
+    const isFlexible = String(groupDetails?.type || '').toUpperCase() === 'FLEXIBLE';
+
     const circles = [
         {
             id: 'groups',
-            label: 'Groups',
+            label: isFlexible ? 'Dues' : 'Groups',
             value: `${groupsCompleted}/${totalGroups}`,
             percentage: progressPercentage,
             color: '#4CAF50',
@@ -52,7 +54,7 @@ const ProgressCircles = ({ groupDetails, selectedCircle, onCircleClick, auctionS
             color: '#FF9800',
             icon: '💰'
         },
-        {
+        !isFlexible && {
             id: 'auction',
             label: 'Auction',
             value: auctionStatus === 'OPEN' ? 'Open' : 'Closed',
@@ -76,7 +78,7 @@ const ProgressCircles = ({ groupDetails, selectedCircle, onCircleClick, auctionS
             color: '#9C27B0',
             icon: '💎'
         }
-    ];
+    ].filter(Boolean);
 
     const history = useHistory();
     const { groupId, grpSubId } = useParams();

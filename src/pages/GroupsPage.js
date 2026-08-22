@@ -136,14 +136,17 @@ const GroupsPage = () => {
         }
     }, [groupId]); // Remove fetchGroups from dependencies to prevent infinite loop
 
-    // Adaptive groups use a separate page — do not render auction group UI for them
+    // Adaptive / Flexible groups use separate pages — do not render auction group UI for them
     useEffect(() => {
         const type = String(data?.results?.type || '').toUpperCase();
-        if (!isLoading && type === 'ADAPTIVE') {
-            const base = location.pathname.includes('/manager/')
-                ? '/chit-fund/manager'
-                : '/chit-fund/user';
+        if (isLoading) return;
+        const base = location.pathname.includes('/manager/')
+            ? '/chit-fund/manager'
+            : '/chit-fund/user';
+        if (type === 'ADAPTIVE') {
             history.replace(`${base}/adaptive-groups/${groupId}`);
+        } else if (type === 'FLEXIBLE') {
+            history.replace(`${base}/flexible-groups/${groupId}`);
         }
     }, [data, isLoading, groupId, history, location.pathname]);
 
@@ -162,7 +165,7 @@ const GroupsPage = () => {
 
     const hasData = data && Object.keys(data).length > 0;
     const type = String(data?.results?.type || '').toUpperCase();
-    if (type === 'ADAPTIVE') {
+    if (type === 'ADAPTIVE' || type === 'FLEXIBLE') {
         return null;
     }
 

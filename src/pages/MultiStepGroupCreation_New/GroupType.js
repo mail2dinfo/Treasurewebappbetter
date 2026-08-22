@@ -23,6 +23,7 @@ export default function GroupType() {
     Deductive: "https://example.com/deductive-video",
     Fixed: "https://example.com/fixed-video",
     Adaptive: "https://example.com/adaptive-video",
+    Flexible: "https://example.com/flexible-video",
   };
 
   // Auto-focus first input when component mounts
@@ -52,6 +53,10 @@ export default function GroupType() {
     {
       type: "Adaptive",
       description: "Skip live auction — allot winner and settle dues manually each month",
+    },
+    {
+      type: "Flexible",
+      description: "Same setup as other groups — start with a partial roster, add members later, extra months only for remaining dues",
     },
   ];
 

@@ -601,7 +601,11 @@ const AdaptiveGroupsPage = () => {
       const base = location.pathname.includes('/manager/')
         ? '/chit-fund/manager'
         : '/chit-fund/user';
-      history.replace(`${base}/groups/${groupId}`);
+      const dest =
+        type === 'FLEXIBLE'
+          ? `${base}/flexible-groups/${groupId}`
+          : `${base}/groups/${groupId}`;
+      history.replace(dest);
     }
   }, [data, isLoading, groupId, history, location.pathname]);
 

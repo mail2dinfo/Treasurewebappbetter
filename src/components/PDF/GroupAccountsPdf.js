@@ -118,7 +118,7 @@ const GroupAccountsPdf = ({ data = {}, companyData = {} }) => {
     // Table Headers
     const renderTableHeaders = () => {
         const t = String(type || '').toUpperCase();
-        if (t === 'FIXED' || t === 'ADAPTIVE') {
+        if (t === 'FIXED' || t === 'ADAPTIVE' || t === 'FLEXIBLE') {
             return ['S.No', 'Date', 'Due', 'Profit', 'Comm', 'Prize', 'AucAmt'];
         } else if (t === 'DEDUCTIVE') {
             return ['S.No', 'Date', 'AucAmt', 'Comm', 'Profit', 'Due'];
@@ -136,7 +136,7 @@ const GroupAccountsPdf = ({ data = {}, companyData = {} }) => {
         } = item;
         const t = String(type || '').toUpperCase();
 
-        if (t === 'FIXED' || t === 'ADAPTIVE') {
+        if (t === 'FIXED' || t === 'ADAPTIVE' || t === 'FLEXIBLE') {
             return [
                 sno ?? index + 1,
                 formatDate(auctionDate),

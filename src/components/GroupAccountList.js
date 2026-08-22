@@ -347,7 +347,7 @@ const GroupAccountList = ({ items, type, allowDeleteLast = false, onDeleteClick 
     };
 
     const normalizedType = String(type || '').trim().toUpperCase();
-    if (normalizedType === 'FIXED' || normalizedType === 'ADAPTIVE') {
+    if (normalizedType === 'FIXED' || normalizedType === 'ADAPTIVE' || normalizedType === 'FLEXIBLE') {
         return renderFixedView();
     } else if (normalizedType === 'DEDUCTIVE') {
         return renderDeductiveView();

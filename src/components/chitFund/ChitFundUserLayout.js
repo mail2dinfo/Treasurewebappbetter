@@ -32,6 +32,7 @@ import HomePage from '../../pages/HomePage';
 import Company from '../Company';
 import GroupsPage from '../../pages/GroupsPage';
 import AdaptiveGroupsPage from '../../pages/AdaptiveGroupsPage';
+import FlexibleGroupsPage from '../../pages/FlexibleGroupsPage';
 import SingleEmployeePage from '../../pages/SingleEmployeePage';
 import AddAob from '../AddAob';
 import DashboardPage from '../../pages/DashboardPage';
@@ -96,6 +97,7 @@ const ChitFundUserLayout = () => {
                                                                             <Route path="/chit-fund/user/subscriber/:id/update-password" component={SubscriberPasswordUpdate} />
                                                                             <Route path="/chit-fund/user/subscriber/:id" component={SubscriberProfile} />
                                                                             <Route path="/chit-fund/user/adaptive-groups/:groupId" component={AdaptiveGroupsPage} />
+                                                                            <Route path="/chit-fund/user/flexible-groups/:groupId" component={FlexibleGroupsPage} />
                                                                             <Route path="/chit-fund/user/groups/:groupId/auctions/winner/:reserve/winner" component={Winner} />
                                                                             <Route path="/chit-fund/user/groups/:groupId/auctions" component={AuctionsPage} />
                                                                             <Route path="/chit-fund/user/groups/:groupId/auctions/*" component={AuctionsPage} />

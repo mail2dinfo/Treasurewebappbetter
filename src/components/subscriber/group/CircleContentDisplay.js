@@ -92,6 +92,10 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
 
 
     const renderContent = () => {
+        const isFlexible = String(groupDetails?.type || '').toUpperCase() === 'FLEXIBLE';
+        if (isFlexible && (selectedCircle === 'groups' || selectedCircle === 'due')) {
+            return renderFlexibleDues(selectedCircle === 'due' ? 'Your dues' : 'Due schedule');
+        }
         switch (selectedCircle) {
             case 'groups':
                 return renderGroupAccounts();
@@ -104,6 +108,73 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
             default:
                 return renderGroupAccounts(); // Default to Group Accounts
         }
+    };
+
+    const renderFlexibleDues = (title) => {
+        const dueData = transactionInfo || groupDetails?.transactionInfo || [];
+        const byDue = {};
+        (dueData || []).forEach((row) => {
+            const key = String(row.dueNumber || row.auctiondate || '');
+            const status = row.status === 'Success' ? 'Paid' : (row.status || 'Due');
+            if (!byDue[key] || status === 'Due') {
+                byDue[key] = {
+                    dueMonth: row.auctiondate,
+                    dueNumber: row.dueNumber,
+                    amount: row.amount || row.receivableAmount || 0,
+                    status,
+                };
+            }
+        });
+        const rows = Object.values(byDue).sort((a, b) => Number(a.dueNumber || 0) - Number(b.dueNumber || 0));
+
+        if (!rows.length) {
+            return (
+                <div className="bg-white rounded-lg shadow-md p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
+                    <div className="text-center text-gray-500 py-8">
+                        <p>No dues yet</p>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
+                <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white p-4">
+                    <h3 className="text-xl font-bold text-center">{title}</h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Due number</th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Due month</th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Amount</th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.map((row) => (
+                                <tr key={`${row.dueNumber}-${row.dueMonth}`} className="border-t border-gray-100">
+                                    <td className="px-4 py-3 font-semibold">{row.dueNumber || '—'}</td>
+                                    <td className="px-4 py-3">
+                                        {row.dueMonth ? new Date(row.dueMonth).toLocaleDateString() : '—'}
+                                    </td>
+                                    <td className="px-4 py-3 font-bold text-red-600">₹{Number(row.amount || 0).toLocaleString()}</td>
+                                    <td className="px-4 py-3">
+                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                            row.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+                                        }`}>
+                                            {row.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
     };
 
     const renderGroupAccounts = () => {

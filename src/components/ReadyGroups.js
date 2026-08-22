@@ -206,6 +206,10 @@ const ReadyGroups = ({ groups, selectedTab, basePath = '/chit-fund/user' }) => {
             history.push(`${basePath}/adaptive-groups/${groupId}`);
             return;
         }
+        if (type === 'FLEXIBLE') {
+            history.push(`${basePath}/flexible-groups/${groupId}`);
+            return;
+        }
         history.push(`${basePath}/groups/${groupId}`);
     };
 

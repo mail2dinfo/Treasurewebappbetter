@@ -20,6 +20,8 @@ const GroupHeader = ({ groupDetails }) => {
             case 'FIXED': return '#4CAF50';
             case 'ACCUMULATIVE': return '#2196F3';
             case 'DEDUCTIVE': return '#FF9800';
+            case 'ADAPTIVE': return '#7C3AED';
+            case 'FLEXIBLE': return '#0D9488';
             default: return '#666';
         }
     };
