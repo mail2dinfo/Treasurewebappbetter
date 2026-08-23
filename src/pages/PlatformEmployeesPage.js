@@ -2500,7 +2500,7 @@ const PlatformEmployeesPage = ({
 
             {isEditorOpen && (
                 <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-3 sm:p-6">
-                    <form onSubmit={(event) => event.preventDefault()} className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[94vh] overflow-hidden flex flex-col">
+                    <form autoComplete="off" onSubmit={(event) => event.preventDefault()} className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[94vh] overflow-hidden flex flex-col">
                         <div className="px-5 sm:px-7 py-4 border-b border-gray-200 flex items-center justify-between">
                             <div>
                                 <h2 className={`text-xl ${textTitle}`}>{editingEmployee ? 'Edit employee access' : 'Add employee'}</h2>
@@ -2564,6 +2564,11 @@ const PlatformEmployeesPage = ({
                         </div>
 
                         <div className="overflow-y-auto px-5 sm:px-7 py-6">
+                            {/* Absorb browser login autofill so employee email/password stay empty. */}
+                            <div aria-hidden="true" className="absolute -left-[10000px] h-0 w-0 overflow-hidden opacity-0">
+                                <input type="text" name="username" autoComplete="username" tabIndex={-1} />
+                                <input type="password" name="password" autoComplete="current-password" tabIndex={-1} />
+                            </div>
                             {editorError && (
                                 <div className="mb-5 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3">
                                     {editorError}
@@ -2589,9 +2594,19 @@ const PlatformEmployeesPage = ({
                                             <label key={name} className={name === 'loginPassword' ? 'sm:col-span-2' : ''}>
                                                 <span className="block text-sm font-medium text-gray-700 mb-1.5">{label}</span>
                                                 <input
-                                                    name={name}
+                                                    name={name === 'email' ? 'employee-email' : name === 'loginPassword' ? 'employee-new-password' : name}
                                                     type={type}
                                                     required={required}
+                                                    autoComplete={name === 'loginPassword' ? 'new-password' : name === 'email' ? 'off' : 'off'}
+                                                    autoCorrect="off"
+                                                    autoCapitalize="none"
+                                                    spellCheck={false}
+                                                    readOnly={name === 'email' || name === 'loginPassword'}
+                                                    onFocus={(event) => {
+                                                        if (name === 'email' || name === 'loginPassword') {
+                                                            event.target.removeAttribute('readOnly');
+                                                        }
+                                                    }}
                                                     value={profile[name]}
                                                     onChange={(event) => {
                                                         setProfile((current) => ({ ...current, [name]: event.target.value }));
