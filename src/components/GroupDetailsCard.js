@@ -55,15 +55,10 @@ const GroupDetailsCard = ({
     const [, setIsLoading] = useState(false);
     const [alert, setAlert] = useState({ show: false, msg: "", type: "" });
     const [auctDate, setAuctDate] = useState(() => {
-        // Format nextAuctionDate to "YYYY-MM-DD" if it exists
-
-        if (nextAuctionDate) {
-            const date = new Date(nextAuctionDate);
-            const formattedDate = date.toISOString().split("T")[0]; // Format as "YYYY-MM-DD"
-            return formattedDate;
-        } else {
-            return ""; // Default to an empty string if nextAuctionDate is not available
-        }
+        if (!nextAuctionDate) return "";
+        const date = new Date(nextAuctionDate);
+        if (Number.isNaN(date.getTime())) return "";
+        return date.toISOString().split("T")[0];
     });
     const showAlert = (show = false, type = "", msg = "") => {
         setAlert({ show, type, msg });

@@ -1205,7 +1205,7 @@ const FlexibleGroupsPage = () => {
   const { groupId } = useParams();
   const history = useHistory();
   const location = useLocation();
-  const { data, isLoading, fetchGroups } = useGroupDetailsContext();
+  const { data, isLoading, error, fetchGroups } = useGroupDetailsContext();
 
   useEffect(() => {
     if (groupId) {
@@ -1246,7 +1246,9 @@ const FlexibleGroupsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
       <div className="max-w-7xl mx-auto">
-        {hasData ? (
+        {error && !hasData ? (
+          <div className="text-center mt-8 text-red-600 px-4">{error}</div>
+        ) : hasData ? (
           <>
             <UserInfo data={data} />
             <FlexibleGroupsContent data={data} onRefresh={() => fetchGroups(groupId)} />
