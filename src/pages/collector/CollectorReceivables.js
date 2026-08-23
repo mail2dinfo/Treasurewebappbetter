@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { FiDollarSign, FiUsers, FiTrendingUp, FiArrowLeft, FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiCreditCard, FiRefreshCw, FiGrid, FiList } from 'react-icons/fi';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FiDollarSign, FiUsers, FiTrendingUp, FiArrowLeft, FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiCreditCard, FiRefreshCw, FiGrid, FiList, FiDownload } from 'react-icons/fi';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import loadingImage from '../../images/preloader.gif';
 import CollectorPaymentModal from '../../components/collector/CollectorPaymentModal';
 import { usePlatformAccess } from '../../context/platformAccess_context';
+import Mypdf from '../../components/PDF/Mypdf';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -307,6 +309,92 @@ const CollectorReceivables = () => {
             month: "short",
             year: "numeric",
         });
+    };
+
+    const pdfHeaders = [
+        { title: 'Subscriber', value: 'name' },
+        { title: 'Phone', value: 'phone' },
+        { title: 'Group', value: 'group_name' },
+        { title: 'Date', value: 'auct_date' },
+        { title: 'Area', value: 'area' },
+        { title: 'Total', value: 'total' },
+        { title: 'Paid', value: 'paid' },
+        { title: 'Due', value: 'due' },
+    ];
+
+    const buildPdfRows = (items) => {
+        const rows = items.map((item) => ({
+            name: item.name || item.customer_name || '—',
+            phone: item.phone || item.customer_phone || '—',
+            group_name: item.group_name || '—',
+            auct_date: formatDate(item.auct_date),
+            area: item.area || item.aob || '—',
+            total: Number(item.rbtotal || item.total_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+            paid: Number(item.rbpaid || item.collected_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+            due: Number(item.rbdue || item.pending_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+        }));
+        if (rows.length) {
+            const totals = items.reduce(
+                (acc, item) => {
+                    acc.total += parseFloat(item.rbtotal || item.total_amount || 0);
+                    acc.paid += parseFloat(item.rbpaid || item.collected_amount || 0);
+                    acc.due += parseFloat(item.rbdue || item.pending_amount || 0);
+                    return acc;
+                },
+                { total: 0, paid: 0, due: 0 }
+            );
+            rows.push({
+                name: 'TOTAL',
+                phone: '',
+                group_name: '',
+                auct_date: '',
+                area: `${items.length} records`,
+                total: totals.total.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+                paid: totals.paid.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+                due: totals.due.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
+            });
+        }
+        return rows;
+    };
+
+    const pdfRows = useMemo(
+        () => buildPdfRows(filteredReceivables),
+        [filteredReceivables]
+    );
+
+    const areaPdfRows = useMemo(
+        () => buildPdfRows(filteredAreaReceivables),
+        [filteredAreaReceivables]
+    );
+
+    const companyData = user?.userCompany || user?.results?.userCompany || [];
+
+    const renderPdfDownload = (tableData, heading, filePrefix) => {
+        if (!tableData.length) return null;
+        return (
+            <PDFDownloadLink
+                document={
+                    <Mypdf
+                        tableData={tableData}
+                        tableHeaders={pdfHeaders}
+                        heading={heading}
+                        companyData={companyData}
+                    />
+                }
+                fileName={`${filePrefix}_${new Date().toISOString().slice(0, 10)}.pdf`}
+            >
+                {({ loading }) => (
+                    <button
+                        type="button"
+                        className="flex items-center gap-2 px-4 py-2 bg-white text-red-700 rounded-lg hover:bg-red-50 transition-colors font-semibold"
+                        title="Download PDF"
+                    >
+                        <FiDownload className="w-5 h-5" />
+                        <span className="hidden md:inline">{loading ? 'Preparing…' : 'Download PDF'}</span>
+                    </button>
+                )}
+            </PDFDownloadLink>
+        );
     };
 
     const getReceivableKey = (receivable, index) =>
@@ -778,9 +866,16 @@ const CollectorReceivables = () => {
                                     </h1>
                                     <p className="text-red-100 mt-1 md:mt-2 text-sm md:text-base">{areaReceivables.length} receivables found in this area</p>
                                 </div>
-                                <div className="bg-white/20 rounded-lg px-4 py-2 self-start">
-                                    <span className="text-white font-semibold text-lg">{areaReceivables.length}</span>
-                                    <p className="text-red-100 text-sm">Total Records</p>
+                                <div className="flex items-center gap-3 self-start">
+                                    {renderPdfDownload(
+                                        areaPdfRows,
+                                        `${selectedArea} - Receivables Outstanding`,
+                                        `Collector_Receivables_${String(selectedArea || 'Area').replace(/\s+/g, '_')}`
+                                    )}
+                                    <div className="bg-white/20 rounded-lg px-4 py-2">
+                                        <span className="text-white font-semibold text-lg">{areaReceivables.length}</span>
+                                        <p className="text-red-100 text-sm">Total Records</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -898,6 +993,7 @@ const CollectorReceivables = () => {
                                     <FiRefreshCw className={`w-5 h-5 ${isFetchingReceivables ? 'animate-spin' : ''}`} />
                                     <span className="hidden md:inline">Refresh</span>
                                 </button>
+                                {renderPdfDownload(pdfRows, 'Collector Receivables Outstanding', 'Collector_Receivables')}
                                 <div className="bg-white/20 rounded-lg px-4 py-2">
                                     <span className="text-white font-semibold text-lg">
                                         {(areaFilter || customerFilter) ? filteredReceivables.length : receivables.length}

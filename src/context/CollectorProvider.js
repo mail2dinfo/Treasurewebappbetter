@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { clearAllAuthStorage } from '../utils/clearAuthStorage';
+import { useCollectorReceivablesStream } from '../components/collector/useCollectorReceivablesStream';
 
 
 const CollectorContext = createContext();
@@ -66,15 +67,21 @@ const collectorReducer = (state, action) => {
                 error: null
             };
 
-        case ACTIONS.SET_RECEIVABLES:
+        case ACTIONS.SET_RECEIVABLES: {
+            const receivables = action.payload.receivables || [];
+            const selectedArea = state.selectedArea;
             return {
                 ...state,
-                receivables: action.payload.receivables || [],
+                receivables,
                 summary: action.payload.summary || null,
                 areaSummary: action.payload.areaSummary || {},
+                areaReceivables: selectedArea
+                    ? receivables.filter((receivable) => receivable.aob === selectedArea)
+                    : state.areaReceivables,
                 isFetchingReceivables: false,
                 error: null
             };
+        }
 
         case ACTIONS.SET_AREA_RECEIVABLES:
             return {
@@ -247,6 +254,25 @@ export const CollectorProvider = ({ children }) => {
             dispatch({ type: ACTIONS.SET_FETCHING_RECEIVABLES, payload: false });
         }
     }, [state.user, state.token]);
+
+    const fetchReceivablesRef = useRef(fetchReceivables);
+    fetchReceivablesRef.current = fetchReceivables;
+
+    const parentMembershipId =
+        state.user?.userAccounts?.[0]?.parent_membership_id ||
+        state.user?.userAccounts?.[0]?.parentMembershipId ||
+        state.user?.results?.userAccounts?.[0]?.parent_membership_id ||
+        state.user?.results?.userAccounts?.[0]?.parentMembershipId ||
+        null;
+
+    useCollectorReceivablesStream({
+        enabled: state.isAuthenticated,
+        token: state.token,
+        parentMembershipId,
+        onEvent: () => {
+            fetchReceivablesRef.current?.();
+        },
+    });
 
     // Fetch receivables for specific area
     const fetchAreaReceivables = useCallback((areaName) => {
