@@ -1,6 +1,7 @@
-import React, { createContext, useReducer, useContext, useEffect } from "react";
+import React, { createContext, useReducer, useContext, useEffect, useCallback, useRef } from "react";
 import { useUserContext } from "./user_context";
 import { API_BASE_URL } from "../utils/apiConfig";
+import { useCollectorReceivablesStream } from "../components/collector/useCollectorReceivablesStream";
 
 const ReceivablesContext = createContext();
 
@@ -27,7 +28,7 @@ export const ReceivablesProvider = ({ children }) => {
   const { user } = useUserContext();
   const [state, dispatch] = useReducer(receivablesReducer, initialState);
 
-  const fetchReceivables = async () => {
+  const fetchReceivables = useCallback(async (options = {}) => {
     if (!user?.results?.token) return;
 
     const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
@@ -36,9 +37,10 @@ export const ReceivablesProvider = ({ children }) => {
       return;
     }
 
-    dispatch({ type: "FETCH_START" });
+    if (!options.silent) {
+      dispatch({ type: "FETCH_START" });
+    }
     try {
-    //   const res = await fetch(`${API_BASE_URL}/receivables/${membershipId}`, {
         const res = await fetch(`${API_BASE_URL}/receivables`, {
         headers: {
           Authorization: `Bearer ${user.results.token}`,
@@ -48,15 +50,34 @@ export const ReceivablesProvider = ({ children }) => {
       const data = await res.json();
       dispatch({ type: "FETCH_SUCCESS", payload: data.results.receivablesResult || [] });
     } catch (error) {
-      dispatch({ type: "FETCH_ERROR", payload: error.message });
+      if (!options.silent) {
+        dispatch({ type: "FETCH_ERROR", payload: error.message });
+      }
     }
-  };
+  }, [user]);
+
+  const fetchReceivablesRef = useRef(fetchReceivables);
+  fetchReceivablesRef.current = fetchReceivables;
+
+  const parentMembershipId =
+    user?.results?.userAccounts?.[0]?.parent_membership_id ||
+    user?.results?.userAccounts?.[0]?.parentMembershipId ||
+    null;
+
+  useCollectorReceivablesStream({
+    enabled: Boolean(user?.results?.token && parentMembershipId),
+    token: user?.results?.token,
+    parentMembershipId,
+    onEvent: () => {
+      fetchReceivablesRef.current?.({ silent: true });
+    },
+  });
 
   useEffect(() => {
     if (user?.results?.token) {
       fetchReceivables();
     }
-  }, [user]);
+  }, [user, fetchReceivables]);
 
  
 
