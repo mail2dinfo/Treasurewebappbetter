@@ -4,6 +4,7 @@ import { useLedgerEntryContext } from "../context/ledgerEntry_context";
 import { useUserContext } from "../context/user_context";
 import { toast, ToastContainer } from "react-toastify";
 import { API_BASE_URL } from "../utils/apiConfig";
+import { getChitCompanyMembershipId } from "../utils/chitMembership";
 import {
     refreshReceivableForConfirm,
 } from "../utils/receivablePaymentApi";
@@ -31,7 +32,7 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
     const { fetchLedgerEntries } = useLedgerEntryContext();
     const { user } = useUserContext();
     const userCompany = user?.results?.userCompany;
-    const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+    const membershipId = getChitCompanyMembershipId(user);
     const [receivableDate, setReceivableDate] = useState(
         new Date().toISOString().split("T")[0]);
 

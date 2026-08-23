@@ -2,6 +2,7 @@ import React, { createContext, useReducer, useContext, useEffect, useCallback, u
 import { useUserContext } from "./user_context";
 import { API_BASE_URL } from "../utils/apiConfig";
 import { useCollectorReceivablesStream } from "../components/collector/useCollectorReceivablesStream";
+import { getChitCompanyMembershipId } from "../utils/chitMembership";
 
 const ReceivablesContext = createContext();
 
@@ -31,7 +32,7 @@ export const ReceivablesProvider = ({ children }) => {
   const fetchReceivables = useCallback(async (options = {}) => {
     if (!user?.results?.token) return;
 
-    const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+    const membershipId = getChitCompanyMembershipId(user);
     if (!membershipId) {
       dispatch({ type: "FETCH_ERROR", payload: "Membership ID not found" });
       return;
@@ -59,10 +60,7 @@ export const ReceivablesProvider = ({ children }) => {
   const fetchReceivablesRef = useRef(fetchReceivables);
   fetchReceivablesRef.current = fetchReceivables;
 
-  const parentMembershipId =
-    user?.results?.userAccounts?.[0]?.parent_membership_id ||
-    user?.results?.userAccounts?.[0]?.parentMembershipId ||
-    null;
+  const parentMembershipId = getChitCompanyMembershipId(user);
 
   useCollectorReceivablesStream({
     enabled: Boolean(user?.results?.token && parentMembershipId),

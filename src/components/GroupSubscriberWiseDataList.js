@@ -4,11 +4,12 @@ import Modal from 'react-modal';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
 import { FiDownload } from 'react-icons/fi';
+import { FaPlus, FaMinus, FaWhatsapp } from "react-icons/fa";
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import Mypdf from '../components/PDF/Mypdf';
 import loadingImage from "../images/preloader.gif";
-import { FaPlus, FaMinus } from "react-icons/fa"; // ✅ Add icons
 import ReceivableReceitPdf from "./PDF/ReceivableReceitPdf";
+import { toast } from 'react-toastify';
 import { useGroupDetailsContext } from "../context/group_context";
 
 const GroupSubscriberWiseDataList = ({ items }) => {
@@ -98,6 +99,55 @@ const GroupSubscriberWiseDataList = ({ items }) => {
 
     const toggleExpandRow = (index) => {
         setExpandedRowIndex(expandedRowIndex === index ? null : index);
+    };
+
+    const formatBillDate = (dateStr) => {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        if (Number.isNaN(date.getTime())) return String(dateStr);
+        return date.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        });
+    };
+
+    const formatBillAmount = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN')}`;
+
+    const sendBillToSubscriber = (payment, auctionItem) => {
+        const phoneSource =
+            selectedSubscriber?.phone
+            || selectedSubscriber?.mobile
+            || auctionItem?.phone
+            || subscriberData?.[0]?.phone
+            || '';
+        const digits = String(phoneSource).replace(/\D/g, '');
+        if (digits.length < 10) {
+            toast.error('Subscriber phone number is missing.');
+            return;
+        }
+        const subscriberPhone = digits.length === 10 ? `91${digits}` : digits;
+        const companyLabel = userCompany?.name ? ` from ${userCompany.name}` : '';
+        const transactedDate = payment.transacted_date || payment.transactedDate || payment.created_at;
+        const message = [
+            `Payment Receipt${companyLabel}`,
+            '',
+            `Bill No: ${payment.id ?? '-'}`,
+            `Subscriber Name: ${selectedSubscriber?.name || auctionItem?.name || '-'}`,
+            `Receivable Date: ${formatBillDate(auctionItem?.auct_date)}`,
+            `Group Name: ${groupName || '-'}`,
+            `Auction Date: ${formatBillDate(auctionItem?.auct_date)}`,
+            `Amount Paid (toward due): ${formatBillAmount(payment.payment_amount)}`,
+            `Cash Collected: ${formatBillAmount(payment.payment_amount)}`,
+            `Payment Method: ${payment.payment_method || '-'}`,
+            `Payment Type: ${payment.payment_type || '-'}`,
+            `Transacted Date: ${formatBillDate(transactedDate)}`,
+            '',
+            'Thank you for your payment.',
+        ].join('\n');
+
+        const url = `https://api.whatsapp.com/send?phone=${subscriberPhone}&text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     // Table Component - Exact GroupAccountList pattern
@@ -317,6 +367,7 @@ const GroupSubscriberWiseDataList = ({ items }) => {
                                                                                                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Amount</th>
                                                                                                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Method</th>
                                                                                                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Download</th>
+                                                                                                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">WhatsApp</th>
                                                                                                 </tr>
                                                                                             </thead>
                                                                                             <tbody>
@@ -374,6 +425,16 @@ const GroupSubscriberWiseDataList = ({ items }) => {
                                                                                                                     </button>
                                                                                                                 )}
                                                                                                             </PDFDownloadLink>
+                                                                                                        </td>
+                                                                                                        <td className="px-3 py-2">
+                                                                                                            <button
+                                                                                                                type="button"
+                                                                                                                onClick={() => sendBillToSubscriber(p, item)}
+                                                                                                                className="px-3 py-1 bg-green-600 text-white text-xs rounded-md border-none cursor-pointer flex items-center gap-1 hover:bg-green-700 transition-colors duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
+                                                                            >
+                                                                                <FaWhatsapp size={12} />
+                                                                                Send bill to subscriber
+                                                                            </button>
                                                                                                         </td>
                                                                                                     </tr>
                                                                                                 ))}

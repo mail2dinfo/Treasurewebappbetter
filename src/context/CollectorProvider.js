@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { clearAllAuthStorage } from '../utils/clearAuthStorage';
 import { useCollectorReceivablesStream } from '../components/collector/useCollectorReceivablesStream';
+import { getChitCompanyMembershipId } from '../utils/chitMembership';
 
 
 const CollectorContext = createContext();
@@ -258,12 +259,7 @@ export const CollectorProvider = ({ children }) => {
     const fetchReceivablesRef = useRef(fetchReceivables);
     fetchReceivablesRef.current = fetchReceivables;
 
-    const parentMembershipId =
-        state.user?.userAccounts?.[0]?.parent_membership_id ||
-        state.user?.userAccounts?.[0]?.parentMembershipId ||
-        state.user?.results?.userAccounts?.[0]?.parent_membership_id ||
-        state.user?.results?.userAccounts?.[0]?.parentMembershipId ||
-        null;
+    const parentMembershipId = getChitCompanyMembershipId(state.user);
 
     useCollectorReceivablesStream({
         enabled: state.isAuthenticated,
