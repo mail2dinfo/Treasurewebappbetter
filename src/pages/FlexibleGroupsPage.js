@@ -819,11 +819,30 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
 
   useEffect(() => {
     loadStatus();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadStatus();
+    };
+    const onPageShow = (event) => {
+      if (event.persisted) loadStatus();
+    };
+    window.addEventListener('focus', loadStatus);
+    window.addEventListener('pageshow', onPageShow);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', loadStatus);
+      window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [groupId, user?.results?.token, data]);
 
   const authHeaders = {
     Authorization: `Bearer ${user?.results?.token}`,
     'Content-Type': 'application/json',
+  };
+
+  const openDeleteAccount = (kind, groupAccountId) => {
+    setDeletePreview(null);
+    setDeleteTarget({ kind, groupAccountId, openedAt: Date.now() });
   };
 
   useEffect(() => {
@@ -834,8 +853,8 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
       setDeletePreview(null);
       try {
         const res = await fetch(
-          `${API_BASE_URL}/flexible-groups/${groupId}/accounts/${deleteTarget.groupAccountId}/delete-preview`,
-          { headers: authHeaders }
+          `${API_BASE_URL}/flexible-groups/${groupId}/accounts/${deleteTarget.groupAccountId}/delete-preview?t=${deleteTarget.openedAt || Date.now()}`,
+          { headers: authHeaders, cache: 'no-store' }
         );
         const body = await res.json();
         if (!res.ok || body.error) throw new Error(body.message || 'Failed to load delete preview');
@@ -1069,7 +1088,7 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
                           {lastPayable && p.group_account_id === lastPayable.group_account_id && (
                             <button
                               type="button"
-                              onClick={() => setDeleteTarget({ kind: 'payable', groupAccountId: p.group_account_id })}
+                              onClick={() => openDeleteAccount('payable', p.group_account_id)}
                               className="inline-flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg"
                               title="Delete last payable"
                             >
@@ -1132,7 +1151,7 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
                       {lastDueMonth && month.group_account_id === lastDueMonth.group_account_id && (
                         <button
                           type="button"
-                          onClick={() => setDeleteTarget({ kind: 'due', groupAccountId: month.group_account_id })}
+                          onClick={() => openDeleteAccount('due', month.group_account_id)}
                           className="inline-flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1.5 rounded-lg"
                           title="Delete last monthly due"
                         >

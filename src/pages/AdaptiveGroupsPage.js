@@ -592,7 +592,23 @@ const AdaptiveGroupsPage = () => {
     if (groupId) {
       fetchGroups(groupId);
     }
-  }, [groupId]);
+    const refresh = () => {
+      if (groupId && document.visibilityState === 'visible') {
+        fetchGroups(groupId, { silent: true });
+      }
+    };
+    const onPageShow = (event) => {
+      if (event.persisted && groupId) fetchGroups(groupId, { silent: true });
+    };
+    window.addEventListener('focus', refresh);
+    window.addEventListener('pageshow', onPageShow);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [groupId, fetchGroups]);
 
   useEffect(() => {
     const type = String(data?.results?.type || '').toUpperCase();

@@ -181,6 +181,14 @@ const GroupsAccounts = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const openDeleteAccount = (item) => {
+    setPreview(null);
+    setDeleteTarget({
+      ...item,
+      openedAt: Date.now(),
+    });
+  };
+
   useEffect(() => {
     if (!deleteTarget?.grpAccountId || !groupId) return undefined;
 
@@ -190,8 +198,9 @@ const GroupsAccounts = ({
       setPreview(null);
       try {
         const res = await fetch(
-          `${API_BASE_URL}/adaptive-groups/${groupId}/accounts/${deleteTarget.grpAccountId}/delete-preview`,
+          `${API_BASE_URL}/adaptive-groups/${groupId}/accounts/${deleteTarget.grpAccountId}/delete-preview?t=${deleteTarget.openedAt || Date.now()}`,
           {
+            cache: 'no-store',
             headers: {
               Authorization: `Bearer ${user?.results?.token}`,
               'Content-Type': 'application/json',
@@ -217,7 +226,7 @@ const GroupsAccounts = ({
     return () => {
       cancelled = true;
     };
-  }, [deleteTarget, groupId, user?.results?.token]);
+  }, [deleteTarget?.grpAccountId, deleteTarget?.openedAt, groupId, user?.results?.token]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -276,7 +285,7 @@ const GroupsAccounts = ({
               items={groupTransactionInfo}
               type={type}
               allowDeleteLast={allowDeleteLast}
-              onDeleteClick={(item) => setDeleteTarget(item)}
+              onDeleteClick={openDeleteAccount}
             />
           </div>
         ) : (

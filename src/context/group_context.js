@@ -79,12 +79,15 @@ export const GroupDetailsProvider = ({ children }) => {
     initialState
   );
 
-  const fetchGroups = React.useCallback(async (groupId) => {
+  const fetchGroups = React.useCallback(async (groupId, options = {}) => {
     if (!user?.results?.token || !groupId) return;
 
-    dispatch({ type: "FETCH_START" });
+    if (!options.silent) {
+      dispatch({ type: "FETCH_START" });
+    }
     try {
-      const res = await fetch(`${API_BASE_URL}/users/groups/${groupId}`, {
+      const res = await fetch(`${API_BASE_URL}/users/groups/${groupId}?t=${Date.now()}`, {
+        cache: "no-store",
         headers: {
           Authorization: `Bearer ${user.results.token}`,
           "Content-Type": "application/json",
