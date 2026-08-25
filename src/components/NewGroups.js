@@ -315,11 +315,14 @@ const NewGroups = ({
                   </div>
                   <div className="group-detail">
                     <span className="group-detail-label">
-                      Outstanding Subscribers
+                      {String(group.type || "").toUpperCase() === "FLEXIBLE"
+                        ? "Subscribers"
+                        : "Outstanding Subscribers"}
                     </span>
                     <span className="group-detail-value">
-                      {group.PendingSubscribers} out of{" "}
-                      {group.no_of_subscribers_required}
+                      {String(group.type || "").toUpperCase() === "FLEXIBLE"
+                        ? `${group.num_subscribers || 0} (no limit)`
+                        : `${group.PendingSubscribers} out of ${group.no_of_subscribers_required}`}
                     </span>
                   </div>
                   <div className="group-detail">

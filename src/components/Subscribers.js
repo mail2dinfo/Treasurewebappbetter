@@ -154,12 +154,13 @@
 //   }
 // `;
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Subcriber from './Subcriber';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 import { useCompanySubscriberContext } from '../context/companysubscriber_context';
 import loadingImage from '../images/preloader.gif';
 import { useUserContext } from '../context/user_context';
+import { useGroupDetailsContext } from '../context/group_context';
 import { Grid, List } from 'lucide-react';
 
 const Subscribers = ({
@@ -167,12 +168,20 @@ const Subscribers = ({
   canAddSubscriber = true,
 }) => {
   const history = useHistory();
+  const { groupId } = useParams();
   const { companySubscribers, isLoading } = useCompanySubscriberContext();
+  const { fetchGroups } = useGroupDetailsContext();
 
   const { user } = useUserContext();
 
   const [nameFilter, setNameFilter] = useState('');
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+
+  useEffect(() => {
+    if (groupId && fetchGroups) {
+      fetchGroups(groupId, { silent: true });
+    }
+  }, [groupId, fetchGroups]);
 
   const handleBackButtonClick = () => {
     history.goBack();

@@ -15,6 +15,7 @@ import {
 } from "react-icons/fi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { getRosterFill } from "../utils/groupTicketCapacity";
 
 const AddSub = () => {
   const history = useHistory();
@@ -61,16 +62,26 @@ const AddSub = () => {
       ? group.totalTenture ?? group.tenure ?? 0
       : group.noOfSubcribers ?? group.noOfSubscribers ?? 0;
 
-  const addedSubscribers = subscribers.length;
-  const outstandingSubscribers = Math.max(
-    0,
-    Number(totalSubscribers) - addedSubscribers
-  );
-  const fillPercent =
-    Number(totalSubscribers) > 0
-      ? Math.min(100, Math.round((addedSubscribers / Number(totalSubscribers)) * 100))
-      : 0;
-  const rosterComplete = outstandingSubscribers === 0 && Number(totalSubscribers) > 0;
+  const roster = getRosterFill({
+    groupType,
+    subscribers,
+    groupAmount,
+    capacity: totalSubscribers,
+  });
+  const addedSubscribers = roster.ticketMode
+    ? roster.displayFilled
+    : roster.peopleCount;
+  const outstandingSubscribers = roster.unlimited
+    ? null
+    : roster.ticketMode
+    ? roster.displayRemaining
+    : Math.max(0, Number(totalSubscribers) - roster.peopleCount);
+  const fillPercent = roster.unlimited
+    ? 0
+    : Number(totalSubscribers) > 0
+    ? Math.min(100, Math.round((addedSubscribers / Number(totalSubscribers)) * 100))
+    : 0;
+  const rosterComplete = roster.complete;
   const actualCompanySubscriberCount = companySubscribers?.length ?? 0;
 
   const filteredSubscribers = useMemo(() => {
@@ -143,7 +154,14 @@ const AddSub = () => {
                 <span>₹{groupAmount.toLocaleString("en-IN")}</span>
               )}
               <span>
-                {addedSubscribers} of {totalSubscribers || "—"} members
+                {roster.unlimited
+                  ? `${roster.peopleCount} member${roster.peopleCount === 1 ? "" : "s"} · no limit`
+                  : roster.ticketMode
+                  ? `${roster.displayFilled} of ${totalSubscribers || "—"} tickets`
+                  : `${addedSubscribers} of ${totalSubscribers || "—"} members`}
+                {roster.ticketMode && roster.peopleCount > 0
+                  ? ` · ${roster.peopleCount} people`
+                  : ""}
               </span>
             </div>
           </div>
@@ -156,11 +174,20 @@ const AddSub = () => {
           >
             <FiPlus className="w-5 h-5" />
             {rosterComplete
-              ? "Roster complete"
+              ? roster.ticketMode
+                ? "Tickets complete"
+                : "Roster complete"
+              : roster.unlimited
+              ? "Add subscriber"
+              : roster.ticketMode
+              ? `Add subscriber · ${outstandingSubscribers} ticket${
+                  Number(outstandingSubscribers) === 1 ? "" : "s"
+                } open`
               : `Add ${outstandingSubscribers} subscriber${outstandingSubscribers === 1 ? "" : "s"}`}
           </button>
         </div>
 
+        {!roster.unlimited && (
         <div className="mb-6">
           <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
             <span>Fill progress</span>
@@ -175,17 +202,28 @@ const AddSub = () => {
             />
           </div>
         </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {[
-            { label: "Capacity", value: totalSubscribers, tone: "text-slate-800" },
-            { label: "Added", value: addedSubscribers, tone: "text-emerald-600" },
+          {(roster.unlimited
+            ? [
+                { label: "Members", value: roster.peopleCount, tone: "text-emerald-600" },
+                { label: "Capacity", value: "Open", tone: "text-slate-800" },
+                { label: "Limit", value: "None", tone: "text-gray-600" },
+              ]
+            : [
+            { label: roster.ticketMode ? "Tickets" : "Capacity", value: totalSubscribers, tone: "text-slate-800" },
             {
-              label: rosterComplete ? "Complete" : "Still needed",
+              label: roster.ticketMode ? "Tickets filled" : "Added",
+              value: addedSubscribers,
+              tone: "text-emerald-600",
+            },
+            {
+              label: rosterComplete ? "Complete" : roster.ticketMode ? "Tickets open" : "Still needed",
               value: outstandingSubscribers,
               tone: rosterComplete ? "text-emerald-600" : "text-red-600",
             },
-          ].map((card) => (
+          ]).map((card) => (
             <div
               key={card.label}
               className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5"
@@ -348,8 +386,15 @@ const AddSub = () => {
               <div>
                 <h3 className="text-lg font-semibold text-white">Add subscribers</h3>
                 <p className="text-sm text-red-100">
-                  {outstandingSubscribers} seat
-                  {outstandingSubscribers === 1 ? "" : "s"} remaining
+                  {roster.unlimited
+                    ? `${roster.peopleCount} member${roster.peopleCount === 1 ? "" : "s"} · no limit`
+                    : roster.ticketMode
+                    ? `${outstandingSubscribers} ticket${
+                        Number(outstandingSubscribers) === 1 ? "" : "s"
+                      } remaining`
+                    : `${outstandingSubscribers} seat${
+                        outstandingSubscribers === 1 ? "" : "s"
+                      } remaining`}
                 </p>
               </div>
               <button

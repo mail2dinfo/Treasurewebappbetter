@@ -549,7 +549,9 @@ const GroupsSubscriber = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
-            <h3 className="text-3xl font-bold text-gray-800 mb-2">Group Subscribers</h3>
+            <h3 className="text-3xl font-bold text-gray-800 mb-2">
+              Group Subscribers ({groupSubscriber.length})
+            </h3>
             <p className="text-gray-600">Total Members: <span className="font-semibold text-red-600">{groupSubscriber.length}</span></p>
           </div>
           <div className="flex items-center gap-3">

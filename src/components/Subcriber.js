@@ -8,7 +8,7 @@ import { useLocation } from 'react-router-dom';
 import AssignGroupAmountPopup from "../components/AssignGroupAmountPopup";
 import { Phone, Eye, User } from 'lucide-react';
 
-const Subscriber = ({ name, id, phone, user_image_from_s3 }) => {
+const Subscriber = ({ name, id, subscriberUserId, subscriberId, phone, user_image_from_s3 }) => {
     const [showAddButton, setShowAddButton] = useState(false);
     const [showConfirmation, setShowConfirmation] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -33,14 +33,19 @@ const Subscriber = ({ name, id, phone, user_image_from_s3 }) => {
     };
 
     const postSubscriberData = async (contributionAmount, contributionPercentage) => {
-        const apiUrl = `${API_BASE_URL}/groups/${groupId}/subscribers/${id}`;
+        const subscriberIdToAdd = id || subscriberUserId || subscriberId;
+        if (!groupId || !subscriberIdToAdd) {
+            showAlert(true, 'danger', 'Missing group or subscriber. Open this page from the group again.');
+            return;
+        }
+        const apiUrl = `${API_BASE_URL}/groups/${groupId}/subscribers/${subscriberIdToAdd}`;
         try {
             setIsLoading(true);
             const subData = {
                 groupId,
-                subscriberUserId: id,
+                subscriberUserId: subscriberIdToAdd,
                 sourceSystem: 'WEB',
-                referredBy: user.results.userId,
+                referredBy: user?.results?.userId,
                 shareAmount: contributionAmount,
                 sharePercentage: contributionPercentage,
             };
@@ -54,8 +59,8 @@ const Subscriber = ({ name, id, phone, user_image_from_s3 }) => {
                 body: JSON.stringify(subData),
             });
 
-            const result = await response.json();
-            showAlert(true, response.ok ? 'success' : 'danger', result.message);
+            const result = await response.json().catch(() => ({}));
+            showAlert(true, response.ok ? 'success' : 'danger', result.message || 'Failed to add subscriber');
         } catch (error) {
             showAlert(true, 'danger', 'Something went wrong.');
             console.error(error);
