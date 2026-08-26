@@ -368,7 +368,7 @@
 
 // export default HomePage;
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ReadyGroups, NewGroups, ClosedGroups, UserDetails, ScrollToTop } from '../components';
 import { useHistory } from 'react-router-dom';
 import GroupDataInNavbar from '../components/GroupDataInNavbar';
@@ -379,7 +379,10 @@ import { useLedgerAccountContext } from "../context/ledgerAccount_context";
 import { useLedgerEntryContext } from "../context/ledgerEntry_context";
 import { useAobContext } from "../context/aob_context";
 import { useGroupsDetailsContext } from "../context/groups_context";
-import '../style/home.css'; // Make sure this path is correct
+import { FiPlus, FiSearch } from 'react-icons/fi';
+import '../style/home.css';
+
+const GROUPS_PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const HomePage = ({
   basePath = '/chit-fund/user',
@@ -391,6 +394,9 @@ const HomePage = ({
 }) => {
   const history = useHistory();
   const [selectedTab, setSelectedTab] = useState('ready');
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const { user } = useUserContext();
   const { fetchCompanySubscribers } = useCompanySubscriberContext();
   const { fetchLedgerAccounts } = useLedgerAccountContext();
@@ -411,6 +417,50 @@ const HomePage = ({
   const handleStartGroup = () => {
     history.push(`${basePath}/startagroup`);
   };
+
+  const filteredGroups = useMemo(() => {
+    const list = Array.isArray(groups) ? groups : [];
+    const q = query.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((group) => {
+      const name = String(group.group_name || '').toLowerCase();
+      const type = String(group.type || '').toLowerCase();
+      return name.includes(q) || type.includes(q);
+    });
+  }, [groups, query]);
+
+  const readyCount = filteredGroups.filter((g) => g.Status === 'Ready').length;
+  const newCount = filteredGroups.filter((g) => g.Status === 'New').length;
+  const closedCount = filteredGroups.filter((g) => g.Status === 'Closed').length;
+
+  const tabStatus = selectedTab === 'new' ? 'New' : selectedTab === 'closed' ? 'Closed' : 'Ready';
+  const tabGroups = filteredGroups.filter((g) => g.Status === tabStatus);
+  const totalItems = tabGroups.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const pagedGroups = tabGroups.slice(startIndex, endIndex);
+
+  const getVisiblePageNumbers = (pages, current) => {
+    if (pages <= 5) {
+      return Array.from({ length: pages }, (_, index) => index + 1);
+    }
+    const windowSize = 5;
+    let start = Math.max(1, current - Math.floor(windowSize / 2));
+    let end = start + windowSize - 1;
+    if (end > pages) {
+      end = pages;
+      start = Math.max(1, end - windowSize + 1);
+    }
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  };
+
+  const pageNumbers = getVisiblePageNumbers(totalPages, currentPage);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedTab, query, pageSize]);
 
   if (isLoading) {
     return (
@@ -433,58 +483,79 @@ const HomePage = ({
         {!groupsOnly && <UserDetails groups={groups} premium={premium} />}
 
         <div className="group-container">
-          <div className={`my-groups-container ${alwaysShowCreateGroup ? 'flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3' : ''}`}>
-            <h3 className="my-groups-title">My Groups ({groups.length})</h3>
-            {canCreateGroup && alwaysShowCreateGroup && (
+          <div className="groups-page-header">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">
+                {groupsOnly ? 'Groups' : 'My Groups'} ({groups.length})
+              </h1>
+            </div>
+            {canCreateGroup && (alwaysShowCreateGroup || groups.length === 0) && (
               <button
-                className="inline-flex items-center justify-center bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm"
+                type="button"
+                className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm"
                 onClick={handleStartGroup}
               >
+                <FiPlus className="w-4 h-4" />
                 Start a group
               </button>
             )}
           </div>
 
           {groups.length === 0 ? (
-            canCreateGroup && !alwaysShowCreateGroup ? (
-              <button className="start-group-button" onClick={handleStartGroup}>
-                Start a group
-              </button>
-            ) : (
-              <p className="text-center text-gray-500 py-8">No groups created yet.</p>
-            )
+            <div className="group-empty mt-6">
+              <p className="text-base font-semibold text-gray-800">No groups yet</p>
+              <p className="text-sm text-gray-500 mt-1 mb-4">
+                Create a group to start collecting dues and running auctions.
+              </p>
+              {canCreateGroup && !alwaysShowCreateGroup && (
+                <button type="button" className="start-group-button" onClick={handleStartGroup}>
+                  Start a group
+                </button>
+              )}
+            </div>
           ) : (
             <>
-              <div className="tabs-wrapper">
-                <ul className="tabs-grid">
-                  <li
-                    className={selectedTab === 'ready' ? 'active' : ''}
-                    onClick={() => setSelectedTab('ready')}
-                  >
-                    {groupsOnly ? 'Ready' : 'Ready Groups'} ({groups.filter(group => group.Status === 'Ready').length})
-                  </li>
-                  <li
-                    className={selectedTab === 'new' ? 'active' : ''}
-                    onClick={() => setSelectedTab('new')}
-                  >
-                    {groupsOnly ? 'New' : 'New Groups'} ({groups.filter(group => group.Status === 'New').length})
-                  </li>
-                  <li
-                    className={selectedTab === 'closed' ? 'active' : ''}
-                    onClick={() => setSelectedTab('closed')}
-                  >
-                    {groupsOnly ? 'Closed' : 'Closed Groups'} ({groups.filter(group => group.Status === 'Closed').length})
-                  </li>
-                </ul>
-
+              <div className="groups-toolbar">
+                <div className="groups-search">
+                  <FiSearch className="groups-search-icon" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search by name or type"
+                    className="groups-search-input"
+                  />
+                </div>
+                <div className="groups-tabs" role="tablist">
+                  {[
+                    { id: 'ready', label: 'Ready', count: readyCount },
+                    { id: 'new', label: 'New', count: newCount },
+                    { id: 'closed', label: 'Closed', count: closedCount },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={selectedTab === tab.id}
+                      className={`groups-tab ${selectedTab === tab.id ? 'is-active' : ''}`}
+                      onClick={() => {
+                        setSelectedTab(tab.id);
+                        setPage(1);
+                      }}
+                    >
+                      {tab.label}
+                      <span className="groups-tab-count">{tab.count}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {selectedTab === 'ready' && (
-                <ReadyGroups groups={groups} selectedTab={selectedTab} basePath={basePath} />
+                <ReadyGroups groups={pagedGroups} selectedTab={selectedTab} basePath={basePath} />
               )}
               {selectedTab === 'new' && (
                 <NewGroups
-                  groups={groups}
+                  groups={pagedGroups}
                   selectedTab={selectedTab}
                   refreshGroups={fetchAllGroups}
                   basePath={basePath}
@@ -492,7 +563,111 @@ const HomePage = ({
                   canDeleteGroup={canDeleteGroup}
                 />
               )}
-              {selectedTab === 'closed' && <ClosedGroups groups={groups} basePath={basePath} />}
+              {selectedTab === 'closed' && <ClosedGroups groups={pagedGroups} basePath={basePath} />}
+
+              {tabGroups.length > 0 && (
+                <div className="mt-4 bg-white rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 md:p-5">
+                  <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm text-gray-600">
+                      <span>
+                        Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to{' '}
+                        <span className="font-semibold text-gray-900">{endIndex}</span> of{' '}
+                        <span className="font-semibold text-gray-900">{totalItems}</span>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <label htmlFor="groups-page-size" className="text-sm text-gray-600">Per page</label>
+                        <select
+                          id="groups-page-size"
+                          value={pageSize}
+                          onChange={(e) => setPageSize(Number(e.target.value))}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-custom-red focus:border-transparent bg-white"
+                        >
+                          {GROUPS_PAGE_SIZE_OPTIONS.map((size) => (
+                            <option key={size} value={size}>{size}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center sm:justify-end gap-1 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          aria-label="Previous page"
+                          className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold transition-colors ${
+                            currentPage === 1
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          &lt;
+                        </button>
+
+                        {pageNumbers[0] > 1 && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setPage(1)}
+                              className="min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            >
+                              1
+                            </button>
+                            {pageNumbers[0] > 2 && (
+                              <span className="px-1 text-gray-400 text-sm">…</span>
+                            )}
+                          </>
+                        )}
+
+                        {pageNumbers.map((pageNum) => (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            onClick={() => setPage(pageNum)}
+                            className={`min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold transition-colors ${
+                              currentPage === pageNum
+                                ? 'bg-custom-red text-white'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        ))}
+
+                        {pageNumbers[pageNumbers.length - 1] < totalPages && (
+                          <>
+                            {pageNumbers[pageNumbers.length - 1] < totalPages - 1 && (
+                              <span className="px-1 text-gray-400 text-sm">…</span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setPage(totalPages)}
+                              className="min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            >
+                              {totalPages}
+                            </button>
+                          </>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          aria-label="Next page"
+                          className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold transition-colors ${
+                            currentPage === totalPages
+                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          &gt;
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
