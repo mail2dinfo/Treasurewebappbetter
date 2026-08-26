@@ -9,7 +9,6 @@ const formatDate = (value) => {
 
 const formatAmount = (amount) => `₹${Number(amount || 0).toLocaleString("en-IN")}`;
 
-/** Highlight reversal / incorrect / correction entries in light red */
 export const isFlaggedLedgerEntry = (entry) => {
   const text = `${entry?.description || ""} ${entry?.category || ""} ${entry?.sub_category || ""}`;
   return /reversal|incorrect|correction|wrong entry|reverse:/i.test(text);
@@ -42,50 +41,42 @@ const LedgerTable = ({ entries: propEntries }) => {
     .reduce((sum, entry) => sum + Number(entry.amount || 0), 0);
 
   if (isLoading) {
-    return <div className="text-sm text-gray-500 py-4">Loading ledger entries...</div>;
+    return <div className="ledger-empty">Loading ledger entries...</div>;
   }
 
   if (!entries || entries.length === 0) {
-    return <div className="text-sm text-gray-500 py-4">No ledger entries found.</div>;
+    return <div className="ledger-empty">No ledger entries match these filters.</div>;
   }
 
   const safeTotalPages = Math.max(1, Number(totalPages) || 1);
   const safePage = Math.max(1, Number(page) || 1);
 
   const Pagination = () => (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-4">
-      <div className="text-sm font-semibold text-gray-800">
-        Total Credit: {formatAmount(totalCredit)}
-        <span className="mx-2 text-gray-300">|</span>
-        Total Debit: {formatAmount(totalDebit)}
-        {totalCount > 0 && (
-          <span className="ml-2 text-xs font-normal text-gray-500">
-            ({totalCount} entries)
-          </span>
-        )}
+    <div className="ledger-pagination">
+      <div className="ledger-pagination-totals">
+        <span className="is-credit">Credit {formatAmount(totalCredit)}</span>
+        <span className="is-debit">Debit {formatAmount(totalDebit)}</span>
+        {totalCount > 0 && <span className="is-muted">{totalCount} entries</span>}
       </div>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="ledger-pagination-controls">
         <button
           type="button"
-          className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40"
           onClick={() => setPage(Math.max(1, safePage - 1))}
           disabled={safePage <= 1}
         >
           Prev
         </button>
-        <span className="text-sm text-gray-600">
+        <span>
           Page {safePage} of {safeTotalPages}
         </span>
         <button
           type="button"
-          className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40"
           onClick={() => setPage(Math.min(safeTotalPages, safePage + 1))}
           disabled={safePage >= safeTotalPages}
         >
           Next
         </button>
         <select
-          className="border rounded-lg px-2 py-1.5 text-sm"
           value={limit}
           onChange={(e) => setLimit(Number(e.target.value))}
         >
@@ -101,64 +92,50 @@ const LedgerTable = ({ entries: propEntries }) => {
 
   return (
     <div className="w-full">
-      <p className="text-xs text-gray-500 mb-2">
+      <p className="ledger-flag-note">
         Rows in light red are flagged reversal / incorrect / correction entries.
       </p>
 
-      {/* Mobile / tablet cards */}
       <div className="lg:hidden space-y-3">
         {entries.map((entry, index) => {
           const flagged = isFlaggedLedgerEntry(entry);
           return (
             <div
               key={entry.id || index}
-              className={`rounded-xl border p-3 shadow-sm ${
-                flagged
-                  ? "border-red-200 bg-red-50"
-                  : "border-gray-200 bg-white"
-              }`}
+              className={`ledger-entry-card ${flagged ? "is-flagged" : ""}`}
             >
-              <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="ledger-entry-card-top">
                 <div className="min-w-0">
-                  <p className="font-semibold text-gray-900 truncate">
-                    {entry.account?.account_name || "—"}
-                  </p>
-                  <p className="text-xs text-gray-500">{formatDate(entry.transacted_date)}</p>
+                  <p className="ledger-entry-account">{entry.account?.account_name || "—"}</p>
+                  <p className="ledger-entry-date">{formatDate(entry.transacted_date)}</p>
                 </div>
-                <span
-                  className={`shrink-0 text-xs font-bold px-2 py-1 rounded-full ${
-                    entry.entry_type === "CREDIT"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
+                <span className={`ledger-type-pill ${entry.entry_type === "CREDIT" ? "is-credit" : "is-debit"}`}>
                   {entry.entry_type === "CREDIT" ? "CR" : "DB"} {formatAmount(entry.amount)}
                 </span>
               </div>
-              <p className="text-sm text-gray-700">
-                <span className="font-medium text-gray-500">Category:</span> {entry.category || "—"}
+              <p className="ledger-entry-meta">
+                <span>Category</span> {entry.category || "—"}
               </p>
               {entry.description && (
-                <p className="text-sm text-gray-600 mt-1 break-words">{entry.description}</p>
+                <p className="ledger-entry-desc">{entry.description}</p>
               )}
               {flagged && (
-                <p className="text-xs font-semibold text-red-700 mt-2">Flagged / reversal entry</p>
+                <p className="ledger-entry-flag">Flagged / reversal entry</p>
               )}
             </div>
           );
         })}
       </div>
 
-      {/* Desktop table */}
       <div className="hidden lg:block overflow-x-auto rounded-xl border border-gray-200">
         <table className="ledger-table min-w-[720px]">
           <thead>
             <tr>
               <th>Date</th>
-              <th>Account Name</th>
+              <th>Account name</th>
               <th>Category</th>
-              <th>CR Amount</th>
-              <th>DB Amount</th>
+              <th>CR amount</th>
+              <th>DB amount</th>
               <th>Description</th>
             </tr>
           </thead>
@@ -172,10 +149,14 @@ const LedgerTable = ({ entries: propEntries }) => {
                   title={flagged ? "Flagged reversal / incorrect / correction entry" : undefined}
                 >
                   <td>{formatDate(entry.transacted_date)}</td>
-                  <td>{entry.account?.account_name || "-"}</td>
+                  <td className="ledger-account-cell">{entry.account?.account_name || "-"}</td>
                   <td>{entry.category}</td>
-                  <td>{entry.entry_type === "CREDIT" ? formatAmount(entry.amount) : "-"}</td>
-                  <td>{entry.entry_type === "DEBIT" ? formatAmount(entry.amount) : "-"}</td>
+                  <td className="ledger-credit-cell">
+                    {entry.entry_type === "CREDIT" ? formatAmount(entry.amount) : "—"}
+                  </td>
+                  <td className="ledger-debit-cell">
+                    {entry.entry_type === "DEBIT" ? formatAmount(entry.amount) : "—"}
+                  </td>
                   <td>{entry.description}</td>
                 </tr>
               );

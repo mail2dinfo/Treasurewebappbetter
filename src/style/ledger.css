@@ -1,93 +1,387 @@
-/* Base Styling */
 .ledger-page {
-  padding: 12px;
-  font-family: sans-serif;
-  max-width: 1000px;
-  margin: auto;
+  min-height: 100vh;
+  padding: 0.5rem;
+  background: linear-gradient(to bottom right, #f9fafb, #f3f4f6);
+  font-family: inherit;
   width: 100%;
   box-sizing: border-box;
 }
 
-@media (min-width: 640px) {
-  .ledger-page {
-    padding: 20px;
-  }
+.ledger-page-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1rem 0.5rem 2rem;
 }
 
-h2 {
-  font-size: 1.5rem;
-  margin-bottom: 10px;
-}
-
-.balance-info {
-  margin-bottom: 20px;
+.ledger-page-header {
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   justify-content: space-between;
-  flex-wrap: wrap;
-  font-size: 1rem;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
 }
 
-.add-entry-btn {
-  padding: 10px 16px;
-  margin: 10px 0 20px;
-  background-color: #0066cc;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+.ledger-page-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #111827;
 }
 
-.add-entry-btn:hover {
-  background-color: #cd3240;
+.ledger-page-header p {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
 }
 
-.filter-bar {
-  margin-bottom: 20px;
+.ledger-page-header-actions {
   display: flex;
-  gap: 10px;
   flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.filter-bar input {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+.ledger-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
 }
 
-/* Table Styling */
+.ledger-btn-primary {
+  background: #dc2626;
+  color: #fff;
+}
+
+.ledger-btn-primary:hover {
+  background: #b91c1c;
+}
+
+.ledger-btn-secondary {
+  background: #111827;
+  color: #fff;
+}
+
+.ledger-btn-secondary:hover {
+  background: #1f2937;
+}
+
+.ledger-btn-ghost {
+  background: #fff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+}
+
+.ledger-btn-ghost:hover {
+  background: #f9fafb;
+}
+
+.ledger-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.ledger-kpi-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ledger-kpi-label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ledger-kpi-value {
+  margin: 0.3rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.ledger-kpi-value.is-up {
+  color: #047857;
+}
+
+.ledger-kpi-value.is-down {
+  color: #b91c1c;
+}
+
+.ledger-panel {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.ledger-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ledger-panel-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.ledger-panel-head p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.ledger-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ledger-panel-actions a {
+  text-decoration: none;
+}
+
+.ledger-panel-filters {
+  padding: 0.9rem 1.1rem 0.25rem;
+}
+
+.ledger-panel-body {
+  padding: 0.5rem 1.1rem 1.1rem;
+}
+
+.ledger-empty {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+  padding: 2rem 1rem;
+}
+
+.ledger-flag-note {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0 0 0.75rem;
+}
+
+.ledger-entry-card {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 0.9rem;
+  padding: 0.85rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.ledger-entry-card.is-flagged {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.ledger-entry-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ledger-entry-account {
+  margin: 0;
+  font-weight: 700;
+  color: #111827;
+}
+
+.ledger-entry-date {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.ledger-type-pill {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+}
+
+.ledger-type-pill.is-credit {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.ledger-type-pill.is-debit {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.ledger-entry-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #374151;
+}
+
+.ledger-entry-meta span {
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.ledger-entry-desc {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.ledger-entry-flag {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #b91c1c;
+}
+
+.ledger-pagination {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.ledger-pagination-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ledger-pagination-totals .is-credit {
+  color: #047857;
+}
+
+.ledger-pagination-totals .is-debit {
+  color: #b91c1c;
+}
+
+.ledger-pagination-totals .is-muted {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.ledger-pagination-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ledger-pagination-controls button,
+.ledger-pagination-controls select {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 0.7rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.ledger-pagination-controls button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ledger-pagination-controls span {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
 .ledger-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
 }
 
 .ledger-table th,
 .ledger-table td {
-  padding: 10px;
-  border: 1px solid #ddd;
+  padding: 0.7rem 0.85rem;
   text-align: left;
-  word-wrap: break-word;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.ledger-table thead th {
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ledger-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.ledger-account-cell {
+  font-weight: 600;
+  color: #111827;
+}
+
+.ledger-credit-cell {
+  color: #047857;
+  font-weight: 600;
+}
+
+.ledger-debit-cell {
+  color: #b91c1c;
+  font-weight: 600;
 }
 
 .ledger-table tbody tr.ledger-row-flagged {
-  background-color: #fee2e2;
+  background-color: #fef2f2;
 }
 
 .ledger-table tbody tr.ledger-row-flagged:hover {
-  background-color: #fecaca;
+  background-color: #fee2e2;
 }
 
-.ledger-table tbody tr.ledger-row-flagged td {
-  border-color: #fecaca;
+.add-entry-btn {
+  padding: 0.6rem 1rem;
+  margin: 0;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.875rem;
 }
 
-.total-sum {
-  text-align: right;
-  margin-top: 10px;
-  font-weight: bold;
+.add-entry-btn:hover {
+  background-color: #b91c1c;
 }
 
-/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -148,121 +442,34 @@ h2 {
   color: white;
 }
 
-.modal-actions button:not(.cancel):hover {
-  background-color: #218838;
-}
-
-/* Blur effect */
 .blurred {
-  filter: blur(.5 px);
+  filter: none;
 }
 
-/* Responsive Styles */
-@media screen and (max-width: 768px) {
-  .balance-info {
-    flex-direction: column;
-    gap: 5px;
-    font-size: 0.95rem;
+@media (min-width: 640px) {
+  .ledger-page {
+    padding: 1rem;
   }
 
-  .filter-bar {
-    flex-direction: column;
-    gap: 8px;
+  .ledger-kpi-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .add-entry-btn {
-    width: 100%;
-    text-align: center;
-    background-color: #cd3240;
-  }
-
-  .ledger-table th,
-  .ledger-table td {
-    font-size: 0.85rem;
-    padding: 8px;
-  }
-
-  .total-sum {
-    font-size: 1rem;
+  .ledger-pagination {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
   }
 }
 
-.ledger-grid {
-  display: grid;
-  grid-template-columns: 1fr 2fr 1fr 1fr;
-  gap: 10px;
-  margin-top: 20px;
-  font-size: 0.95rem;
-}
-
-.ledger-grid>div {
-  padding: 10px;
-  border: 1px solid #ddd;
-  word-break: break-word;
-}
-
-.grid-header {
-  font-weight: bold;
-  background-color: #f2f2f2;
-}
-
-/* Optional zebra striping */
-.ledger-grid>div:nth-child(4n+1),
-.ledger-grid>div:nth-child(4n+2),
-.ledger-grid>div:nth-child(4n+3),
-.ledger-grid>div:nth-child(4n+4) {
-  background-color: white;
-}
-
-.ledger-grid>div:nth-child(8n+1),
-.ledger-grid>div:nth-child(8n+2),
-.ledger-grid>div:nth-child(8n+3),
-.ledger-grid>div:nth-child(8n+4) {
-  background-color: #f9f9f9;
-}
-
-@media screen and (max-width: 768px) {
-  .ledger-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .grid-header {
-    font-size: 0.9rem;
-  }
-}
-
-/* Button group (Add Entry, Download) */
-.button-group {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-@media (max-width: 1023px) {
-  .button-group {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .button-group .add-entry-btn {
+@media (max-width: 640px) {
+  .ledger-page-header-actions,
+  .ledger-panel-actions {
     width: 100%;
   }
-}
 
-/* Account header chrome lives in LedgerHeader.css — do not redefine grids here */
-
-.total-row {
-  font-weight: bold;
-  background-color: #d32f2f;
-  color: #fff;
-  border-top: 2px solid #b71c1c;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.total-row span {
-  color: #fff;
+  .ledger-page-header-actions .ledger-btn,
+  .ledger-panel-actions .ledger-btn {
+    flex: 1;
+  }
 }

@@ -1,19 +1,16 @@
-/* Account summary — desktop grid / mobile cards */
-
 .account-header-section {
-  padding: 16px;
+  padding: 1.1rem;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 1rem;
   background: #fff;
-  max-width: 100%;
-  margin-bottom: 1.5rem;
-  overflow-x: auto;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .account-header-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
@@ -21,22 +18,40 @@
 
 .account-header-top h2 {
   margin: 0;
-  font-size: 1.25rem;
-  color: #222;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.account-header-top p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
 }
 
 .add-entry-btn {
-  padding: 0.5rem 1rem;
-  background-color: #cd3240;
+  padding: 0.6rem 1rem;
+  background-color: #dc2626;
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 0.75rem;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 0.875rem;
 }
 
 .add-entry-btn:hover {
   background-color: #b91c1c;
+}
+
+.account-empty {
+  text-align: center;
+  padding: 1.75rem 1rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+  background: #f9fafb;
+  border-radius: 0.85rem;
+  border: 1px dashed #e5e7eb;
 }
 
 .account-grid-header,
@@ -44,10 +59,9 @@
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr minmax(88px, 0.9fr);
   gap: 8px;
-  padding: 12px 8px;
-  border-bottom: 1px solid #eee;
+  padding: 12px 10px;
+  border-bottom: 1px solid #f3f4f6;
   align-items: center;
-  min-width: 640px;
 }
 
 .account-grid-header > span:last-child,
@@ -55,6 +69,31 @@
 .account-grid-row.total-row > span:last-child {
   grid-column: 6;
   justify-self: end;
+}
+
+.account-name-cell {
+  font-weight: 700;
+  color: #111827;
+}
+
+.ledger-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.ledger-status.is-profit {
+  color: #047857;
+}
+
+.ledger-status.is-loss {
+  color: #b91c1c;
+}
+
+.ledger-status.is-even {
+  color: #6b7280;
 }
 
 .account-actions-cell {
@@ -69,10 +108,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   background: #fff;
   cursor: pointer;
 }
@@ -103,7 +142,7 @@
 .account-action-message {
   margin-bottom: 12px;
   padding: 10px 12px;
-  border-radius: 6px;
+  border-radius: 10px;
   font-size: 14px;
 }
 
@@ -120,25 +159,27 @@
 }
 
 .account-grid-header {
-  background-color: #f4f4f4;
-  font-weight: bold;
-  position: sticky;
-  top: 0;
+  background-color: #f9fafb;
+  font-weight: 700;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  border-radius: 0.7rem 0.7rem 0 0;
 }
 
 .total-row {
-  background-color: #d32f2f;
+  background-color: #111827;
   color: #fff;
-  font-weight: bold;
-  border-top: 2px solid #b71c1c;
-  border-radius: 8px;
+  font-weight: 700;
+  border-bottom: none;
+  border-radius: 0 0 0.7rem 0.7rem;
 }
 
 .total-row span {
   color: #fff;
 }
 
-/* Mobile + tablet: labeled cards */
 @media (max-width: 1023px) {
   .account-header-section {
     overflow-x: visible;
@@ -162,15 +203,15 @@
     grid-template-columns: 1fr;
     min-width: 0;
     gap: 6px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
     margin-bottom: 12px;
     padding: 12px;
-    background-color: #f9f9f9;
+    background-color: #fff;
   }
 
   .account-grid-row.total-row {
-    background-color: #d32f2f;
+    background-color: #111827;
   }
 
   .account-grid-row > .account-actions-cell,
@@ -185,7 +226,7 @@
     align-items: center;
     gap: 8px;
     padding: 4px 0;
-    border-bottom: 1px dashed #ddd;
+    border-bottom: 1px dashed #e5e7eb;
     font-size: 0.95rem;
   }
 
@@ -196,7 +237,7 @@
   .account-grid-row span::before {
     content: attr(data-label);
     font-weight: 600;
-    color: #333;
+    color: #6b7280;
     flex-shrink: 0;
   }
 

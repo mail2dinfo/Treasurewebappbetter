@@ -19,7 +19,7 @@ const FilterBar = ({ filters, setFilters, categories = [] }) => {
   return (
     <div className="filter-bar">
       <div className="filter-item">
-        <label htmlFor="startDate">St Date:</label>
+        <label htmlFor="startDate">Start date</label>
         <input
           id="startDate"
           name="startDate"
@@ -30,7 +30,7 @@ const FilterBar = ({ filters, setFilters, categories = [] }) => {
       </div>
 
       <div className="filter-item">
-        <label htmlFor="endDate">Ed Date:</label>
+        <label htmlFor="endDate">End date</label>
         <input
           id="endDate"
           name="endDate"
@@ -83,7 +83,7 @@ const FilterBar = ({ filters, setFilters, categories = [] }) => {
       </div>
 
       <button className="clear-button" onClick={clearFilters}>
-        + Clear Filters
+        Clear filters
       </button>
     </div>
   );
