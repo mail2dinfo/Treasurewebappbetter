@@ -1,15 +1,9 @@
 import moment from "moment";
 
 const typeStyles = {
-  FIXED: "bg-slate-100 text-slate-700",
-  ADAPTIVE: "bg-indigo-50 text-indigo-700",
-  FLEXIBLE: "bg-teal-50 text-teal-800",
-};
-
-const statusStyles = {
-  Ready: "bg-emerald-50 text-emerald-700 ring-emerald-100",
-  New: "bg-amber-50 text-amber-800 ring-amber-100",
-  Closed: "bg-gray-100 text-gray-600 ring-gray-200",
+  FIXED: "bg-gray-300 text-gray-800",
+  ADAPTIVE: "bg-gray-300 text-gray-800",
+  FLEXIBLE: "bg-gray-300 text-gray-800",
 };
 
 export const formatGroupAmount = (amount) =>
@@ -46,34 +40,22 @@ const GroupListCard = ({
   secondary,
 }) => {
   const type = String(group?.type || "").toUpperCase();
-  const status = group?.Status || "";
 
   return (
     <article className="group-list-card">
       <div className="group-list-card-main">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
-              {status && (
-                <span
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${
-                    statusStyles[status] || "bg-gray-50 text-gray-600"
-                  }`}
-                >
-                  {status}
-                </span>
-              )}
-              <span
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                  typeStyles[type] || "bg-gray-100 text-gray-600"
-                }`}
-              >
-                {groupTypeLabel(type)}
-              </span>
-            </div>
-            <h4 className="text-lg font-bold text-gray-900 truncate">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            <h4 className="inline-flex items-center max-w-full rounded-full bg-gray-300 px-3.5 py-1.5 text-base font-bold text-gray-900 truncate">
               {group?.group_name || "Untitled group"}
             </h4>
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold ${
+                typeStyles[type] || "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {groupTypeLabel(type)}
+            </span>
           </div>
           <p className="text-xl font-extrabold text-gray-900 whitespace-nowrap">
             {formatGroupAmount(group?.amount)}

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useHistory } from "react-router-dom";
 import { API_BASE_URL } from "../utils/apiConfig";
 import { useUserContext } from "../context/user_context";
@@ -16,6 +17,9 @@ const NewGroups = ({
 }) => {
   const { user } = useUserContext();
   const history = useHistory();
+  const [groupToDelete, setGroupToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteMessage, setDeleteMessage] = useState(null);
 
   const newGroups = Array.isArray(groups)
     ? groups.filter((group) => group.Status === "New")
@@ -31,26 +35,40 @@ const NewGroups = ({
     return `${pending ?? 0} of ${required ?? "—"} still needed`;
   };
 
-  const handleDeleteGroup = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this group?")) return;
+  const closeDeleteModal = () => {
+    if (isDeleting) return;
+    setGroupToDelete(null);
+    setDeleteMessage(null);
+  };
 
+  const confirmDeleteGroup = async () => {
+    if (!groupToDelete?.id) return;
+    setIsDeleting(true);
+    setDeleteMessage(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/groups/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/groups/${groupToDelete.id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${user?.results?.token}`,
           "Content-Type": "application/json",
         },
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (response.ok) {
-        alert(result.message || "Group deleted successfully");
-        refreshGroups();
+        await refreshGroups();
+        setGroupToDelete(null);
+        setDeleteMessage(null);
       } else {
-        alert(result.message || "Failed to delete group");
+        setDeleteMessage({
+          ok: false,
+          text: result.message || "Failed to delete group",
+        });
       }
     } catch (error) {
       console.error("An error occurred while deleting the group:", error);
+      setDeleteMessage({ ok: false, text: "Something went wrong while deleting." });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -85,7 +103,10 @@ const NewGroups = ({
                 type="button"
                 className="delete-button"
                 title="Delete group"
-                onClick={() => handleDeleteGroup(group.id)}
+                onClick={() => {
+                  setDeleteMessage(null);
+                  setGroupToDelete(group);
+                }}
               >
                 Delete
               </button>
@@ -103,6 +124,61 @@ const NewGroups = ({
           ]}
         />
       ))}
+
+      {groupToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+          <div
+            className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-group-title"
+          >
+            <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
+              <h3 id="delete-group-title" className="text-lg font-bold text-white">
+                Delete group
+              </h3>
+              <p className="text-sm text-red-100">This cannot be undone</p>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-3">
+                Are you sure you want to delete this group?
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <p className="text-sm font-semibold text-red-800">
+                  {groupToDelete.group_name || "Untitled group"}
+                </p>
+              </div>
+              {deleteMessage ? (
+                <p
+                  className={`text-sm font-medium mb-4 ${
+                    deleteMessage.ok ? "text-emerald-700" : "text-red-600"
+                  }`}
+                >
+                  {deleteMessage.text}
+                </p>
+              ) : null}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={closeDeleteModal}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteGroup}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold disabled:opacity-50"
+                >
+                  {isDeleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

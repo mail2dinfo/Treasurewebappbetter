@@ -482,195 +482,197 @@ const HomePage = ({
 
         {!groupsOnly && <UserDetails groups={groups} premium={premium} />}
 
-        <div className="group-container">
-          <div className="groups-page-header">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">
-                {groupsOnly ? 'Groups' : 'My Groups'} ({groups.length})
-              </h1>
-            </div>
-            {canCreateGroup && (alwaysShowCreateGroup || groups.length === 0) && (
-              <button
-                type="button"
-                className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm"
-                onClick={handleStartGroup}
-              >
-                <FiPlus className="w-4 h-4" />
-                Start a group
-              </button>
-            )}
-          </div>
-
-          {groups.length === 0 ? (
-            <div className="group-empty mt-6">
-              <p className="text-base font-semibold text-gray-800">No groups yet</p>
-              <p className="text-sm text-gray-500 mt-1 mb-4">
-                Create a group to start collecting dues and running auctions.
-              </p>
-              {canCreateGroup && !alwaysShowCreateGroup && (
-                <button type="button" className="start-group-button" onClick={handleStartGroup}>
+        {groupsOnly ? (
+          <div className="group-container">
+            <div className="groups-page-header">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">
+                  Groups ({groups.length})
+                </h1>
+              </div>
+              {canCreateGroup && (alwaysShowCreateGroup || groups.length === 0) && (
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm"
+                  onClick={handleStartGroup}
+                >
+                  <FiPlus className="w-4 h-4" />
                   Start a group
                 </button>
               )}
             </div>
-          ) : (
-            <>
-              <div className="groups-toolbar">
-                <div className="groups-search">
-                  <FiSearch className="groups-search-icon" />
-                  <input
-                    type="search"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search by name or type"
-                    className="groups-search-input"
-                  />
-                </div>
-                <div className="groups-tabs" role="tablist">
-                  {[
-                    { id: 'ready', label: 'Ready', count: readyCount },
-                    { id: 'new', label: 'New', count: newCount },
-                    { id: 'closed', label: 'Closed', count: closedCount },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={selectedTab === tab.id}
-                      className={`groups-tab ${selectedTab === tab.id ? 'is-active' : ''}`}
-                      onClick={() => {
-                        setSelectedTab(tab.id);
-                        setPage(1);
-                      }}
-                    >
-                      {tab.label}
-                      <span className="groups-tab-count">{tab.count}</span>
-                    </button>
-                  ))}
-                </div>
+
+            {groups.length === 0 ? (
+              <div className="group-empty mt-6">
+                <p className="text-base font-semibold text-gray-800">No groups yet</p>
+                <p className="text-sm text-gray-500 mt-1 mb-4">
+                  Create a group to start collecting dues and running auctions.
+                </p>
+                {canCreateGroup && !alwaysShowCreateGroup && (
+                  <button type="button" className="start-group-button" onClick={handleStartGroup}>
+                    Start a group
+                  </button>
+                )}
               </div>
+            ) : (
+              <>
+                <div className="groups-toolbar">
+                  <div className="groups-search">
+                    <FiSearch className="groups-search-icon" />
+                    <input
+                      type="search"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Search by name or type"
+                      className="groups-search-input"
+                    />
+                  </div>
+                  <div className="groups-tabs" role="tablist">
+                    {[
+                      { id: 'ready', label: 'Ready', count: readyCount },
+                      { id: 'new', label: 'New', count: newCount },
+                      { id: 'closed', label: 'Closed', count: closedCount },
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={selectedTab === tab.id}
+                        className={`groups-tab ${selectedTab === tab.id ? 'is-active' : ''}`}
+                        onClick={() => {
+                          setSelectedTab(tab.id);
+                          setPage(1);
+                        }}
+                      >
+                        {tab.label}
+                        <span className="groups-tab-count">{tab.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-              {selectedTab === 'ready' && (
-                <ReadyGroups groups={pagedGroups} selectedTab={selectedTab} basePath={basePath} />
-              )}
-              {selectedTab === 'new' && (
-                <NewGroups
-                  groups={pagedGroups}
-                  selectedTab={selectedTab}
-                  refreshGroups={fetchAllGroups}
-                  basePath={basePath}
-                  canAddSubscriber={canAddSubscriber}
-                  canDeleteGroup={canDeleteGroup}
-                />
-              )}
-              {selectedTab === 'closed' && <ClosedGroups groups={pagedGroups} basePath={basePath} />}
+                {selectedTab === 'ready' && (
+                  <ReadyGroups groups={pagedGroups} selectedTab={selectedTab} basePath={basePath} />
+                )}
+                {selectedTab === 'new' && (
+                  <NewGroups
+                    groups={pagedGroups}
+                    selectedTab={selectedTab}
+                    refreshGroups={fetchAllGroups}
+                    basePath={basePath}
+                    canAddSubscriber={canAddSubscriber}
+                    canDeleteGroup={canDeleteGroup}
+                  />
+                )}
+                {selectedTab === 'closed' && <ClosedGroups groups={pagedGroups} basePath={basePath} />}
 
-              {tabGroups.length > 0 && (
-                <div className="mt-4 bg-white rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 md:p-5">
-                  <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm text-gray-600">
-                      <span>
-                        Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to{' '}
-                        <span className="font-semibold text-gray-900">{endIndex}</span> of{' '}
-                        <span className="font-semibold text-gray-900">{totalItems}</span>
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <label htmlFor="groups-page-size" className="text-sm text-gray-600">Per page</label>
-                        <select
-                          id="groups-page-size"
-                          value={pageSize}
-                          onChange={(e) => setPageSize(Number(e.target.value))}
-                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-custom-red focus:border-transparent bg-white"
-                        >
-                          {GROUPS_PAGE_SIZE_OPTIONS.map((size) => (
-                            <option key={size} value={size}>{size}</option>
-                          ))}
-                        </select>
+                {tabGroups.length > 0 && (
+                  <div className="mt-4 bg-white rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 md:p-5">
+                    <div className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm text-gray-600">
+                        <span>
+                          Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to{' '}
+                          <span className="font-semibold text-gray-900">{endIndex}</span> of{' '}
+                          <span className="font-semibold text-gray-900">{totalItems}</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <label htmlFor="groups-page-size" className="text-sm text-gray-600">Per page</label>
+                          <select
+                            id="groups-page-size"
+                            value={pageSize}
+                            onChange={(e) => setPageSize(Number(e.target.value))}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-custom-red focus:border-transparent bg-white"
+                          >
+                            {GROUPS_PAGE_SIZE_OPTIONS.map((size) => (
+                              <option key={size} value={size}>{size}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
-                    </div>
 
-                    {totalPages > 1 && (
-                      <div className="flex items-center justify-center sm:justify-end gap-1 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => setPage((p) => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
-                          aria-label="Previous page"
-                          className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold transition-colors ${
-                            currentPage === 1
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          &lt;
-                        </button>
-
-                        {pageNumbers[0] > 1 && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => setPage(1)}
-                              className="min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            >
-                              1
-                            </button>
-                            {pageNumbers[0] > 2 && (
-                              <span className="px-1 text-gray-400 text-sm">…</span>
-                            )}
-                          </>
-                        )}
-
-                        {pageNumbers.map((pageNum) => (
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-center sm:justify-end gap-1 flex-wrap">
                           <button
-                            key={pageNum}
                             type="button"
-                            onClick={() => setPage(pageNum)}
-                            className={`min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold transition-colors ${
-                              currentPage === pageNum
-                                ? 'bg-custom-red text-white'
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            aria-label="Previous page"
+                            className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold transition-colors ${
+                              currentPage === 1
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                             }`}
                           >
-                            {pageNum}
+                            &lt;
                           </button>
-                        ))}
 
-                        {pageNumbers[pageNumbers.length - 1] < totalPages && (
-                          <>
-                            {pageNumbers[pageNumbers.length - 1] < totalPages - 1 && (
-                              <span className="px-1 text-gray-400 text-sm">…</span>
-                            )}
+                          {pageNumbers[0] > 1 && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setPage(1)}
+                                className="min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              >
+                                1
+                              </button>
+                              {pageNumbers[0] > 2 && (
+                                <span className="px-1 text-gray-400 text-sm">…</span>
+                              )}
+                            </>
+                          )}
+
+                          {pageNumbers.map((pageNum) => (
                             <button
+                              key={pageNum}
                               type="button"
-                              onClick={() => setPage(totalPages)}
-                              className="min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              onClick={() => setPage(pageNum)}
+                              className={`min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold transition-colors ${
+                                currentPage === pageNum
+                                  ? 'bg-custom-red text-white'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              }`}
                             >
-                              {totalPages}
+                              {pageNum}
                             </button>
-                          </>
-                        )}
+                          ))}
 
-                        <button
-                          type="button"
-                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                          disabled={currentPage === totalPages}
-                          aria-label="Next page"
-                          className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold transition-colors ${
-                            currentPage === totalPages
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          &gt;
-                        </button>
-                      </div>
-                    )}
+                          {pageNumbers[pageNumbers.length - 1] < totalPages && (
+                            <>
+                              {pageNumbers[pageNumbers.length - 1] < totalPages - 1 && (
+                                <span className="px-1 text-gray-400 text-sm">…</span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setPage(totalPages)}
+                                className="min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              >
+                                {totalPages}
+                              </button>
+                            </>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            aria-label="Next page"
+                            className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold transition-colors ${
+                              currentPage === totalPages
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            &gt;
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                )}
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
       <ScrollToTop />
     </div>
