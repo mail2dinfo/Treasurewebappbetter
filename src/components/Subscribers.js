@@ -154,14 +154,39 @@
 //   }
 // `;
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Subcriber from './Subcriber';
 import { useHistory, useParams } from 'react-router-dom';
 import { useCompanySubscriberContext } from '../context/companysubscriber_context';
 import loadingImage from '../images/preloader.gif';
 import { useUserContext } from '../context/user_context';
 import { useGroupDetailsContext } from '../context/group_context';
-import { Grid, List } from 'lucide-react';
+import { getRosterFill } from '../utils/groupTicketCapacity';
+import { FiPlus, FiSearch, FiGrid, FiList, FiUsers, FiX, FiArrowLeft } from 'react-icons/fi';
+import '../style/home.css';
+
+const formatSharePct = (value) => {
+  let pct = Number(value);
+  if (!Number.isFinite(pct) || pct <= 0) pct = 100;
+  if (pct > 0 && pct <= 1) pct *= 100;
+  const rounded = Math.round(pct * 100) / 100;
+  return Number.isInteger(rounded) ? `${rounded}%` : `${rounded}%`;
+};
+
+const formatTicketLabel = (raw) => {
+  const id = String(raw || '').trim();
+  if (!id) return 'Ticket —';
+  const match = id.toUpperCase().match(/^(\d+)([A-Z]+)$/);
+  if (match) return `Ticket ${match[1]}${match[2]}`;
+  return `Ticket ${id}`;
+};
+
+const formatGroupMemberLine = (member) => {
+  const name = member?.name || member?.firstname || '—';
+  return `${name} - ${formatSharePct(member?.accountshare_percentage)} - ${formatTicketLabel(member?.accountshare_id)}`;
+};
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 const Subscribers = ({
   addSubscriberPath,
@@ -170,22 +195,22 @@ const Subscribers = ({
   const history = useHistory();
   const { groupId } = useParams();
   const { companySubscribers, isLoading } = useCompanySubscriberContext();
-  const { fetchGroups } = useGroupDetailsContext();
-
+  const { fetchGroups, data: groupData } = useGroupDetailsContext();
   const { user } = useUserContext();
 
   const [nameFilter, setNameFilter] = useState('');
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const subscribers = companySubscribers || [];
+  const isAddToGroup = Boolean(groupId);
 
   useEffect(() => {
     if (groupId && fetchGroups) {
       fetchGroups(groupId, { silent: true });
     }
   }, [groupId, fetchGroups]);
-
-  const handleBackButtonClick = () => {
-    history.goBack();
-  };
 
   const handleMultiStepSubscriber = () => {
     history.push(
@@ -194,18 +219,87 @@ const Subscribers = ({
     );
   };
 
-  const searchTerm = (nameFilter || "").toLowerCase();
+  const searchTerm = (nameFilter || '').trim().toLowerCase();
+  const groupMembers = isAddToGroup ? (groupData?.results?.groupSubcriberResult || []) : [];
+  const group = groupData?.results || {};
+  const groupName = group.groupName || '';
+  const groupType = String(group.type || '').toUpperCase();
+  const groupCapacity =
+    groupType === 'FIXED'
+      ? group.totalTenture ?? group.tenure ?? 0
+      : group.noOfSubcribers ?? group.noOfSubscribers ?? 0;
+  const roster = getRosterFill({
+    groupType,
+    subscribers: groupMembers,
+    groupAmount: Number(group.amount || 0),
+    capacity: groupCapacity,
+  });
+  const addedCount = groupMembers.length;
+  const capacityLabel = roster.unlimited ? 'Open' : (Number(groupCapacity) > 0 ? groupCapacity : '—');
 
-  const filteredSubscribers = companySubscribers?.filter((subscriber) =>
-    (subscriber?.name || "").toLowerCase().includes(searchTerm)
+  const uniqueGroupMembers = useMemo(() => {
+    const map = new Map();
+    groupMembers.forEach((member) => {
+      const id = String(member.subscriber_id || member.subscriberUserId || '');
+      if (!id) return;
+      if (!map.has(id)) map.set(id, { ...member, ticketCount: 1 });
+      else map.get(id).ticketCount += 1;
+    });
+    return Array.from(map.values());
+  }, [groupMembers]);
+
+  const inGroupIds = useMemo(
+    () => new Set(uniqueGroupMembers.map((m) => String(m.subscriber_id || m.subscriberUserId))),
+    [uniqueGroupMembers]
   );
 
-  if (isLoading) {
+  const isAlreadyInGroup = (subscriber) =>
+    inGroupIds.has(String(subscriber?.id || subscriber?.subscriberUserId || subscriber?.subscriberId || ''));
+
+  const filteredSubscribers = useMemo(() => {
+    let list = subscribers;
+    if (searchTerm) {
+      list = list.filter((subscriber) => {
+        const name = (subscriber?.name || '').toLowerCase();
+        const phone = String(subscriber?.phone || '').toLowerCase();
+        const email = (subscriber?.email || '').toLowerCase();
+        return name.includes(searchTerm) || phone.includes(searchTerm) || email.includes(searchTerm);
+      });
+    }
+    return list;
+  }, [subscribers, searchTerm]);
+
+  const totalItems = filteredSubscribers.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize) || 1);
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + pageSize, totalItems);
+  const pagedSubscribers = filteredSubscribers.slice(startIndex, endIndex);
+
+  const getVisiblePageNumbers = (pages, current) => {
+    if (pages <= 5) return Array.from({ length: pages }, (_, index) => index + 1);
+    const windowSize = 5;
+    let start = Math.max(1, current - Math.floor(windowSize / 2));
+    let end = start + windowSize - 1;
+    if (end > pages) {
+      end = pages;
+      start = Math.max(1, end - windowSize + 1);
+    }
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  };
+
+  const pageNumbers = getVisiblePageNumbers(totalPages, currentPage);
+
+  useEffect(() => {
+    setPage(1);
+  }, [nameFilter, pageSize]);
+
+  if (isLoading && subscribers.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
         <div className="flex items-center justify-center min-h-[40vh]">
           <div className="text-center">
-            <img src={loadingImage} alt="Loading..." className="w-20 h-20 mx-auto mb-4" />
+            <img src={loadingImage} alt="" className="w-20 h-20 mx-auto mb-4" />
             <p className="text-gray-600 font-medium">Loading subscribers...</p>
           </div>
         </div>
@@ -216,74 +310,224 @@ const Subscribers = ({
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center flex-wrap gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-              Company Subscribers
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              {filteredSubscribers.length} subscriber{filteredSubscribers.length === 1 ? '' : 's'}
-            </p>
-          </div>
-          <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden bg-white shadow-sm">
-            <button
-              type="button"
-              onClick={() => setViewMode('grid')}
-              className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${viewMode === 'grid'
-                ? 'bg-custom-red text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-            >
-              <Grid size={18} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('list')}
-              className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-l border-gray-300 ${viewMode === 'list'
-                ? 'bg-custom-red text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
-                }`}
-            >
-              <List size={18} />
-            </button>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
-          <input
-            type="text"
-            placeholder="Search by name"
-            value={nameFilter}
-            onChange={(e) => setNameFilter(e.target.value)}
-            className="px-4 py-3 bg-white border border-gray-300 rounded-lg text-base w-full md:flex-1 placeholder-gray-500 focus:border-custom-red focus:ring-1 focus:ring-custom-red transition-all duration-300 shadow-sm"
-          />
-          <div className="flex gap-3 flex-wrap">
-            {canAddSubscriber && (
+        <div className="group-container">
+          {isAddToGroup ? (
+            <div className="mb-5">
               <button
                 type="button"
-                onClick={handleMultiStepSubscriber}
-                className="px-4 py-3 bg-custom-red border border-custom-red rounded-lg text-white font-semibold cursor-pointer transition-all duration-300 hover:bg-red-700 hover:shadow-lg"
+                onClick={() => history.goBack()}
+                className="inline-flex items-center justify-center gap-2 h-12 px-4 bg-black border border-black rounded-xl text-white text-sm font-semibold hover:bg-gray-900"
               >
-                + Add Subscriber
+                <FiArrowLeft className="w-4 h-4" />
+                Back
               </button>
-            )}
-            <button
-              type="button"
-              onClick={handleBackButtonClick}
-              className="px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-700 font-semibold cursor-pointer transition-all duration-300 hover:bg-gray-50 shadow-sm"
-            >
-              ← Back
-            </button>
-          </div>
-        </div>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 mt-4">
+                Add to group ({subscribers.length})
+              </h1>
+            </div>
+          ) : (
+            <div className="groups-page-header">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">
+                Subscribers ({subscribers.length})
+              </h1>
+              {canAddSubscriber && (
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm"
+                  onClick={handleMultiStepSubscriber}
+                >
+                  <FiPlus className="w-4 h-4" />
+                  Add subscriber
+                </button>
+              )}
+            </div>
+          )}
 
-        <div className={`${viewMode === 'grid'
-          ? 'grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-          : 'flex flex-col gap-4'
-          }`}>
-          {filteredSubscribers.map((item) => (
-            <Subcriber key={item.id} {...item} view={viewMode} />
-          ))}
+          {subscribers.length === 0 ? (
+            <div className="group-empty mt-6">
+              <p className="text-base font-semibold text-gray-800">No subscribers yet</p>
+              <p className="text-sm text-gray-500 mt-1 mb-4">
+                Add a subscriber to start assigning groups and collecting dues.
+              </p>
+              {canAddSubscriber && !isAddToGroup && (
+                <button type="button" className="start-group-button" onClick={handleMultiStepSubscriber}>
+                  Add subscriber
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className={`flex gap-4 items-start ${isAddToGroup ? 'flex-col md:flex-row' : 'flex-col'}`}>
+              {isAddToGroup && (
+                <aside className="w-full md:w-72 lg:w-80 flex-shrink-0 rounded-xl border border-gray-200 bg-white overflow-hidden">
+                  <div className="px-4 py-3 bg-gray-100 border-b border-gray-200 space-y-2.5">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500">Group Name</p>
+                      <p className="text-sm font-bold text-gray-900 truncate mt-0.5" title={groupName || undefined}>
+                        {groupName || 'Group'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-500">Subscribers</p>
+                      <p className="text-sm font-semibold text-gray-700 mt-0.5">
+                        {addedCount} / {capacityLabel}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {groupMembers.length === 0 ? (
+                      <p className="px-4 py-3 text-sm text-gray-500">No one has been added yet.</p>
+                    ) : (
+                      <ul className="divide-y divide-gray-100">
+                        {groupMembers.map((member, index) => (
+                          <li
+                            key={String(member.group_subscriber_id || `${member.subscriber_id}-${index}`)}
+                            className="px-4 py-2.5 text-sm font-medium text-gray-900 leading-snug"
+                            title={formatGroupMemberLine(member)}
+                          >
+                            {formatGroupMemberLine(member)}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </aside>
+              )}
+
+              <div className="min-w-0 flex-1 w-full">
+              <div className="flex items-stretch gap-3 mb-4 w-full">
+                <div className="groups-search flex-1 min-w-0">
+                  <FiSearch className="groups-search-icon" />
+                  <input
+                    type="search"
+                    value={nameFilter}
+                    onChange={(e) => setNameFilter(e.target.value)}
+                    placeholder="Search by name, phone, or email"
+                    className="groups-search-input"
+                  />
+                  {nameFilter ? (
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onClick={() => setNameFilter('')}
+                      aria-label="Clear search"
+                    >
+                      <FiX />
+                    </button>
+                  ) : null}
+                </div>
+                <div className="inline-flex h-12 flex-shrink-0 rounded-xl border border-gray-200 overflow-hidden bg-white">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('grid')}
+                    className={`inline-flex items-center justify-center gap-2 h-12 px-4 text-sm font-semibold ${
+                      viewMode === 'grid' ? 'bg-red-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <FiGrid className="w-4 h-4" /> Grid
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('list')}
+                    className={`inline-flex items-center justify-center gap-2 h-12 px-4 text-sm font-semibold border-l border-gray-200 ${
+                      viewMode === 'list' ? 'bg-red-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <FiList className="w-4 h-4" /> List
+                  </button>
+                </div>
+              </div>
+              {pagedSubscribers.length > 0 ? (
+                <div
+                  className={
+                    viewMode === 'grid'
+                      ? 'grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2'
+                      : 'flex flex-col gap-3'
+                  }
+                >
+                  {pagedSubscribers.map((item) => (
+                    <Subcriber
+                      key={item.id}
+                      {...item}
+                      view={viewMode}
+                      alreadyInGroup={isAddToGroup && isAlreadyInGroup(item)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="group-empty">
+                  <FiUsers className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                  <p className="text-base font-semibold text-gray-800">No matching subscribers</p>
+                  <p className="text-sm text-gray-500 mt-1">Try a different name or phone.</p>
+                </div>
+              )}
+
+              {totalItems > 0 && (
+                <div className="mt-4 bg-white rounded-xl shadow-lg border border-gray-200 p-3 sm:p-4 md:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 text-sm text-gray-600">
+                      <span>
+                        Showing <span className="font-semibold text-gray-900">{startIndex + 1}</span> to{' '}
+                        <span className="font-semibold text-gray-900">{endIndex}</span> of{' '}
+                        <span className="font-semibold text-gray-900">{totalItems}</span>
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <label htmlFor="subscribers-page-size">Per page</label>
+                        <select
+                          id="subscribers-page-size"
+                          value={pageSize}
+                          onChange={(e) => setPageSize(Number(e.target.value))}
+                          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-custom-red focus:border-transparent bg-white"
+                        >
+                          {PAGE_SIZE_OPTIONS.map((size) => (
+                            <option key={size} value={size}>{size}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center sm:justify-end gap-1 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setPage((p) => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold ${
+                            currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          &lt;
+                        </button>
+                        {pageNumbers.map((pageNum) => (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            onClick={() => setPage(pageNum)}
+                            className={`min-w-[40px] h-10 px-3 rounded-lg text-sm font-semibold ${
+                              currentPage === pageNum ? 'bg-custom-red text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className={`min-w-[40px] h-10 px-3 rounded-lg text-lg font-semibold ${
+                            currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          &gt;
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
