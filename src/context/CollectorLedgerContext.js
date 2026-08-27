@@ -1,7 +1,9 @@
-import React, { createContext, useReducer, useContext, useCallback } from 'react';
+import React, { createContext, useReducer, useContext, useCallback, useRef } from 'react';
 import { useCollector } from './CollectorProvider';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { toast } from 'react-toastify';
+import { useCollectorReceivablesStream } from '../components/collector/useCollectorReceivablesStream';
+import { getChitCompanyMembershipId } from '../utils/chitMembership';
 
 const CollectorLedgerContext = createContext();
 
@@ -90,8 +92,11 @@ export const CollectorLedgerProvider = ({ children }) => {
             || null;
     }, [user]);
 
+    const stateRef = useRef(state);
+    stateRef.current = state;
+
     // Fetch ledger entries (advance payment history)
-    const fetchLedgerEntries = useCallback(async (filters = {}) => {
+    const fetchLedgerEntries = useCallback(async (filters = {}, options = {}) => {
         const token = user?.token || user?.results?.token;
         if (!token) {
             console.log('❌ No token found, cannot fetch ledger entries');
@@ -100,6 +105,7 @@ export const CollectorLedgerProvider = ({ children }) => {
 
         const parentMembershipId = getMembershipId();
         if (!parentMembershipId) {
+            if (options.silent) return;
             const errorMsg = 'Parent Membership ID not found. Please ensure you are logged in as a collector.';
             dispatch({ type: ACTIONS.FETCH_ERROR, payload: errorMsg });
             toast.error(errorMsg);
@@ -108,20 +114,22 @@ export const CollectorLedgerProvider = ({ children }) => {
             return;
         }
 
-        dispatch({ type: ACTIONS.FETCH_START });
+        if (!options.silent) {
+            dispatch({ type: ACTIONS.FETCH_START });
+        }
 
         try {
             // Merge current filters with new filters
-            const currentFilters = { ...state.filters, ...filters };
+            const currentFilters = { ...stateRef.current.filters, ...filters };
 
             console.log('🔍 Current filters:', currentFilters);
-            console.log('🔍 State filters:', state.filters);
+            console.log('🔍 State filters:', stateRef.current.filters);
             console.log('🔍 Passed filters:', filters);
 
             // Build query params - only add filters if they have values
             const queryParams = new URLSearchParams({
-                page: state.page,
-                limit: state.limit,
+                page: stateRef.current.page,
+                limit: stateRef.current.limit,
             });
 
             // Only add filters if they have actual values (not empty strings)
@@ -182,13 +190,15 @@ export const CollectorLedgerProvider = ({ children }) => {
             }
         } catch (error) {
             console.log('❌ Fetch ledger entries error:', error);
-            dispatch({ type: ACTIONS.FETCH_ERROR, payload: error.message });
-            toast.error('Failed to fetch ledger entries');
+            if (!options.silent) {
+                dispatch({ type: ACTIONS.FETCH_ERROR, payload: error.message });
+                toast.error('Failed to fetch ledger entries');
+            }
         }
-    }, [user, state.page, state.limit, state.filters, getMembershipId]);
+    }, [user, getMembershipId]);
 
     // Fetch ledger accounts (payment methods)
-    const fetchLedgerAccounts = useCallback(async () => {
+    const fetchLedgerAccounts = useCallback(async (options = {}) => {
         const token = user?.token || user?.results?.token;
         if (!token) {
             console.log('❌ No token found, cannot fetch ledger accounts');
@@ -197,6 +207,7 @@ export const CollectorLedgerProvider = ({ children }) => {
 
         const parentMembershipId = getMembershipId();
         if (!parentMembershipId) {
+            if (options.silent) return;
             const errorMsg = 'Parent Membership ID not found. Please ensure you are logged in as a collector.';
             dispatch({ type: ACTIONS.FETCH_ERROR, payload: errorMsg });
             toast.error(errorMsg);
@@ -205,7 +216,9 @@ export const CollectorLedgerProvider = ({ children }) => {
             return;
         }
 
-        dispatch({ type: ACTIONS.FETCH_START });
+        if (!options.silent) {
+            dispatch({ type: ACTIONS.FETCH_START });
+        }
 
         try {
             console.log('🔄 Fetching ledger accounts for parent membershipId:', parentMembershipId);
@@ -229,10 +242,30 @@ export const CollectorLedgerProvider = ({ children }) => {
             });
         } catch (error) {
             console.log('❌ Fetch ledger accounts error:', error);
-            dispatch({ type: ACTIONS.FETCH_ERROR, payload: error.message });
-            toast.error('Failed to fetch payment methods');
+            if (!options.silent) {
+                dispatch({ type: ACTIONS.FETCH_ERROR, payload: error.message });
+                toast.error('Failed to fetch payment methods');
+            }
         }
     }, [user, getMembershipId]);
+
+    const fetchLedgerEntriesRef = useRef(fetchLedgerEntries);
+    fetchLedgerEntriesRef.current = fetchLedgerEntries;
+    const fetchLedgerAccountsRef = useRef(fetchLedgerAccounts);
+    fetchLedgerAccountsRef.current = fetchLedgerAccounts;
+
+    const parentMembershipId = getChitCompanyMembershipId(user) || getMembershipId();
+    const collectorToken = user?.token || user?.results?.token;
+
+    useCollectorReceivablesStream({
+        enabled: Boolean(collectorToken && parentMembershipId),
+        token: collectorToken,
+        parentMembershipId,
+        onEvent: () => {
+            fetchLedgerAccountsRef.current?.({ silent: true });
+            fetchLedgerEntriesRef.current?.({}, { silent: true });
+        },
+    });
 
     // Add ledger entry (for recording new advance payments)
     const addLedgerEntry = useCallback(async (entry) => {

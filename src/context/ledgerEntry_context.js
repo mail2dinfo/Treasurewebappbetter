@@ -1,6 +1,8 @@
-import React, { createContext, useReducer, useContext, useEffect, useRef } from "react";
+import React, { createContext, useReducer, useContext, useEffect, useRef, useCallback } from "react";
 import { useUserContext } from "./user_context";
 import { API_BASE_URL } from "../utils/apiConfig";
+import { useCollectorReceivablesStream } from "../components/collector/useCollectorReceivablesStream";
+import { getChitCompanyMembershipId } from "../utils/chitMembership";
 
 const LedgerEntryContext = createContext();
 
@@ -62,10 +64,15 @@ export const LedgerEntryProvider = ({ children }) => {
   const [state, dispatch] = useReducer(ledgerEntryReducer, initialState);
   const filtersRef = useRef({});
 
-  const fetchLedgerEntries = async (filters = filtersRef.current, options = {}) => {
+  const pageRef = useRef(state.page);
+  const limitRef = useRef(state.limit);
+  pageRef.current = state.page;
+  limitRef.current = state.limit;
+
+  const fetchLedgerEntries = useCallback(async (filters = filtersRef.current, options = {}) => {
     if (!user?.results?.token) return;
 
-    const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+    const membershipId = getChitCompanyMembershipId(user);
     if (!membershipId) {
       dispatch({ type: "FETCH_ERROR", payload: "Membership ID not found" });
       return;
@@ -74,10 +81,12 @@ export const LedgerEntryProvider = ({ children }) => {
     const nextFilters = filters && typeof filters === "object" ? filters : {};
     filtersRef.current = nextFilters;
 
-    const page = options.page ?? state.page;
-    const limit = options.limit ?? state.limit;
+    const page = options.page ?? pageRef.current;
+    const limit = options.limit ?? limitRef.current;
 
-    dispatch({ type: "FETCH_START" });
+    if (!options.silent) {
+      dispatch({ type: "FETCH_START" });
+    }
 
     try {
       const queryParams = new URLSearchParams({
@@ -107,16 +116,35 @@ export const LedgerEntryProvider = ({ children }) => {
         payload: normalized,
       });
     } catch (error) {
-      dispatch({ type: "FETCH_ERROR", payload: error.message });
+      if (!options.silent) {
+        dispatch({ type: "FETCH_ERROR", payload: error.message });
+      }
     }
-  };
+  }, [user]);
+
+  const fetchLedgerEntriesRef = useRef(fetchLedgerEntries);
+  fetchLedgerEntriesRef.current = fetchLedgerEntries;
+
+  const parentMembershipId = getChitCompanyMembershipId(user);
+
+  useCollectorReceivablesStream({
+    enabled: Boolean(user?.results?.token && parentMembershipId),
+    token: user?.results?.token,
+    parentMembershipId,
+    onEvent: () => {
+      fetchLedgerEntriesRef.current?.(filtersRef.current, {
+        silent: true,
+        page: pageRef.current,
+        limit: limitRef.current,
+      });
+    },
+  });
 
   useEffect(() => {
     if (user?.results?.token) {
       fetchLedgerEntries(filtersRef.current, { page: state.page, limit: state.limit });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, state.page, state.limit]);
+  }, [user, state.page, state.limit, fetchLedgerEntries]);
 
   const addLedgerEntry = async (newEntry) => {
     if (!user?.results?.token) return { success: false, message: "User not authenticated" };

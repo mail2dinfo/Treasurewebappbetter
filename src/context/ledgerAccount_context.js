@@ -1,6 +1,8 @@
-import React, { createContext, useReducer, useContext, useEffect } from "react";
+import React, { createContext, useReducer, useContext, useEffect, useCallback, useRef } from "react";
 import { useUserContext } from "./user_context"; // Your user context hook
 import { API_BASE_URL, readApiResponse } from "../utils/apiConfig"; // Your API base URL config
+import { useCollectorReceivablesStream } from "../components/collector/useCollectorReceivablesStream";
+import { getChitCompanyMembershipId } from "../utils/chitMembership";
 
 const LedgerAccountContext = createContext();
 
@@ -48,16 +50,18 @@ export const LedgerAccountProvider = ({ children }) => {
 };
 
 
-  const fetchLedgerAccounts = async () => {
+  const fetchLedgerAccounts = useCallback(async (options = {}) => {
     if (!user?.results?.token) return { success: false };
 
-    const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+    const membershipId = getChitCompanyMembershipId(user);
     if (!membershipId) {
       dispatch({ type: "FETCH_ERROR", payload: "Membership ID not found" });
       return { success: false };
     }
 
-    dispatch({ type: "FETCH_START" });
+    if (!options.silent) {
+      dispatch({ type: "FETCH_START" });
+    }
     try {
       const res = await fetch(`${API_BASE_URL}/ledger/accounts/${membershipId}`, {
         headers: {
@@ -68,17 +72,32 @@ export const LedgerAccountProvider = ({ children }) => {
       dispatch({ type: "FETCH_SUCCESS", payload: data.results || [] });
       return { success: true, results: data.results || [] };
     } catch (error) {
-      dispatch({ type: "FETCH_ERROR", payload: error.message });
+      if (!options.silent) {
+        dispatch({ type: "FETCH_ERROR", payload: error.message });
+      }
       return { success: false, message: error.message };
     }
-  };
-  
+  }, [user]);
+
+  const fetchLedgerAccountsRef = useRef(fetchLedgerAccounts);
+  fetchLedgerAccountsRef.current = fetchLedgerAccounts;
+
+  const parentMembershipId = getChitCompanyMembershipId(user);
+
+  useCollectorReceivablesStream({
+    enabled: Boolean(user?.results?.token && parentMembershipId),
+    token: user?.results?.token,
+    parentMembershipId,
+    onEvent: () => {
+      fetchLedgerAccountsRef.current?.({ silent: true });
+    },
+  });
 
   useEffect(() => {
     if (user?.results?.token) {
       fetchLedgerAccounts();
     }
-  }, [user]);
+  }, [user, fetchLedgerAccounts]);
 
   const addLedgerAccount = async (newAccount) => {
     if (!user?.results?.token) return { success: false, message: "User not authenticated" };
