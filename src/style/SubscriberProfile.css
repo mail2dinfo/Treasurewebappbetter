@@ -357,8 +357,8 @@
 .card.metric-paid { border-left-color: #059669; }
 .card.metric-due { border-left-color: #dc2626; }
 
-/* ---------- Wishes ---------- */
-.wish-container {
+/* ---------- Receivables ---------- */
+.receivables-container {
   margin: 0;
   padding: 1.25rem 1.35rem;
   background: #fff;
@@ -367,41 +367,68 @@
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
-.wish-container > h2 {
+.receivables-container > h2 {
   margin: 0 0 1rem;
   font-size: 1.05rem;
   font-weight: 700;
   color: #111827;
 }
 
-.wish-card {
-  background: #f9fafb;
+.receivables-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.receivables-table-wrap {
+  overflow-x: auto;
   border: 1px solid #e5e7eb;
-  border-left: 4px solid #2563eb;
-  padding: 1rem 1.1rem;
-  margin-bottom: 0.75rem;
-  border-radius: 0.75rem;
+  border-radius: 10px;
 }
 
-.wish-card:last-child {
-  margin-bottom: 0;
-}
-
-.wish-card h3 {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.wish-card p {
-  margin: 0.25rem 0;
+.receivables-table {
+  width: 100%;
+  border-collapse: collapse;
   font-size: 0.875rem;
-  color: #4b5563;
 }
 
-.green-border {
-  border-left-color: #059669;
+.receivables-table th,
+.receivables-table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+  white-space: nowrap;
+}
+
+.receivables-table th:not(:first-child),
+.receivables-table td:not(:first-child) {
+  text-align: right;
+}
+
+.receivables-table thead th {
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.receivables-table .is-paid {
+  color: #047857;
+  font-weight: 600;
+}
+
+.receivables-table .is-due {
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+.receivables-table tfoot td {
+  font-weight: 700;
+  background: #111827;
+  color: #fff;
+  border-bottom: none;
 }
 
 /* ---------- Form fields ---------- */

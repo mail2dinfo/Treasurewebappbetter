@@ -26,6 +26,7 @@ const SubscriberProfile = () => {
   const location = useLocation();
   const [visibleSection, setVisibleSection] = useState("metrics");
   const [subscriberOutstanding, setSubscriberOutstanding] = useState(null);
+  const [subscriberGroupDues, setSubscriberGroupDues] = useState([]);
   const [inprogress, setInprogress] = useState(null);
   const [future, setFuture] = useState(null);
   const [closed, setClosed] = useState(null);
@@ -305,6 +306,12 @@ const SubscriberProfile = () => {
       if (data.results?.subscriberOutstandingResult?.length > 0) {
         setSubscriberOutstanding(data.results.subscriberOutstandingResult[0]);
       }
+
+      setSubscriberGroupDues(
+        Array.isArray(data.results?.subscriberGroupDueResult)
+          ? data.results.subscriberGroupDueResult
+          : []
+      );
 
       if (data.results?.subscriberInprogressGroupResult?.length > 0) {
         setInprogress(data.results.subscriberInprogressGroupResult[0].group_count);
@@ -1043,20 +1050,61 @@ const SubscriberProfile = () => {
               )}
             </div>
 
-            <div className="wish-container">
-              <h2>Customer wishes</h2>
-              <div className="wish-card">
-                <h3>₹1,00,000 Group</h3>
-                <p><strong>Start date:</strong> 01-July-2025</p>
-                <p><strong>Interest:</strong> Yes</p>
-                <p><strong>Comment:</strong> Looking for early auction options and lower commission.</p>
-              </div>
-              <div className="wish-card green-border">
-                <h3>₹2,00,000 Group</h3>
-                <p><strong>Start date:</strong> 15-July-2025</p>
-                <p><strong>Interest:</strong> Yes</p>
-                <p><strong>Comment:</strong> Prefer weekend bidding and digital participation.</p>
-              </div>
+            <div className="receivables-container">
+              <h2>Receivables</h2>
+              {subscriberGroupDues.filter((row) => Number(row.receivable_amount || 0) > 0).length === 0 ? (
+                <p className="receivables-empty">No receivables recorded for this subscriber yet.</p>
+              ) : (
+                <div className="receivables-table-wrap">
+                  <table className="receivables-table">
+                    <thead>
+                      <tr>
+                        <th>Group name</th>
+                        <th>Total</th>
+                        <th>Paid</th>
+                        <th>Due</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {subscriberGroupDues
+                        .filter((row) => Number(row.receivable_amount || 0) > 0)
+                        .map((row) => (
+                          <tr key={String(row.group_id || row.group_name)}>
+                            <td>{row.group_name || '—'}</td>
+                            <td>₹{Number(row.receivable_amount || 0).toLocaleString('en-IN')}</td>
+                            <td className="is-paid">₹{Number(row.received_amount || 0).toLocaleString('en-IN')}</td>
+                            <td className={Number(row.outstanding_due || 0) > 0 ? 'is-due' : ''}>
+                              ₹{Number(row.outstanding_due || 0).toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td>Total</td>
+                        <td>
+                          ₹{subscriberGroupDues
+                            .filter((row) => Number(row.receivable_amount || 0) > 0)
+                            .reduce((sum, row) => sum + Number(row.receivable_amount || 0), 0)
+                            .toLocaleString('en-IN')}
+                        </td>
+                        <td>
+                          ₹{subscriberGroupDues
+                            .filter((row) => Number(row.receivable_amount || 0) > 0)
+                            .reduce((sum, row) => sum + Number(row.received_amount || 0), 0)
+                            .toLocaleString('en-IN')}
+                        </td>
+                        <td>
+                          ₹{subscriberGroupDues
+                            .filter((row) => Number(row.receivable_amount || 0) > 0)
+                            .reduce((sum, row) => sum + Number(row.outstanding_due || 0), 0)
+                            .toLocaleString('en-IN')}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
             </div>
           </>
         )}
