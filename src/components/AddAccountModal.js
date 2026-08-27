@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useUserContext } from "../context/user_context";
+import { getChitCompanyMembershipId } from "../utils/chitMembership";
 import { useLedgerAccountContext } from "../context/ledgerAccount_context";
 import Alert from './Alert';
 import "../style/AddAccountModal.css";
@@ -56,7 +57,7 @@ const AddAccountModal = ({ onClose, onSuccess, account = null }) => {
       const accountData = {
         accountName: accountName.trim(),
         openingBalance: parseFloat(openingBalance),
-        membershipId: user?.results?.userAccounts[0]?.parent_membership_id,
+        membershipId: getChitCompanyMembershipId(user),
         created_at: new Date().toISOString(),
       };
 

@@ -13,6 +13,7 @@ import { AobProvider } from '../../context/aob_context';
 import { ReceivablesProvider } from '../../context/receivables_context';
 import { PayablesProvider } from '../../context/payables_context';
 import { LedgerAccountProvider } from '../../context/ledgerAccount_context';
+import { CompanyLiveEventsProvider } from '../../context/companyLiveEvents_context';
 import { LedgerEntryProvider } from '../../context/ledgerEntry_context';
 import { LedgerCategoryProvider } from '../../context/ledgerCategory_context';
 import { ProductProvider } from '../../context/product_context';
@@ -81,6 +82,7 @@ const ChitFundManagerLayout = () => {
                 <GroupDetailsProvider>
                     <CompanySubscriberProvider>
                         <DashboardProvider>
+                            <CompanyLiveEventsProvider>
                             <LedgerAccountProvider>
                                 <LedgerEntryProvider>
                                     <LedgerCategoryProvider>
@@ -177,6 +179,7 @@ const ChitFundManagerLayout = () => {
                                     </LedgerCategoryProvider>
                                 </LedgerEntryProvider>
                             </LedgerAccountProvider>
+                            </CompanyLiveEventsProvider>
                         </DashboardProvider>
                     </CompanySubscriberProvider>
                 </GroupDetailsProvider>

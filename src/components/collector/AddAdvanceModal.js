@@ -5,6 +5,7 @@ import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import { useCollectorGroups } from '../../context/CollectorGroupsContext';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { getChitCompanyMembershipId } from '../../utils/chitMembership';
 
 /**
  * AddAdvanceModal - Record advance payments from subscribers
@@ -168,8 +169,7 @@ const AddAdvanceModal = ({ isOpen, onClose }) => {
         }
 
         // Get parent membership ID
-        const parentMembershipId = user?.userAccounts?.[0]?.parent_membership_id ||
-            user?.results?.userAccounts?.[0]?.parent_membership_id;
+        const parentMembershipId = getChitCompanyMembershipId(user);
 
         if (!parentMembershipId) {
             toast.error('Parent membership ID not found');

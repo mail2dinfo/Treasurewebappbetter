@@ -197,7 +197,8 @@ export const CollectorProvider = ({ children }) => {
         toast.success('Logged out successfully');
     };
 
-    const fetchReceivables = useCallback(async () => {
+    const fetchReceivables = useCallback(async (options = {}) => {
+        const silent = Boolean(options.silent);
         const collectorId =
             state.user?.id ||
             state.user?.userId ||
@@ -205,12 +206,16 @@ export const CollectorProvider = ({ children }) => {
         const authToken = state.token || state.user?.token;
 
         if (!collectorId || !authToken) {
-            console.log('❌ Missing collector ID or token, cannot fetch receivables');
-            dispatch({ type: ACTIONS.SET_ERROR, payload: 'Missing collector ID or authentication token' });
+            if (!silent) {
+                console.log('❌ Missing collector ID or token, cannot fetch receivables');
+                dispatch({ type: ACTIONS.SET_ERROR, payload: 'Missing collector ID or authentication token' });
+            }
             return;
         }
 
-        dispatch({ type: ACTIONS.SET_FETCHING_RECEIVABLES, payload: true });
+        if (!silent) {
+            dispatch({ type: ACTIONS.SET_FETCHING_RECEIVABLES, payload: true });
+        }
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -248,8 +253,10 @@ export const CollectorProvider = ({ children }) => {
             const message = error.name === 'AbortError'
                 ? 'Request timed out. Please try again.'
                 : error.message;
-            dispatch({ type: ACTIONS.SET_ERROR, payload: message });
-            toast.error('Failed to fetch receivables');
+            if (!silent) {
+                dispatch({ type: ACTIONS.SET_ERROR, payload: message });
+                toast.error('Failed to fetch receivables');
+            }
         } finally {
             clearTimeout(timeoutId);
             dispatch({ type: ACTIONS.SET_FETCHING_RECEIVABLES, payload: false });
@@ -259,14 +266,27 @@ export const CollectorProvider = ({ children }) => {
     const fetchReceivablesRef = useRef(fetchReceivables);
     fetchReceivablesRef.current = fetchReceivables;
 
+    const liveListenersRef = useRef(new Set());
+    const subscribeLiveEvents = useCallback((fn) => {
+        liveListenersRef.current.add(fn);
+        return () => liveListenersRef.current.delete(fn);
+    }, []);
+
     const parentMembershipId = getChitCompanyMembershipId(state.user);
 
     useCollectorReceivablesStream({
-        enabled: state.isAuthenticated,
+        enabled: Boolean(state.isAuthenticated && state.token),
         token: state.token,
         parentMembershipId,
-        onEvent: () => {
-            fetchReceivablesRef.current?.();
+        onEvent: (data) => {
+            fetchReceivablesRef.current?.({ silent: true });
+            liveListenersRef.current.forEach((fn) => {
+                try {
+                    fn(data);
+                } catch (error) {
+                    console.error('collector live listener', error);
+                }
+            });
         },
     });
 
@@ -473,7 +493,8 @@ export const CollectorProvider = ({ children }) => {
         fetchAreaReceivables,
         getAreaSummary,
         getOverallSummary,
-        getReceivablesSummary
+        getReceivablesSummary,
+        subscribeLiveEvents,
     };
 
     return (
@@ -490,4 +511,15 @@ export const useCollector = () => {
         throw new Error('useCollector must be used within a CollectorProvider');
     }
     return context;
+};
+
+export const useCollectorLiveEvents = (onEvent, enabled = true) => {
+    const { subscribeLiveEvents } = useCollector();
+    const onEventRef = useRef(onEvent);
+    onEventRef.current = onEvent;
+
+    useEffect(() => {
+        if (!enabled || !subscribeLiveEvents) return undefined;
+        return subscribeLiveEvents((data) => onEventRef.current?.(data));
+    }, [subscribeLiveEvents, enabled]);
 };

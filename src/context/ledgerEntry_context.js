@@ -1,8 +1,8 @@
 import React, { createContext, useReducer, useContext, useEffect, useRef, useCallback } from "react";
 import { useUserContext } from "./user_context";
 import { API_BASE_URL } from "../utils/apiConfig";
-import { useCollectorReceivablesStream } from "../components/collector/useCollectorReceivablesStream";
 import { getChitCompanyMembershipId } from "../utils/chitMembership";
+import { useCompanyLiveEvents } from "./companyLiveEvents_context";
 
 const LedgerEntryContext = createContext();
 
@@ -69,6 +69,8 @@ export const LedgerEntryProvider = ({ children }) => {
   pageRef.current = state.page;
   limitRef.current = state.limit;
 
+  const fetchGenRef = useRef(0);
+
   const fetchLedgerEntries = useCallback(async (filters = filtersRef.current, options = {}) => {
     if (!user?.results?.token) return;
 
@@ -83,6 +85,7 @@ export const LedgerEntryProvider = ({ children }) => {
 
     const page = options.page ?? pageRef.current;
     const limit = options.limit ?? limitRef.current;
+    const gen = ++fetchGenRef.current;
 
     if (!options.silent) {
       dispatch({ type: "FETCH_START" });
@@ -109,6 +112,7 @@ export const LedgerEntryProvider = ({ children }) => {
 
       if (!res.ok) throw new Error("Failed to fetch ledger entries");
       const data = await res.json();
+      if (gen !== fetchGenRef.current) return;
       const normalized = normalizeEntriesPayload(data);
 
       dispatch({
@@ -116,6 +120,7 @@ export const LedgerEntryProvider = ({ children }) => {
         payload: normalized,
       });
     } catch (error) {
+      if (gen !== fetchGenRef.current) return;
       if (!options.silent) {
         dispatch({ type: "FETCH_ERROR", payload: error.message });
       }
@@ -125,20 +130,13 @@ export const LedgerEntryProvider = ({ children }) => {
   const fetchLedgerEntriesRef = useRef(fetchLedgerEntries);
   fetchLedgerEntriesRef.current = fetchLedgerEntries;
 
-  const parentMembershipId = getChitCompanyMembershipId(user);
-
-  useCollectorReceivablesStream({
-    enabled: Boolean(user?.results?.token && parentMembershipId),
-    token: user?.results?.token,
-    parentMembershipId,
-    onEvent: () => {
-      fetchLedgerEntriesRef.current?.(filtersRef.current, {
-        silent: true,
-        page: pageRef.current,
-        limit: limitRef.current,
-      });
-    },
-  });
+  useCompanyLiveEvents(() => {
+    fetchLedgerEntriesRef.current?.(filtersRef.current, {
+      silent: true,
+      page: pageRef.current,
+      limit: limitRef.current,
+    });
+  }, Boolean(user?.results?.token));
 
   useEffect(() => {
     if (user?.results?.token) {

@@ -1,8 +1,8 @@
 import React, { createContext, useReducer, useContext, useEffect, useCallback, useRef } from "react";
 import { useUserContext } from "./user_context"; // Your user context hook
 import { API_BASE_URL, readApiResponse } from "../utils/apiConfig"; // Your API base URL config
-import { useCollectorReceivablesStream } from "../components/collector/useCollectorReceivablesStream";
 import { getChitCompanyMembershipId } from "../utils/chitMembership";
+import { useCompanyLiveEvents } from "./companyLiveEvents_context";
 
 const LedgerAccountContext = createContext();
 
@@ -82,16 +82,9 @@ export const LedgerAccountProvider = ({ children }) => {
   const fetchLedgerAccountsRef = useRef(fetchLedgerAccounts);
   fetchLedgerAccountsRef.current = fetchLedgerAccounts;
 
-  const parentMembershipId = getChitCompanyMembershipId(user);
-
-  useCollectorReceivablesStream({
-    enabled: Boolean(user?.results?.token && parentMembershipId),
-    token: user?.results?.token,
-    parentMembershipId,
-    onEvent: () => {
-      fetchLedgerAccountsRef.current?.({ silent: true });
-    },
-  });
+  useCompanyLiveEvents(() => {
+    fetchLedgerAccountsRef.current?.({ silent: true });
+  }, Boolean(user?.results?.token));
 
   useEffect(() => {
     if (user?.results?.token) {

@@ -1,8 +1,8 @@
 import React, { createContext, useReducer, useContext, useEffect, useCallback, useRef } from "react";
 import { useUserContext } from "./user_context";
 import { API_BASE_URL } from "../utils/apiConfig";
-import { useCollectorReceivablesStream } from "../components/collector/useCollectorReceivablesStream";
 import { getChitCompanyMembershipId } from "../utils/chitMembership";
+import { useCompanyLiveEvents } from "./companyLiveEvents_context";
 
 const ReceivablesContext = createContext();
 
@@ -60,16 +60,9 @@ export const ReceivablesProvider = ({ children }) => {
   const fetchReceivablesRef = useRef(fetchReceivables);
   fetchReceivablesRef.current = fetchReceivables;
 
-  const parentMembershipId = getChitCompanyMembershipId(user);
-
-  useCollectorReceivablesStream({
-    enabled: Boolean(user?.results?.token && parentMembershipId),
-    token: user?.results?.token,
-    parentMembershipId,
-    onEvent: () => {
-      fetchReceivablesRef.current?.({ silent: true });
-    },
-  });
+  useCompanyLiveEvents(() => {
+    fetchReceivablesRef.current?.({ silent: true });
+  }, Boolean(user?.results?.token));
 
   useEffect(() => {
     if (user?.results?.token) {

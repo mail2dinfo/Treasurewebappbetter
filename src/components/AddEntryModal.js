@@ -3,6 +3,7 @@ import { useLedgerEntryContext } from "../context/ledgerEntry_context";
 import { useLedgerAccountContext } from "../context/ledgerAccount_context";
 import { useLedgerCategoryContext } from "../context/ledgerCategory_context";
 import { useUserContext } from "../context/user_context";
+import { getChitCompanyMembershipId } from "../utils/chitMembership";
 import Alert from '../components/Alert';
 import { useGroupsDetailsContext } from "../context/groups_context";
 
@@ -115,7 +116,7 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
 
           return {
             ...formData,
-            membershipId: user?.results?.userAccounts?.[0]?.parent_membership_id || "",
+            membershipId: getChitCompanyMembershipId(user) || "",
             groupId: selectedGroupId,
             subscriberId: subscriber?.subscriber_id || null,  // ✅ Keep subscriber_id for person identification
             groupSubscriberId: groupSubscriberId,  // ✅ Added: unique group subscriber ID for chit identification
@@ -132,7 +133,7 @@ const AddEntryModal = ({ onClose, customersByGroup = {}, accounts = [] }) => {
       // For non-Groups, single entry
       const payload = {
         ...formData,
-        membershipId: user?.results?.userAccounts?.[0]?.parent_membership_id || "",
+        membershipId: getChitCompanyMembershipId(user) || "",
         groupId: null,
         subscriberId: null,
         subscriberName: "",

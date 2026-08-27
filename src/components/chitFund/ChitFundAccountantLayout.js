@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 // Chit Fund Accountant Contexts (Financial access only)
 import { SubscriberProvider } from '../../context/subscriber/SubscriberContext';
 import { LedgerAccountProvider } from '../../context/ledgerAccount_context';
+import { CompanyLiveEventsProvider } from '../../context/companyLiveEvents_context';
 import { LedgerEntryProvider } from '../../context/ledgerEntry_context';
 import { LedgerCategoryProvider } from '../../context/ledgerCategory_context';
 import { ReceivablesProvider } from '../../context/receivables_context';
@@ -25,6 +26,7 @@ import Payables from '../../pages/Payables';
 const ChitFundAccountantLayout = () => {
     return (
         <SubscriberProvider>
+            <CompanyLiveEventsProvider>
             <LedgerAccountProvider>
                 <LedgerEntryProvider>
                     <LedgerCategoryProvider>
@@ -64,6 +66,7 @@ const ChitFundAccountantLayout = () => {
                     </LedgerCategoryProvider>
                 </LedgerEntryProvider>
             </LedgerAccountProvider>
+            </CompanyLiveEventsProvider>
         </SubscriberProvider>
     );
 };

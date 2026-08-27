@@ -1,8 +1,7 @@
 import React, { createContext, useReducer, useContext, useCallback, useRef } from 'react';
-import { useCollector } from './CollectorProvider';
+import { useCollector, useCollectorLiveEvents } from './CollectorProvider';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { toast } from 'react-toastify';
-import { useCollectorReceivablesStream } from '../components/collector/useCollectorReceivablesStream';
 import { getChitCompanyMembershipId } from '../utils/chitMembership';
 
 const CollectorLedgerContext = createContext();
@@ -86,7 +85,8 @@ export const CollectorLedgerProvider = ({ children }) => {
         const collectorAccount = accounts.find(
             (account) => account.accountName?.toLowerCase().includes('collector')
         );
-        return collectorAccount?.parent_membership_id
+        return getChitCompanyMembershipId(user)
+            || collectorAccount?.parent_membership_id
             || accounts.find((account) => account.parent_membership_id)?.parent_membership_id
             || accounts[0]?.parent_membership_id
             || null;
@@ -254,18 +254,10 @@ export const CollectorLedgerProvider = ({ children }) => {
     const fetchLedgerAccountsRef = useRef(fetchLedgerAccounts);
     fetchLedgerAccountsRef.current = fetchLedgerAccounts;
 
-    const parentMembershipId = getChitCompanyMembershipId(user) || getMembershipId();
-    const collectorToken = user?.token || user?.results?.token;
-
-    useCollectorReceivablesStream({
-        enabled: Boolean(collectorToken && parentMembershipId),
-        token: collectorToken,
-        parentMembershipId,
-        onEvent: () => {
-            fetchLedgerAccountsRef.current?.({ silent: true });
-            fetchLedgerEntriesRef.current?.({}, { silent: true });
-        },
-    });
+    useCollectorLiveEvents(() => {
+        fetchLedgerAccountsRef.current?.({ silent: true });
+        fetchLedgerEntriesRef.current?.({}, { silent: true });
+    }, Boolean(user));
 
     // Add ledger entry (for recording new advance payments)
     const addLedgerEntry = useCallback(async (entry) => {
