@@ -80,7 +80,7 @@ const LedgerTable = ({ entries: propEntries }) => {
           value={limit}
           onChange={(e) => setLimit(Number(e.target.value))}
         >
-          {[10, 20, 50].map((n) => (
+          {[10, 20, 50, 1000].map((n) => (
             <option key={n} value={n}>
               {n} per page
             </option>

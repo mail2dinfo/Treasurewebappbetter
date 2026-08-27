@@ -253,7 +253,11 @@ const LedgerPage = () => {
             </div>
           </div>
           <div className="ledger-panel-filters">
-            <FilterBar filters={filters} setFilters={setFilters} categories={categories} />
+            <FilterBar
+              filters={filters}
+              setFilters={setFilters}
+              categories={categories}
+            />
           </div>
           <div className="ledger-panel-body">
             <LedgerTable entries={entries} />

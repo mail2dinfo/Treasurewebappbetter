@@ -77,6 +77,100 @@
   background: #f9fafb;
 }
 
+.filter-item-category {
+  position: relative;
+}
+
+.filter-category-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.7rem;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.filter-others-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  padding: 1rem;
+}
+
+.filter-others-popup {
+  width: 100%;
+  max-width: 360px;
+  background: #fff;
+  border-radius: 14px;
+  padding: 1rem;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
+}
+
+.filter-others-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.filter-others-popup input {
+  width: 100%;
+  height: 42px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.filter-others-popup input:focus {
+  outline: none;
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.filter-others-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.filter-others-cancel,
+.filter-others-apply {
+  flex: 1;
+  height: 38px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: none;
+}
+
+.filter-others-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.filter-others-apply {
+  background: #dc2626;
+  color: #fff;
+}
+
+.filter-others-apply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 1023px) {
   .filter-bar {
     display: grid;

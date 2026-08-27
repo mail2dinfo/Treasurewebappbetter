@@ -53,6 +53,7 @@ const SECTION_META = {
 function AdminSettings() {
     const [selectedMenu, setSelectedMenu] = useState('areaofbusiness');
     const isEmployeesMenu = selectedMenu === 'employees';
+    const isWidePanel = isEmployeesMenu || selectedMenu === 'managegroups';
     const meta = SECTION_META[selectedMenu] || {
         title: 'Admin Settings',
         subtitle: 'Manage your Chit Fund administration',
@@ -112,7 +113,7 @@ function AdminSettings() {
                     </div>
                 </header>
 
-                <div className={`grid grid-cols-1 gap-4 lg:gap-5 ${isEmployeesMenu ? 'lg:grid-cols-[16rem_minmax(0,1fr)]' : 'lg:grid-cols-[16rem_minmax(0,48rem)]'}`}>
+                <div className={`grid grid-cols-1 gap-4 lg:gap-5 ${isWidePanel ? 'lg:grid-cols-[16rem_minmax(0,1fr)]' : 'lg:grid-cols-[16rem_minmax(0,48rem)]'}`}>
                     <aside className="lg:sticky lg:top-20 self-start">
                         <div className="rounded-2xl border border-gray-200 bg-white p-3 sm:p-4 shadow-sm">
                             <Menu onSelect={setSelectedMenu} selectedMenu={selectedMenu} />

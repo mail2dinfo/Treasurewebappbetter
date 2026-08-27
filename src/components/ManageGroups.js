@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useGroupsDetailsContext } from '../context/groups_context';
 import { toast, ToastContainer } from 'react-toastify';
-import { FiTrash2, FiAlertTriangle, FiLoader, FiSearch, FiFilter, FiX } from 'react-icons/fi';
+import { FiTrash2, FiAlertTriangle, FiLoader, FiSearch, FiFilter, FiX, FiGrid, FiList } from 'react-icons/fi';
 import 'react-toastify/dist/ReactToastify.css';
 
 const ManageGroups = () => {
@@ -17,6 +17,7 @@ const ManageGroups = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [amountFilter, setAmountFilter] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+    const [viewMode, setViewMode] = useState('list');
 
     // Filter groups based on search term and amount
     const filteredGroups = useMemo(() => {
@@ -136,7 +137,27 @@ const ManageGroups = () => {
                     </div>
 
                     {/* Filter Controls */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div className="inline-flex rounded-xl border border-gray-200 overflow-hidden bg-white">
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('list')}
+                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold ${
+                                    viewMode === 'list' ? 'bg-red-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                                }`}
+                            >
+                                <FiList className="h-4 w-4" /> List
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('grid')}
+                                className={`inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold border-l border-gray-200 ${
+                                    viewMode === 'grid' ? 'bg-red-600 text-white' : 'text-gray-600 hover:bg-gray-50'
+                                }`}
+                            >
+                                <FiGrid className="h-4 w-4" /> Grid
+                            </button>
+                        </div>
                         <button
                             onClick={() => setShowFilters(!showFilters)}
                             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
@@ -219,15 +240,26 @@ const ManageGroups = () => {
                     )}
                 </div>
             ) : (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div
+                    className={
+                        viewMode === 'grid'
+                            ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
+                            : 'flex flex-col gap-3'
+                    }
+                >
                     {filteredGroups.map((group) => (
-                        <div key={group.id} className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200">
-                            <div className="p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 truncate">
+                        <div
+                            key={group.id}
+                            className={`bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow ${
+                                viewMode === 'list' ? 'flex flex-col sm:flex-row sm:items-center gap-4 p-4' : 'p-5'
+                            }`}
+                        >
+                            <div className={`min-w-0 ${viewMode === 'list' ? 'flex-1' : ''}`}>
+                                <div className="flex justify-between items-start gap-3 mb-3">
+                                    <h3 className="text-base font-semibold text-gray-900 truncate">
                                         {group.group_name || 'Unnamed Group'}
                                     </h3>
-                                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${group.groupProgress === 'FUTURE'
+                                    <span className={`shrink-0 px-2 py-1 text-xs font-medium rounded-full ${group.groupProgress === 'FUTURE'
                                         ? 'bg-blue-100 text-blue-800'
                                         : group.groupProgress === 'ACTIVE'
                                             ? 'bg-green-100 text-green-800'
@@ -237,58 +269,63 @@ const ManageGroups = () => {
                                     </span>
                                 </div>
 
-                                <div className="space-y-3 mb-4">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-500">Amount:</span>
-                                        <span className="text-sm font-medium text-gray-900">
+                                <div className={viewMode === 'list'
+                                    ? 'grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2'
+                                    : 'space-y-2'}
+                                >
+                                    <div className="flex justify-between sm:block">
+                                        <span className="text-xs text-gray-500">Amount</span>
+                                        <p className="text-sm font-medium text-gray-900">
                                             {formatCurrency(group.amount || 0)}
-                                        </span>
+                                        </p>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-500">Type:</span>
-                                        <span className="text-sm font-medium text-gray-900">
+                                    <div className="flex justify-between sm:block">
+                                        <span className="text-xs text-gray-500">Type</span>
+                                        <p className="text-sm font-medium text-gray-900">
                                             {group.type || 'N/A'}
-                                        </span>
+                                        </p>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-500">Tenure:</span>
-                                        <span className="text-sm font-medium text-gray-900">
+                                    <div className="flex justify-between sm:block">
+                                        <span className="text-xs text-gray-500">Tenure</span>
+                                        <p className="text-sm font-medium text-gray-900">
                                             {group.tenure || 0} months
-                                        </span>
+                                        </p>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-500">Members:</span>
-                                        <span className="text-sm font-medium text-gray-900">
+                                    <div className="flex justify-between sm:block">
+                                        <span className="text-xs text-gray-500">Members</span>
+                                        <p className="text-sm font-medium text-gray-900">
                                             {group.totalMembers || 0}
-                                        </span>
+                                        </p>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-gray-500">Auction Date:</span>
-                                        <span className="text-sm font-medium text-gray-900">
-                                            {group.auctDate ? formatDate(group.auctDate) : 'N/A'}
-                                        </span>
-                                    </div>
+                                    {viewMode === 'grid' && (
+                                        <div className="flex justify-between">
+                                            <span className="text-xs text-gray-500">Auction date</span>
+                                            <span className="text-sm font-medium text-gray-900">
+                                                {group.auctDate ? formatDate(group.auctDate) : 'N/A'}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
+                            </div>
 
-                                <div className="pt-4 border-t border-gray-200">
-                                    <button
-                                        onClick={() => handleDeleteClick(group)}
-                                        disabled={deletingGroupId === group.id}
-                                        className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                                    >
-                                        {deletingGroupId === group.id ? (
-                                            <>
-                                                <FiLoader className="animate-spin h-4 w-4 mr-2" />
-                                                Deleting...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FiTrash2 className="h-4 w-4 mr-2" />
-                                                Delete Group
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
+                            <div className={viewMode === 'list' ? 'sm:w-40 flex-shrink-0' : 'pt-4 mt-4 border-t border-gray-200'}>
+                                <button
+                                    onClick={() => handleDeleteClick(group)}
+                                    disabled={deletingGroupId === group.id}
+                                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {deletingGroupId === group.id ? (
+                                        <>
+                                            <FiLoader className="animate-spin h-4 w-4 mr-2" />
+                                            Deleting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FiTrash2 className="h-4 w-4 mr-2" />
+                                            Delete Group
+                                        </>
+                                    )}
+                                </button>
                             </div>
                         </div>
                     ))}

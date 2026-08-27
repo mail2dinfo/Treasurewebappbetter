@@ -1182,9 +1182,7 @@ const PlatformEmployeesPage = ({
     const [viewEmployee, setViewEmployee] = useState(null);
     const [offerLetterData, setOfferLetterData] = useState(null);
     const [offerLetterLoading, setOfferLetterLoading] = useState(false);
-    const [viewMode, setViewMode] = useState(
-        () => localStorage.getItem('chit_employee_view') || 'grid'
-    );
+    const [viewMode, setViewMode] = useState('list');
     // App sections on the list page: undefined/true = expanded, false = collapsed.
     const [expandedListApps, setExpandedListApps] = useState({});
     // App sections in Step 3 role/permission editor.
@@ -2214,18 +2212,6 @@ const PlatformEmployeesPage = ({
                             <div className="inline-flex bg-gray-100 rounded-lg p-1" role="group" aria-label="Change employee view">
                                 <button
                                     type="button"
-                                    onClick={() => changeViewMode('grid')}
-                                    aria-pressed={viewMode === 'grid'}
-                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                                        viewMode === 'grid'
-                                            ? 'bg-white text-[#d62828] shadow-sm'
-                                            : `${textMuted} hover:text-[#333]`
-                                    }`}
-                                >
-                                    <FiGrid /> Grid
-                                </button>
-                                <button
-                                    type="button"
                                     onClick={() => changeViewMode('list')}
                                     aria-pressed={viewMode === 'list'}
                                     className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
@@ -2235,6 +2221,18 @@ const PlatformEmployeesPage = ({
                                     }`}
                                 >
                                     <FiList /> List
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => changeViewMode('grid')}
+                                    aria-pressed={viewMode === 'grid'}
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                                        viewMode === 'grid'
+                                            ? 'bg-white text-[#d62828] shadow-sm'
+                                            : `${textMuted} hover:text-[#333]`
+                                    }`}
+                                >
+                                    <FiGrid /> Grid
                                 </button>
                             </div>
                         </div>
