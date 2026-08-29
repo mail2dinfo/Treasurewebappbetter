@@ -78,7 +78,7 @@ const Groups = ({ data, groupId, onRefresh }) => {
           groupTransactionInfo={groupTransactionInfo}
           type={type}
           groupId={groupId || data?.results?.groupId}
-          allowClearLastCompleted={String(type || '').toUpperCase() === 'FIXED'}
+          allowClearLastCompleted={String(type || '').trim().toUpperCase() === 'FIXED'}
           onRefresh={onRefresh}
         />
       </div>

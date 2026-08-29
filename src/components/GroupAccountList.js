@@ -110,7 +110,7 @@ const GroupAccountList = ({
                         <DollarSign size={16} />
                         <span>Bid</span>
                     </div>
-                    {showActionCol && <div className="text-center text-xs">Del</div>}
+                    {showActionCol && <div className="text-center text-xs min-w-[44px]">Del</div>}
                 </div>
             </div>
             <div className="bg-white border border-gray-200 rounded-b-lg">
@@ -210,7 +210,7 @@ const GroupAccountList = ({
                             <Wallet size={16} />
                             <span>Due</span>
                         </div>
-                        {showActionCol && <div className="text-center text-xs">Del</div>}
+                        {showActionCol && <div className="text-center text-xs min-w-[44px]">Del</div>}
                     </div>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-b-lg">
@@ -306,7 +306,7 @@ const GroupAccountList = ({
                             <Wallet size={16} />
                             <span>Due</span>
                         </div>
-                        {showActionCol && <div className="text-center text-xs">Del</div>}
+                        {showActionCol && <div className="text-center text-xs min-w-[44px]">Del</div>}
                     </div>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-b-lg">

@@ -177,6 +177,25 @@ const DeleteGroupAccountModal = ({
   );
 };
 
+const getLastCompletedItem = (items = []) => {
+  const completed = (items || []).filter(
+    (item) => String(item?.auctionStatus || '').toLowerCase() === 'completed'
+  );
+  if (!completed.length) return null;
+  let last = completed[0];
+  completed.forEach((item) => {
+    const lastSno = Number(last?.sno ?? -1);
+    const itemSno = Number(item?.sno ?? -1);
+    if (itemSno > lastSno) last = item;
+    else if (itemSno === lastSno) {
+      const lastDate = new Date(last?.auctionDate || 0).getTime();
+      const itemDate = new Date(item?.auctionDate || 0).getTime();
+      if (itemDate >= lastDate) last = item;
+    }
+  });
+  return last;
+};
+
 const GroupsAccounts = ({
   groupTransactionInfo,
   type,
@@ -187,6 +206,7 @@ const GroupsAccounts = ({
 }) => {
   const { user } = useUserContext();
   const isClearMode = Boolean(allowClearLastCompleted);
+  const lastCompleted = getLastCompletedItem(groupTransactionInfo);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -303,10 +323,23 @@ const GroupsAccounts = ({
           </p>
         )}
         {isClearMode && groupTransactionInfo?.length > 0 && (
-          <p className="text-xs text-gray-500 mb-3">
-            Trash is only on the last completed auction (green date). The group account stays; money
-            records are removed. After that, trash moves to the previous completed auction.
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <p className="text-xs text-gray-500">
+              {lastCompleted
+                ? `Trash is on the last completed auction (S.No ${lastCompleted.sno ?? '—'}, green date) — not the last month in the list. Scroll the table right if the icon is hidden.`
+                : 'No completed auction yet, so there is nothing to clear.'}
+            </p>
+            {lastCompleted && (
+              <button
+                type="button"
+                onClick={() => openDeleteAccount(lastCompleted)}
+                className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg shrink-0"
+              >
+                <FiTrash2 className="w-4 h-4" />
+                Clear S.No {lastCompleted.sno ?? '—'}
+              </button>
+            )}
+          </div>
         )}
         {groupTransactionInfo?.length > 0 ? (
           <div className="space-y-4">
