@@ -59,10 +59,10 @@ const DeleteGroupAccountModal = ({
                     <>
                       <p className="font-semibold">Last completed auction only</p>
                       <p className="mt-1 text-amber-800">
-                        The group account (S.No <strong>{account.sno ?? '—'}</strong>,{' '}
-                        <strong>{formatDate(account.auct_date)}</strong>) will stay. Only receipts,
-                        receivables, payments, payables, earned premium, and ledger for this auction
-                        will be removed.
+                        The group account row (S.No <strong>{account.sno ?? '—'}</strong>,{' '}
+                        <strong>{formatDate(account.auct_date)}</strong>) stays. This auction will
+                        no longer show as completed (green). Receipts, receivables, payments,
+                        payables, earned premium, ledger, and bids for this auction are removed.
                       </p>
                     </>
                   ) : (
