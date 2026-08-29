@@ -1,4 +1,4 @@
-import { getPlanCatalogPrice } from './billingPlans';
+import { getLivePlanPrice } from './billingPlans';
 
 const GRACE_PERIOD_DAYS = 20;
 const CYCLE_UNPAID_EXPIRE_WARNING_DAYS = 5;
@@ -190,15 +190,17 @@ export const getDismissStorageKey = (membershipId, totalDue, cycleCount, isExpir
     return `billingOverdueDismissed_${membershipId}_${totalDue}_${cycleCount}_${isExpiring ? 'expire' : 'pending'}`;
 };
 
-export const getNavBillingBadge = (subscription, payments) => {
+export const getNavBillingBadge = (subscription, payments, availablePlans = []) => {
     if (!subscription) {
         return { status: 'unknown', message: '', color: 'gray', daysLeft: 0 };
     }
 
     const planName = subscription.plan_name || subscription.plan_id || 'Plan';
-    const planAmount = getPlanCatalogPrice(subscription.plan_id || subscription.plan_name)
-        ?? parseFloat(subscription.amount)
-        ?? 0;
+    const planAmount = getLivePlanPrice(
+        subscription.plan_id || subscription.plan_name,
+        availablePlans,
+        subscription.amount
+    );
     const summary = getBillingPaymentSummary(subscription, payments);
 
     if (summary.isPlanAboutToExpire) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useBilling } from '../context/billing_context';
 import { useUserContext } from '../context/user_context';
 import { MANUAL_CRON_ENABLED } from '../utils/apiConfig';
-import { getPlanCatalogPrice } from '../utils/billingPlans';
+import { getLivePlanPrice } from '../utils/billingPlans';
 import {
     formatBillingAmount,
     getBillingPaymentSummary,
@@ -413,11 +413,14 @@ const MyBillingPage = () => {
 
     const getCurrentPlan = () => {
         if (subscription) {
-            const catalogPrice = getPlanCatalogPrice(subscription.plan_id || subscription.plan_name);
             return {
                 id: subscription.id,
                 name: subscription.plan_name || subscription.plan_id || 'VeryBasic Plan',
-                price: catalogPrice ?? subscription.amount ?? 100
+                price: getLivePlanPrice(
+                    subscription.plan_id || subscription.plan_name,
+                    availablePlans,
+                    subscription.amount
+                ),
             };
         }
         return null;
@@ -425,7 +428,11 @@ const MyBillingPage = () => {
 
     const getDisplaySubscriptionAmount = () => {
         if (!subscription) return 0;
-        return getPlanCatalogPrice(subscription.plan_id || subscription.plan_name) ?? subscription.amount ?? 0;
+        return getLivePlanPrice(
+            subscription.plan_id || subscription.plan_name,
+            availablePlans,
+            subscription.amount
+        );
     };
 
     const handleTriggerBillingCycle = async () => {

@@ -45,9 +45,9 @@ const MODULE_ICONS = {
 const Sidebar = () => {
   const location = useLocation();
   const { isLoggedIn, isSidebarOpen, closeSidebar } = useUserContext();
-  const { subscription, payments, billingPath } = useBilling();
+  const { subscription, payments, billingPath, availablePlans } = useBilling();
 
-  const billingBadge = getNavBillingBadge(subscription, payments);
+  const billingBadge = getNavBillingBadge(subscription, payments, availablePlans);
   const isAdminShell = (location.pathname || '').startsWith('/chit-fund/admin');
   const basePath = isAdminShell
     ? '/chit-fund/admin'

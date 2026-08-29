@@ -42,8 +42,8 @@ const capitalizeName = (value) => {
 
 const BillingNavButton = ({ billingPath }) => {
   const history = useHistory();
-  const { subscription, payments } = useBilling();
-  const badge = getNavBillingBadge(subscription, payments);
+  const { subscription, payments, availablePlans } = useBilling();
+  const badge = getNavBillingBadge(subscription, payments, availablePlans);
   if (!billingPath) return null;
   return (
     <button type="button" onClick={() => history.push(billingPath)} className={`${navButtonClass} relative`}>

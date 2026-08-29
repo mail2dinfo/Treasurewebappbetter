@@ -22,8 +22,8 @@ const navLinkClass =
 
 const Nav = () => {
   const { isLoggedIn, openSidebar } = useUserContext();
-  const { subscription, payments, billingPath } = useBilling();
-  const billingBadge = getNavBillingBadge(subscription, payments);
+  const { subscription, payments, billingPath, availablePlans } = useBilling();
+  const billingBadge = getNavBillingBadge(subscription, payments, availablePlans);
 
   const getIconForLink = (text) => {
     switch (text.toLowerCase()) {

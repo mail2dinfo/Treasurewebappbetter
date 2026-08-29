@@ -56,6 +56,23 @@ export const getPlanCatalogPrice = (planIdOrName) => {
     return catalogById[key]?.price ?? null;
 };
 
+/** Prefer Super Admin / API monthly fee for this app; then subscription snapshot; then local catalog. */
+export const getLivePlanPrice = (planIdOrName, availablePlans = [], fallbackAmount) => {
+    const key = String(planIdOrName || '').replace(/\s+plan$/i, '').trim();
+    const live = (availablePlans || []).find((plan) => {
+        const id = String(plan.id || '').replace(/\s+plan$/i, '').trim();
+        const name = String(plan.name || '').replace(/\s+plan$/i, '').trim();
+        return id === key || name === key;
+    });
+    const livePrice = live?.price != null ? Number(live.price) : NaN;
+    if (Number.isFinite(livePrice)) return livePrice;
+
+    const snapshot = fallbackAmount != null && fallbackAmount !== '' ? Number(fallbackAmount) : NaN;
+    if (Number.isFinite(snapshot)) return snapshot;
+
+    return getPlanCatalogPrice(planIdOrName) ?? 0;
+};
+
 export const mergePlansWithCatalog = (apiPlans = []) => {
     const source = apiPlans.length > 0 ? apiPlans : BILLING_PLANS;
 
