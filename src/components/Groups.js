@@ -8,7 +8,7 @@ import { FiDownload } from 'react-icons/fi';
 import GroupAccountsPdf from '../components/PDF/GroupAccountsPdf';
 import { useUserContext } from '../context/user_context';
 
-const Groups = ({ data }) => {
+const Groups = ({ data, groupId, onRefresh }) => {
   const { user } = useUserContext();
   //start of PDF generation code
   const userCompany = user?.results?.userCompany;
@@ -74,7 +74,13 @@ const Groups = ({ data }) => {
             }
           </PDFDownloadLink>
         </div>
-        <GroupsAccounts groupTransactionInfo={groupTransactionInfo} type={type} />
+        <GroupsAccounts
+          groupTransactionInfo={groupTransactionInfo}
+          type={type}
+          groupId={groupId || data?.results?.groupId}
+          allowClearLastCompleted={String(type || '').toUpperCase() === 'FIXED'}
+          onRefresh={onRefresh}
+        />
       </div>
       <GroupDetailsCard groups={groups}
         yourdue={yourdue}

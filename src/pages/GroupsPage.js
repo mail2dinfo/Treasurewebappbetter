@@ -175,7 +175,7 @@ const GroupsPage = () => {
             {hasData ? (
                 <>
                     <UserInfo data={data} />
-                    <Groups data={data} />
+                    <Groups data={data} groupId={groupId} onRefresh={() => fetchGroups(groupId)} />
                     <GroupSubscriber data={data} />
                 </>
             ) : (

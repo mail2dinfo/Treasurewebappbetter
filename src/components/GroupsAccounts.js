@@ -19,11 +19,13 @@ const DeleteGroupAccountModal = ({
   loadingPreview,
   deleting,
   onConfirm,
+  mode = 'delete',
 }) => {
   if (!open) return null;
 
   const will = preview?.will_delete || {};
   const account = preview?.group_account || {};
+  const isClear = mode === 'clear';
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
@@ -31,7 +33,7 @@ const DeleteGroupAccountModal = ({
         <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <FiTrash2 className="w-5 h-5" />
-            Delete Group Account
+            {isClear ? 'Clear transactions' : 'Delete Group Account'}
           </h2>
           <button
             type="button"
@@ -53,12 +55,26 @@ const DeleteGroupAccountModal = ({
               <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 <FiAlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold">Only the last S.No can be deleted</p>
-                  <p className="mt-1 text-amber-800">
-                    Deleting from the end keeps S.No continuous. You are deleting S.No{' '}
-                    <strong>{account.sno ?? '—'}</strong> dated{' '}
-                    <strong>{formatDate(account.auct_date)}</strong>.
-                  </p>
+                  {isClear ? (
+                    <>
+                      <p className="font-semibold">Last completed auction only</p>
+                      <p className="mt-1 text-amber-800">
+                        The group account (S.No <strong>{account.sno ?? '—'}</strong>,{' '}
+                        <strong>{formatDate(account.auct_date)}</strong>) will stay. Only receipts,
+                        receivables, payments, payables, earned premium, and ledger for this auction
+                        will be removed.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-semibold">Only the last S.No can be deleted</p>
+                      <p className="mt-1 text-amber-800">
+                        Deleting from the end keeps S.No continuous. You are deleting S.No{' '}
+                        <strong>{account.sno ?? '—'}</strong> dated{' '}
+                        <strong>{formatDate(account.auct_date)}</strong>.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -67,10 +83,12 @@ const DeleteGroupAccountModal = ({
                   Records that will be deleted
                 </h3>
                 <ul className="text-sm border border-gray-200 rounded-lg divide-y divide-gray-100">
+                  {!isClear && (
                   <li className="flex justify-between px-3 py-2">
                     <span>Group accounts</span>
                     <span className="font-semibold">{will.group_accounts ?? 1}</span>
                   </li>
+                  )}
                   <li className="flex justify-between px-3 py-2">
                     <span>Receivables</span>
                     <span className="font-semibold">{will.receivables ?? 0}</span>
@@ -150,7 +168,7 @@ const DeleteGroupAccountModal = ({
               className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <FiTrash2 className="w-4 h-4" />
-              {deleting ? 'Deleting…' : 'Delete last account'}
+              {deleting ? (isClear ? 'Clearing…' : 'Deleting…') : (isClear ? 'Clear transactions' : 'Delete last account')}
             </button>
           </div>
         </div>
@@ -164,9 +182,11 @@ const GroupsAccounts = ({
   type,
   groupId,
   allowDeleteLast = false,
+  allowClearLastCompleted = false,
   onRefresh,
 }) => {
   const { user } = useUserContext();
+  const isClearMode = Boolean(allowClearLastCompleted);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -197,9 +217,10 @@ const GroupsAccounts = ({
       setLoadingPreview(true);
       setPreview(null);
       try {
-        const res = await fetch(
-          `${API_BASE_URL}/adaptive-groups/${groupId}/accounts/${deleteTarget.grpAccountId}/delete-preview?t=${deleteTarget.openedAt || Date.now()}`,
-          {
+        const previewPath = isClearMode
+          ? `${API_BASE_URL}/groups/${groupId}/accounts/${deleteTarget.grpAccountId}/clear-preview?t=${deleteTarget.openedAt || Date.now()}`
+          : `${API_BASE_URL}/adaptive-groups/${groupId}/accounts/${deleteTarget.grpAccountId}/delete-preview?t=${deleteTarget.openedAt || Date.now()}`;
+        const res = await fetch(previewPath, {
             cache: 'no-store',
             headers: {
               Authorization: `Bearer ${user?.results?.token}`,
@@ -226,7 +247,7 @@ const GroupsAccounts = ({
     return () => {
       cancelled = true;
     };
-  }, [deleteTarget?.grpAccountId, deleteTarget?.openedAt, groupId, user?.results?.token]);
+  }, [deleteTarget?.grpAccountId, deleteTarget?.openedAt, groupId, user?.results?.token, isClearMode]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -243,9 +264,11 @@ const GroupsAccounts = ({
     setDeleting(true);
     try {
       const res = await fetch(
-        `${API_BASE_URL}/adaptive-groups/${groupId}/accounts/${deleteTarget.grpAccountId}`,
+        isClearMode
+          ? `${API_BASE_URL}/groups/${groupId}/accounts/${deleteTarget.grpAccountId}/clear-transactions`
+          : `${API_BASE_URL}/adaptive-groups/${groupId}/accounts/${deleteTarget.grpAccountId}`,
         {
-          method: 'DELETE',
+          method: isClearMode ? 'POST' : 'DELETE',
           headers: {
             Authorization: `Bearer ${user?.results?.token}`,
             'Content-Type': 'application/json',
@@ -254,14 +277,14 @@ const GroupsAccounts = ({
       );
       const body = await res.json();
       if (!res.ok || body.error) {
-        throw new Error(body.message || 'Failed to delete group account');
+        throw new Error(body.message || (isClearMode ? 'Failed to clear transactions' : 'Failed to delete group account'));
       }
-      toast.success(body.message || 'Group account deleted');
+      toast.success(body.message || (isClearMode ? 'Transactions cleared' : 'Group account deleted'));
       setDeleteTarget(null);
       setPreview(null);
       if (onRefresh) await onRefresh();
     } catch (error) {
-      toast.error(error.message || 'Failed to delete group account');
+      toast.error(error.message || (isClearMode ? 'Failed to clear transactions' : 'Failed to delete group account'));
     } finally {
       setDeleting(false);
     }
@@ -279,12 +302,19 @@ const GroupsAccounts = ({
             Trash is available only on the last S.No so sequence numbers do not collapse.
           </p>
         )}
+        {isClearMode && groupTransactionInfo?.length > 0 && (
+          <p className="text-xs text-gray-500 mb-3">
+            Trash is only on the last completed auction (green date). The group account stays; money
+            records are removed. After that, trash moves to the previous completed auction.
+          </p>
+        )}
         {groupTransactionInfo?.length > 0 ? (
           <div className="space-y-4">
             <GroupAccountList
               items={groupTransactionInfo}
               type={type}
               allowDeleteLast={allowDeleteLast}
+              allowClearLastCompleted={isClearMode}
               onDeleteClick={openDeleteAccount}
             />
           </div>
@@ -319,6 +349,7 @@ const GroupsAccounts = ({
         loadingPreview={loadingPreview}
         deleting={deleting}
         onConfirm={confirmDelete}
+        mode={isClearMode ? 'clear' : 'delete'}
       />
     </div>
   );

@@ -31,8 +31,15 @@ const getLastItemId = (items = []) => {
     return last?.grpAccountId || null;
 };
 
-const DeleteCell = ({ item, isLast, allowDeleteLast, onDeleteClick }) => {
-    if (!allowDeleteLast) return null;
+const getLastCompletedItemId = (items = []) => {
+    const completed = items.filter(
+        (item) => String(item?.auctionStatus || '').toLowerCase() === 'completed'
+    );
+    return getLastItemId(completed);
+};
+
+const DeleteCell = ({ item, isLast, allowDelete, onDeleteClick, title }) => {
+    if (!allowDelete) return null;
     if (!isLast) {
         return <div className="text-center text-gray-300 text-xs">—</div>;
     }
@@ -40,7 +47,7 @@ const DeleteCell = ({ item, isLast, allowDeleteLast, onDeleteClick }) => {
         <div className="flex justify-center">
             <button
                 type="button"
-                title="Delete last group account"
+                title={title || 'Delete'}
                 onClick={() => onDeleteClick?.(item)}
                 className="p-1.5 rounded-full text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
             >
@@ -50,9 +57,21 @@ const DeleteCell = ({ item, isLast, allowDeleteLast, onDeleteClick }) => {
     );
 };
 
-const GroupAccountList = ({ items, type, allowDeleteLast = false, onDeleteClick }) => {
-    const lastId = getLastItemId(items);
-    const actionCol = allowDeleteLast ? ' 44px' : '';
+const GroupAccountList = ({
+    items,
+    type,
+    allowDeleteLast = false,
+    allowClearLastCompleted = false,
+    onDeleteClick,
+}) => {
+    const normalizedType = String(type || '').trim().toUpperCase();
+    const showClear = allowClearLastCompleted && normalizedType === 'FIXED';
+    const showActionCol = allowDeleteLast || showClear;
+    const lastId = showClear ? getLastCompletedItemId(items) : getLastItemId(items);
+    const actionCol = showActionCol ? ' 44px' : '';
+    const deleteTitle = showClear
+        ? 'Clear last completed auction transactions'
+        : 'Delete last group account';
 
     const renderFixedView = () => (
         <div className="overflow-x-auto">
@@ -91,7 +110,7 @@ const GroupAccountList = ({ items, type, allowDeleteLast = false, onDeleteClick 
                         <DollarSign size={16} />
                         <span>Bid</span>
                     </div>
-                    {allowDeleteLast && <div className="text-center text-xs">Del</div>}
+                    {showActionCol && <div className="text-center text-xs">Del</div>}
                 </div>
             </div>
             <div className="bg-white border border-gray-200 rounded-b-lg">
@@ -146,8 +165,9 @@ const GroupAccountList = ({ items, type, allowDeleteLast = false, onDeleteClick 
                             <DeleteCell
                                 item={item}
                                 isLast={isLast}
-                                allowDeleteLast={allowDeleteLast}
+                                allowDelete={showActionCol}
                                 onDeleteClick={onDeleteClick}
+                                title={deleteTitle}
                             />
                         </div>
                     );
@@ -190,7 +210,7 @@ const GroupAccountList = ({ items, type, allowDeleteLast = false, onDeleteClick 
                             <Wallet size={16} />
                             <span>Due</span>
                         </div>
-                        {allowDeleteLast && <div className="text-center text-xs">Del</div>}
+                        {showActionCol && <div className="text-center text-xs">Del</div>}
                     </div>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-b-lg">
@@ -240,8 +260,9 @@ const GroupAccountList = ({ items, type, allowDeleteLast = false, onDeleteClick 
                                 <DeleteCell
                                     item={item}
                                     isLast={isLast}
-                                    allowDeleteLast={allowDeleteLast}
+                                    allowDelete={showActionCol}
                                     onDeleteClick={onDeleteClick}
+                                    title={deleteTitle}
                                 />
                             </div>
                         );
@@ -285,7 +306,7 @@ const GroupAccountList = ({ items, type, allowDeleteLast = false, onDeleteClick 
                             <Wallet size={16} />
                             <span>Due</span>
                         </div>
-                        {allowDeleteLast && <div className="text-center text-xs">Del</div>}
+                        {showActionCol && <div className="text-center text-xs">Del</div>}
                     </div>
                 </div>
                 <div className="bg-white border border-gray-200 rounded-b-lg">
@@ -335,8 +356,9 @@ const GroupAccountList = ({ items, type, allowDeleteLast = false, onDeleteClick 
                                 <DeleteCell
                                     item={item}
                                     isLast={isLast}
-                                    allowDeleteLast={allowDeleteLast}
+                                    allowDelete={showActionCol}
                                     onDeleteClick={onDeleteClick}
+                                    title={deleteTitle}
                                 />
                             </div>
                         );
@@ -346,7 +368,6 @@ const GroupAccountList = ({ items, type, allowDeleteLast = false, onDeleteClick 
         );
     };
 
-    const normalizedType = String(type || '').trim().toUpperCase();
     if (normalizedType === 'FIXED' || normalizedType === 'ADAPTIVE' || normalizedType === 'FLEXIBLE') {
         return renderFixedView();
     } else if (normalizedType === 'DEDUCTIVE') {
