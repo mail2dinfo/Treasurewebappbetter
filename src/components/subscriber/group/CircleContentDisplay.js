@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
+import { useSubscriberContext } from '../../../context/subscriber/SubscriberContext';
 
 const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, groupAccountId }) => {
 
+    const { user } = useSubscriberContext();
     const {
         groupTransactionInfo,
         transactionInfo,
@@ -389,33 +391,50 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
         );
     };
 
-    const renderDueDetails = () => {
-        // Check multiple possible data sources for due information
-        const dueData = transactionInfo || groupDetails?.transactionInfo || groupDetails?.dueInfo || groupDetails?.receivableInfo || [];
+    const formatDueDate = (value) => {
+        if (!value) return 'N/A';
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? 'N/A' : parsed.toLocaleDateString();
+    };
 
-        // COMPREHENSIVE DEBUG LOGGING FOR DUE DATA
-        console.log('🔍 ===== COMPREHENSIVE DUE DETAILS DEBUGGING =====');
-        console.log('🔍 FULL groupDetails object:', JSON.stringify(groupDetails, null, 2));
-        console.log('🔍 transactionInfo:', JSON.stringify(transactionInfo, null, 2));
-        console.log('🔍 groupDetails?.transactionInfo:', JSON.stringify(groupDetails?.transactionInfo, null, 2));
-        console.log('🔍 groupDetails?.dueInfo:', JSON.stringify(groupDetails?.dueInfo, null, 2));
-        console.log('🔍 groupDetails?.receivableInfo:', JSON.stringify(groupDetails?.receivableInfo, null, 2));
-        console.log('🔍 Final dueData:', JSON.stringify(dueData, null, 2));
-        console.log('🔍 dueData length:', dueData?.length);
-        console.log('🔍 dueData type:', typeof dueData);
-        console.log('🔍 dueData isArray:', Array.isArray(dueData));
+    const getDueAmount = (transaction) =>
+        Number(transaction.amount || transaction.receivableAmount || transaction.payment_amount || transaction.customerDue || 0);
 
-        if (dueData && dueData.length > 0) {
-            console.log('🔍 First due transaction sample (FULL):', JSON.stringify(dueData[0], null, 2));
-            console.log('🔍 All due transactions:', JSON.stringify(dueData, null, 2));
+    const isDuePaid = (transaction) =>
+        transaction.status === 'Success' || transaction.status === 'Paid';
 
-            // Log each field individually
-            const firstTransaction = dueData[0];
-            console.log('🔍 First transaction fields:');
-            Object.keys(firstTransaction).forEach(key => {
-                console.log(`🔍   ${key}:`, firstTransaction[key], `(type: ${typeof firstTransaction[key]})`);
-            });
+    const chitUserTelHref = () => {
+        const company = user?.userCompany;
+        const raw =
+            groupDetails?.chitUserPhone ||
+            company?.phone ||
+            company?.contactNumber ||
+            company?.contact_no ||
+            '';
+        const tel = String(raw).replace(/[^\d+]/g, '');
+        return tel ? `tel:${tel}` : null;
+    };
+
+    const handlePayDue = (event) => {
+        const href = chitUserTelHref();
+        if (!href) {
+            event.preventDefault();
+            window.alert('Chit fund user phone number is not available.');
         }
+    };
+
+    const PayDueButton = ({ className = '' }) => (
+        <a
+            href={chitUserTelHref() || '#'}
+            onClick={handlePayDue}
+            className={`inline-flex items-center justify-center rounded-md bg-red-600 text-white text-sm font-bold px-4 py-2 shadow ${className}`}
+        >
+            Pay
+        </a>
+    );
+
+    const renderDueDetails = () => {
+        const dueData = transactionInfo || groupDetails?.transactionInfo || groupDetails?.dueInfo || groupDetails?.receivableInfo || [];
 
         if (!dueData || dueData.length === 0) {
             return (
@@ -430,53 +449,99 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
         }
 
         return (
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-                <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 sm:p-6">
-                    <h3 className="text-xl sm:text-2xl font-bold text-center">Due Details</h3>
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-3 sm:p-4">
+                    <h3 className="text-base sm:text-lg font-semibold">Due Details</h3>
                 </div>
-                <div className="p-4 sm:p-6 space-y-4">
-                    {dueData.map((transaction, index) => (
-                        <div key={index} className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg p-4 sm:p-6 border-l-4 border-orange-500 shadow-md">
-                            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 sm:gap-6">
-                                <div className="text-center sm:text-left">
-                                    <div className="text-xs sm:text-sm text-gray-600 mb-1 font-semibold">Auction Date</div>
-                                    <div className="text-sm sm:text-base font-bold text-gray-900">
-                                        {transaction.auctiondate ? new Date(transaction.auctiondate).toLocaleDateString() : 'N/A'}
-                                    </div>
-                                </div>
-                                <div className="text-center sm:text-left">
-                                    <div className="text-xs sm:text-sm text-gray-600 mb-1 font-semibold">Transacted Date</div>
-                                    <div className="text-sm sm:text-base font-bold text-gray-900">
-                                        {transaction.transacted_date 
-                                            ? new Date(transaction.transacted_date).toLocaleDateString() 
-                                            : (transaction.transactedDate 
-                                                ? new Date(transaction.transactedDate).toLocaleDateString() 
-                                                : 'N/A')}
-                                    </div>
-                                </div>
-                                <div className="text-center sm:text-left">
-                                    <div className="text-xs sm:text-sm text-gray-600 mb-1 font-semibold">Created At</div>
-                                    <div className="text-sm sm:text-base font-bold text-gray-900">
-                                        {transaction.date || transaction.createdAt 
-                                            ? new Date(transaction.date || transaction.createdAt).toLocaleDateString() 
-                                            : 'N/A'}
-                                    </div>
-                                </div>
-                                <div className="text-center sm:text-left">
-                                    <div className="text-xs sm:text-sm text-gray-600 mb-1 font-semibold">Amount</div>
-                                    <div className="text-base sm:text-lg font-extrabold text-red-600">
-                                        ₹{(transaction.amount || transaction.receivableAmount || transaction.payment_amount || transaction.customerDue || 0).toLocaleString()}
-                                    </div>
-                                </div>
-                                <div className="text-center sm:text-left">
-                                    <div className="text-xs sm:text-sm text-gray-600 mb-1 font-semibold">Status</div>
-                                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${transaction.status === 'Success'
-                                        ? 'bg-green-100 text-green-800'
-                                        : 'bg-red-100 text-red-800'
+
+                <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auction Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transacted Date</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pay</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {dueData.map((transaction, index) => (
+                                <tr key={index} className="hover:bg-gray-50">
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                                            #{transaction.dueNumber || index + 1}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                        {formatDueDate(transaction.auctiondate)}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                        {formatDueDate(transaction.transacted_date || transaction.transactedDate)}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                        {formatDueDate(transaction.date || transaction.createdAt)}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
+                                        ₹{getDueAmount(transaction).toLocaleString()}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                            isDuePaid(transaction) ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                                         }`}>
-                                        {transaction.status === 'Success' ? '✅ Success' : '⚠️ Due'}
-                                    </div>
+                                            {isDuePaid(transaction) ? '✅ Paid' : '⏳ Due'}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        {!isDuePaid(transaction) ? <PayDueButton /> : <span className="text-xs text-gray-400">—</span>}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="md:hidden p-4 space-y-4">
+                    {dueData.map((transaction, index) => (
+                        <div key={index} className="bg-white rounded-lg p-4 border border-gray-200 shadow-md">
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                                    #{transaction.dueNumber || index + 1}
+                                </span>
+                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
+                                    isDuePaid(transaction) ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                }`}>
+                                    {isDuePaid(transaction) ? '✅ Paid' : '⏳ Due'}
+                                </span>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-sm text-gray-600 font-medium">Auction Date:</span>
+                                    <span className="text-sm font-bold text-gray-900">{formatDueDate(transaction.auctiondate)}</span>
                                 </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-sm text-gray-600 font-medium">Transacted Date:</span>
+                                    <span className="text-sm font-bold text-gray-900">
+                                        {formatDueDate(transaction.transacted_date || transaction.transactedDate)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-sm text-gray-600 font-medium">Created At:</span>
+                                    <span className="text-sm font-bold text-gray-900">
+                                        {formatDueDate(transaction.date || transaction.createdAt)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg px-3">
+                                    <span className="text-sm text-gray-700 font-bold">Amount:</span>
+                                    <span className="text-lg font-extrabold text-blue-600">
+                                        ₹{getDueAmount(transaction).toLocaleString()}
+                                    </span>
+                                </div>
+                                {!isDuePaid(transaction) ? (
+                                    <PayDueButton className="w-full mt-1" />
+                                ) : null}
                             </div>
                         </div>
                     ))}
