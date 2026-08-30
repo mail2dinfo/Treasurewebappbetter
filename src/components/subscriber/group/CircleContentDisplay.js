@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSubscriberContext } from '../../../context/subscriber/SubscriberContext';
+import { buildChitUserPhonePeHref } from '../../../utils/phonePePay';
 
 const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, groupAccountId }) => {
 
@@ -403,35 +404,26 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
     const isDuePaid = (transaction) =>
         transaction.status === 'Success' || transaction.status === 'Paid';
 
-    const chitUserTelHref = () => {
-        const company = user?.userCompany;
-        const raw =
-            groupDetails?.chitUserPhone ||
-            company?.phone ||
-            company?.contactNumber ||
-            company?.contact_no ||
-            '';
-        const tel = String(raw).replace(/[^\d+]/g, '');
-        return tel ? `tel:${tel}` : null;
-    };
-
-    const handlePayDue = (event) => {
-        const href = chitUserTelHref();
+    const handlePayDue = (event, amount, note) => {
+        const href = buildChitUserPhonePeHref(groupDetails, user, amount, note);
         if (!href) {
             event.preventDefault();
-            window.alert('Chit fund user phone number is not available.');
+            window.alert('Chit fund user phone number is not available for PhonePe.');
         }
     };
 
-    const PayDueButton = ({ className = '' }) => (
-        <a
-            href={chitUserTelHref() || '#'}
-            onClick={handlePayDue}
-            className={`inline-flex items-center justify-center rounded-md bg-red-600 text-white text-sm font-bold px-4 py-2 shadow ${className}`}
-        >
-            Pay
-        </a>
-    );
+    const PayDueButton = ({ className = '', amount = 0, note = '' }) => {
+        const href = buildChitUserPhonePeHref(groupDetails, user, amount, note);
+        return (
+            <a
+                href={href || '#'}
+                onClick={(event) => handlePayDue(event, amount, note)}
+                className={`inline-flex items-center justify-center rounded-md bg-red-600 text-white text-sm font-bold px-4 py-2 shadow ${className}`}
+            >
+                Pay
+            </a>
+        );
+    };
 
     const renderDueDetails = () => {
         const dueData = transactionInfo || groupDetails?.transactionInfo || groupDetails?.dueInfo || groupDetails?.receivableInfo || [];
@@ -495,7 +487,14 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
-                                        {!isDuePaid(transaction) ? <PayDueButton /> : <span className="text-xs text-gray-400">—</span>}
+                                        {!isDuePaid(transaction) ? (
+                                            <PayDueButton
+                                                amount={getDueAmount(transaction)}
+                                                note={`Due #${transaction.dueNumber || index + 1}`}
+                                            />
+                                        ) : (
+                                            <span className="text-xs text-gray-400">—</span>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -540,7 +539,11 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
                                     </span>
                                 </div>
                                 {!isDuePaid(transaction) ? (
-                                    <PayDueButton className="w-full mt-1" />
+                                    <PayDueButton
+                                        className="w-full mt-1"
+                                        amount={getDueAmount(transaction)}
+                                        note={`Due #${transaction.dueNumber || index + 1}`}
+                                    />
                                 ) : null}
                             </div>
                         </div>
