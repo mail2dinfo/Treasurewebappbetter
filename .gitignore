@@ -22,3 +22,15 @@ yarn-error.log*
 
 # vscode settings
 .vscode/
+
+# Android / Capacitor local builds (keep android/ project, ignore outputs)
+android/app/build/
+android/.gradle/
+android/captures/
+android/local.properties
+*.apk
+!public/downloads/*.apk
+*.aab
+*.keystore
+*.jks
+

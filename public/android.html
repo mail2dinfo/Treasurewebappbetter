@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Download Mytreasure for Android</title>
+  <style>
+    :root { color-scheme: light; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      max-width: 420px;
+      width: 100%;
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 28px 24px 32px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,.35);
+    }
+    h1 { margin: 0 0 8px; font-size: 1.5rem; color: #fff; }
+    p { margin: 0 0 16px; line-height: 1.45; color: #94a3b8; font-size: 0.95rem; }
+    img.qr {
+      width: 200px;
+      height: 200px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 12px;
+      margin: 8px 0 16px;
+    }
+    a.btn {
+      display: inline-block;
+      background: #16a34a;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 12px 22px;
+      border-radius: 10px;
+      margin-bottom: 18px;
+    }
+    ol { text-align: left; color: #cbd5e1; padding-left: 1.2rem; margin: 0; font-size: 0.9rem; }
+    li { margin-bottom: 8px; }
+    .back { display: inline-block; margin-top: 20px; color: #93c5fd; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Mytreasure for Android</h1>
+    <p>Scan the QR on your phone, or tap Download. Then install and log in as you do on the website.</p>
+    <img src="/treasure-box.svg" alt="Mytreasure" width="72" height="72" style="border-radius:14px;margin-bottom:12px;" />
+    <img
+      class="qr"
+      alt="QR code to download Treasure APK"
+      src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&amp;data=https%3A%2F%2Fmytreasure.in%2Fdownloads%2FTreasure.apk"
+    />
+    <div>
+      <a class="btn" href="/downloads/Treasure.apk" download>Download Android app</a>
+    </div>
+    <ol>
+      <li>Open this page on an Android phone (or scan the QR).</li>
+      <li>Download the APK. If Android asks, allow Chrome to install unknown apps.</li>
+      <li>Tap Install, then Open, then log in.</li>
+    </ol>
+    <a class="back" href="/">Back to Treasure</a>
+  </div>
+</body>
+</html>

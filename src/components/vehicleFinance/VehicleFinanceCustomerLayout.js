@@ -3,6 +3,7 @@ import { Switch, Route, Redirect } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import MyTreasureBrand from '../MyTreasureBrand';
+import AndroidAppNavButton from '../AndroidAppNavButton';
 
 const VehicleFinanceCustomerDashboard = () => (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -29,8 +30,12 @@ const VehicleFinanceCustomerDashboard = () => (
 const VehicleFinanceCustomerLayout = () => (
     <div className="min-h-screen bg-gray-50">
         <header className="bg-gradient-to-r from-red-600 via-red-700 to-red-800 shadow-lg sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <MyTreasureBrand to="/app-selection" subtitle="Vehicle Finance Customer" inverse />
+                <AndroidAppNavButton
+                    className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium text-white hover:bg-white/10"
+                    iconClassName="w-4 h-4"
+                />
             </div>
         </header>
         <div className="min-h-[calc(100vh-128px)]">

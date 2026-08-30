@@ -1,0 +1,16 @@
+{
+  "appId": "in.mytreasure.app",
+  "appName": "Mytreasure",
+  "webDir": "build",
+  "server": {
+    "url": "https://mytreasure.in",
+    "androidScheme": "https",
+    "allowNavigation": [
+      "mytreasure.in",
+      "*.mytreasure.in",
+      "treasure-mani.onrender.com",
+      "*.onrender.com",
+      "*.stripe.com"
+    ]
+  }
+}

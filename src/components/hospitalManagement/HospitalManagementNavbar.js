@@ -11,6 +11,7 @@ import { getNavBillingBadge } from '../../utils/billingPaymentUtils';
 import { HH_BASE_PATH, useHhBasePath } from './hospitalManagementMenuItems';
 import { useHhPermission } from './useHhPermission';
 import { getLoggedInRoleLabel } from '../../utils/roleLabels';
+import AndroidAppNavButton from '../AndroidAppNavButton';
 
 const navButtonClass =
   'flex items-center px-3 py-1.5 text-sm font-medium text-white hover:text-cyan-100 hover:bg-white/10 rounded-lg transition-colors';
@@ -134,6 +135,7 @@ const HospitalManagementNavbar = () => {
               <FiArrowLeft className="w-4 h-4 mr-1.5" />
               <span className="hidden sm:inline">Apps</span>
             </button>
+            <AndroidAppNavButton className={navButtonClass} />
             {billingPath && <BillingNavButton billingPath={billingPath} />}
             <div className="hidden sm:block text-right px-2 border-l border-white/30">
               <p className="text-sm font-semibold text-white truncate max-w-[10rem]">Hi {displayName}</p>

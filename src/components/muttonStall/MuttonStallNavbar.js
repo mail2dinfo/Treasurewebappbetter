@@ -11,6 +11,7 @@ import { getNavBillingBadge } from '../../utils/billingPaymentUtils';
 import { MS_BASE_PATH, useMsBasePath } from './muttonStallMenuItems';
 import { useMsPermission } from './useMsPermission';
 import { getLoggedInRoleLabel } from '../../utils/roleLabels';
+import AndroidAppNavButton from '../AndroidAppNavButton';
 
 const navButtonClass =
   'flex items-center px-3 py-1.5 text-sm font-medium text-white hover:text-rose-100 hover:bg-white/10 rounded-lg transition-colors';
@@ -113,6 +114,7 @@ const MuttonStallNavbar = () => {
               <FiArrowLeft className="w-4 h-4 mr-1.5" />
               <span className="hidden sm:inline">Apps</span>
             </button>
+            <AndroidAppNavButton className={navButtonClass} />
             {billingPath && <BillingNavButton billingPath={billingPath} />}
             <div className="hidden sm:block text-right px-2 border-l border-white/30">
               <p className="text-sm font-semibold text-white truncate max-w-[10rem]">Hi {displayName}</p>

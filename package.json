@@ -4,6 +4,9 @@
   "private": true,
   "dependencies": {
     "@auth0/auth0-react": "^2.0.0",
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
     "@mui/material": "^6.4.0",
     "@multiavatar/multiavatar": "^1.0.7",
     "@react-pdf/renderer": "^3.4.2",
@@ -52,7 +55,9 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "netlify dev"
+    "dev": "netlify dev",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android"
   },
   "eslintConfig": {
     "extends": [

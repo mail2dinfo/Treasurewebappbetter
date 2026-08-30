@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../../utils/apiConfig';
 import { useUserContext } from '../../context/user_context';
 import PrivateRoute from '../../pages/PrivateRoute';
 import MyTreasureBrand from '../MyTreasureBrand';
+import AndroidAppNavButton from '../AndroidAppNavButton';
 import RmPhotoGallery from './RmPhotoGallery';
 import TenantAgreementDetail from './TenantAgreementDetail';
 
@@ -241,6 +242,7 @@ const RentalManagementCustomerLayout = () => {
             >
               Financial hub
             </button>
+            <AndroidAppNavButton className="text-sm text-red-100 hover:text-white flex items-center gap-1" iconClassName="w-4 h-4" />
             <button
               type="button"
               className="text-sm text-red-100 hover:text-white"

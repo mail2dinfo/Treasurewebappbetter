@@ -6,6 +6,7 @@ import { FiBookmark, FiLogOut, FiShield, FiUsers, FiX, FiGrid, FiPlusCircle, FiM
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import MyTreasureBrand from '../components/MyTreasureBrand';
+import AndroidAppNavButton from '../components/AndroidAppNavButton';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { BILLING_APP_CODES, getBillingPathForApp } from '../utils/billingAppCodes';
 import { BILLING_PLANS, mergePlansWithCatalog } from '../utils/billingPlans';
@@ -1270,6 +1271,10 @@ const AppSelectionPage = () => {
                         <MyTreasureBrand subtitle="Select which app to open" inverse />
 
                         <div className="flex items-center space-x-4">
+                            <AndroidAppNavButton
+                                className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm font-medium text-white hover:bg-white/10"
+                                iconClassName="w-4 h-4"
+                            />
                             <div className="hidden sm:flex items-center space-x-3">
                                 <div className="relative">
                                     <img
