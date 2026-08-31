@@ -9,6 +9,7 @@ import { useAobContext } from '../context/aob_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
 import { useUserContext } from '../context/user_context';
 import Mypdf from '../components/PDF/Mypdf';
+import { formatReceivableDueNo } from '../utils/formatReceivableDueNo';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -140,6 +141,7 @@ const Receivable = () => {
     { title: 'Group', value: 'group_name' },
     { title: 'Date', value: 'auct_date' },
     { title: 'Area', value: 'area' },
+    { title: 'Due no.', value: 'due_no' },
     { title: 'Total', value: 'total' },
     { title: 'Paid', value: 'paid' },
     { title: 'Due', value: 'due' },
@@ -152,6 +154,7 @@ const Receivable = () => {
       group_name: item.group_name || '—',
       auct_date: formatDate(item.auct_date),
       area: item.area || item.aob || '—',
+      due_no: formatReceivableDueNo(item),
       total: Number(item.rbtotal || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
       paid: Number(item.rbpaid || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
       due: Number(item.rbdue || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
@@ -172,6 +175,7 @@ const Receivable = () => {
         group_name: '',
         auct_date: '',
         area: `${rows.length} records`,
+        due_no: '',
         total: totals.total.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
         paid: totals.paid.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
         due: totals.due.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
@@ -247,6 +251,7 @@ const Receivable = () => {
         <td colSpan={6} className="px-4 py-4 text-sm font-semibold text-gray-900">
           Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
         </td>
+        <td className="px-4 py-4 text-sm font-semibold text-gray-700">—</td>
         <td className="px-4 py-4 text-sm font-bold text-blue-700">
           {formatCurrency(totals.totalDue)}
         </td>
@@ -530,6 +535,11 @@ const Receivable = () => {
             </div>
           </div>
 
+          <div className="mb-3 text-center p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="text-[10px] sm:text-xs text-gray-500 font-medium mb-1 uppercase tracking-wide">Due no.</div>
+            <div className="text-sm sm:text-lg font-bold text-gray-900">{formatReceivableDueNo(person)}</div>
+          </div>
+
           <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
             <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg min-w-0">
               <div className="text-[10px] sm:text-xs text-blue-600 font-medium mb-1">Total Due</div>
@@ -586,6 +596,11 @@ const Receivable = () => {
         </button>
       </div>
 
+      <div className="mb-3 text-center p-2 bg-gray-50 rounded-lg border border-gray-200">
+        <p className="text-[10px] text-gray-500 font-medium uppercase">Due no.</p>
+        <p className="text-sm font-bold text-gray-900">{formatReceivableDueNo(person)}</p>
+      </div>
+
       <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-3">
         <div className="text-center p-2 bg-blue-50 rounded-lg min-w-0">
           <p className="text-[10px] text-blue-600 font-medium">Due</p>
@@ -632,6 +647,7 @@ const Receivable = () => {
                 <th className="px-4 py-3 text-left text-sm font-semibold">Auction</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Area</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Advance</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">Due no.</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Total Due</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Paid</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Balance</th>
@@ -664,6 +680,9 @@ const Receivable = () => {
                     >
                       {formatCurrency(person?.total_advance_balance || 0)}
                     </button>
+                  </td>
+                  <td className="px-4 py-3 text-sm font-semibold text-gray-900 whitespace-nowrap">
+                    {formatReceivableDueNo(person)}
                   </td>
                   <td className="px-4 py-3 text-sm font-semibold text-blue-700">{formatCurrency(person.rbtotal)}</td>
                   <td className="px-4 py-3 text-sm font-semibold text-green-700">{formatCurrency(person.rbpaid)}</td>

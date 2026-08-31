@@ -7,6 +7,7 @@ import loadingImage from '../../images/preloader.gif';
 import CollectorPaymentModal from '../../components/collector/CollectorPaymentModal';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import Mypdf from '../../components/PDF/Mypdf';
+import { formatReceivableDueNo } from '../../utils/formatReceivableDueNo';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -317,6 +318,7 @@ const CollectorReceivables = () => {
         { title: 'Group', value: 'group_name' },
         { title: 'Date', value: 'auct_date' },
         { title: 'Area', value: 'area' },
+        { title: 'Due no.', value: 'due_no' },
         { title: 'Total', value: 'total' },
         { title: 'Paid', value: 'paid' },
         { title: 'Due', value: 'due' },
@@ -329,6 +331,7 @@ const CollectorReceivables = () => {
             group_name: item.group_name || '—',
             auct_date: formatDate(item.auct_date),
             area: item.area || item.aob || '—',
+            due_no: formatReceivableDueNo(item),
             total: Number(item.rbtotal || item.total_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
             paid: Number(item.rbpaid || item.collected_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
             due: Number(item.rbdue || item.pending_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
@@ -349,6 +352,7 @@ const CollectorReceivables = () => {
                 group_name: '',
                 auct_date: '',
                 area: `${items.length} records`,
+                due_no: '',
                 total: totals.total.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
                 paid: totals.paid.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
                 due: totals.due.toLocaleString('en-IN', { maximumFractionDigits: 2 }),
@@ -438,6 +442,7 @@ const CollectorReceivables = () => {
                 <td colSpan={5} className="px-4 py-4 text-sm font-semibold text-gray-900">
                     Summary — {items.length} {items.length === 1 ? 'record' : 'records'}
                 </td>
+                <td className="px-4 py-4 text-sm font-semibold text-gray-700">—</td>
                 <td className="px-4 py-4 text-sm font-bold text-blue-700">
                     {formatCurrency(totals.totalDue)}
                 </td>
@@ -598,6 +603,11 @@ const CollectorReceivables = () => {
                     </div>
                 </div>
 
+                <div className="mb-3 text-center p-2 md:p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="text-[10px] md:text-xs text-gray-500 font-medium mb-1 uppercase tracking-wide">Due no.</div>
+                    <div className="text-sm md:text-lg font-bold text-gray-900">{formatReceivableDueNo(receivable)}</div>
+                </div>
+
                 <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4 md:mb-6">
                     <div className="text-center p-2 md:p-3 bg-blue-50 rounded-lg">
                         <div className="text-[10px] md:text-xs text-blue-600 font-medium mb-1">Total Due</div>
@@ -663,6 +673,11 @@ const CollectorReceivables = () => {
                 </div>
             </div>
 
+            <div className="mb-3 text-center p-2 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-[10px] text-gray-500 font-medium uppercase">Due no.</p>
+                <p className="text-sm font-bold text-gray-900">{formatReceivableDueNo(receivable)}</p>
+            </div>
+
             <div className="grid grid-cols-3 gap-2 mb-3">
                 <div className="text-center p-2 bg-blue-50 rounded-lg">
                     <p className="text-[10px] text-blue-600 font-medium">Due</p>
@@ -715,6 +730,7 @@ const CollectorReceivables = () => {
                             <th className="px-4 py-3 text-left text-sm font-semibold">Auction</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold">Area</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold">Advance</th>
+                            <th className="px-4 py-3 text-left text-sm font-semibold">Due no.</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold">Total Due</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold">Paid</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold">Balance</th>
@@ -758,6 +774,9 @@ const CollectorReceivables = () => {
                                     >
                                         {formatCurrency(receivable?.total_advance_balance || 0)}
                                     </button>}
+                                </td>
+                                <td className="px-4 py-3 text-sm font-semibold text-gray-900 whitespace-nowrap">
+                                    {formatReceivableDueNo(receivable)}
                                 </td>
                                 <td className="px-4 py-3 text-sm font-semibold text-blue-700">
                                     {formatCurrency(receivable.rbtotal || receivable.total_amount)}
