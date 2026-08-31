@@ -1,10 +1,5 @@
 import moment from "moment";
-
-const typeStyles = {
-  FIXED: "bg-gray-300 text-gray-800",
-  ADAPTIVE: "bg-gray-300 text-gray-800",
-  FLEXIBLE: "bg-gray-300 text-gray-800",
-};
+import { useEffect, useRef, useState } from "react";
 
 export const formatGroupAmount = (amount) =>
   `₹${Number(amount || 0).toLocaleString("en-IN")}`;
@@ -26,10 +21,8 @@ export const formatGroupTimeRange = (start, end) => {
 
 export const groupTypeLabel = (type) => {
   const t = String(type || "").toUpperCase();
-  if (t === "FIXED" || t === "ADAPTIVE" || t === "FLEXIBLE") {
-    return t.charAt(0) + t.slice(1).toLowerCase();
-  }
-  return type || "Group";
+  if (!t) return "Group";
+  return t.charAt(0) + t.slice(1).toLowerCase();
 };
 
 const GroupListCard = ({
@@ -38,28 +31,78 @@ const GroupListCard = ({
   primaryLabel,
   onPrimary,
   secondary,
+  menuItems,
 }) => {
   const type = String(group?.type || "").toUpperCase();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const onPointer = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("touchstart", onPointer);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("touchstart", onPointer);
+    };
+  }, [menuOpen]);
 
   return (
     <article className="group-list-card">
       <div className="group-list-card-main">
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <h4 className="inline-flex items-center max-w-full rounded-full bg-gray-300 px-3.5 py-1.5 text-base font-bold text-gray-900 truncate">
+        <div className="group-list-card-header">
+          <div className="group-list-card-identity">
+            <h4 className="group-list-card-name" title={group?.group_name || "Untitled group"}>
               {group?.group_name || "Untitled group"}
             </h4>
-            <span
-              className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold ${
-                typeStyles[type] || "bg-gray-100 text-gray-600"
-              }`}
-            >
-              {groupTypeLabel(type)}
-            </span>
+            <span className="group-list-card-type">{groupTypeLabel(type)}</span>
+            <p className="group-list-card-amount">
+              {formatGroupAmount(group?.amount)}
+            </p>
           </div>
-          <p className="text-xl font-extrabold text-gray-900 whitespace-nowrap">
-            {formatGroupAmount(group?.amount)}
-          </p>
+          <div className="group-list-card-header-right">
+            {onPrimary ? (
+              <button type="button" className="group-button" onClick={onPrimary}>
+                {primaryLabel}
+              </button>
+            ) : null}
+            {secondary}
+            {menuItems?.length ? (
+              <div className="group-card-menu-wrap" ref={menuRef}>
+                <button
+                  type="button"
+                  className="group-card-menu-trigger"
+                  aria-label="Group actions"
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((open) => !open)}
+                >
+                  ⋯
+                </button>
+                {menuOpen ? (
+                  <div className="group-card-menu">
+                    {menuItems.map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        className={item.danger ? "group-card-menu-item is-danger" : "group-card-menu-item"}
+                        onClick={() => {
+                          setMenuOpen(false);
+                          item.onClick();
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="group-list-card-grid">
@@ -68,24 +111,13 @@ const GroupListCard = ({
               <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
                 {field.label}
               </p>
-              <p className="mt-0.5 text-sm font-medium text-gray-800 break-words">
+              <p className="mt-0.5 text-sm font-medium text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis">
                 {field.value}
               </p>
             </div>
           ))}
         </div>
       </div>
-
-      {(onPrimary || secondary) && (
-      <div className="group-list-card-actions">
-        {onPrimary && (
-          <button type="button" className="group-button" onClick={onPrimary}>
-            {primaryLabel}
-          </button>
-        )}
-        {secondary}
-      </div>
-      )}
     </article>
   );
 };

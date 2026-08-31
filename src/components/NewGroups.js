@@ -6,6 +6,7 @@ import GroupListCard, {
   formatGroupDate,
   formatGroupTimeRange,
 } from "./GroupListCard";
+import EditNewGroupModal from "./EditNewGroupModal";
 
 const NewGroups = ({
   groups,
@@ -18,21 +19,36 @@ const NewGroups = ({
   const { user } = useUserContext();
   const history = useHistory();
   const [groupToDelete, setGroupToDelete] = useState(null);
+  const [groupToEdit, setGroupToEdit] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [deleteMessage, setDeleteMessage] = useState(null);
+  const [editMessage, setEditMessage] = useState(null);
 
   const newGroups = Array.isArray(groups)
     ? groups.filter((group) => group.Status === "New")
     : [];
 
   const subscriberValue = (group) => {
+    const added = Number(group.num_subscribers) || 0;
     if (String(group.type || "").toUpperCase() === "FLEXIBLE") {
-      return `${group.num_subscribers || 0} (no limit)`;
+      return `${added} joined`;
     }
-    const pending = group.PendingSubscribers;
     const required = group.no_of_subscribers_required;
-    if (pending == null && required == null) return "—";
-    return `${pending ?? 0} of ${required ?? "—"} still needed`;
+    if (required == null || required === "") return String(added);
+    return `${added} / ${required}`;
+  };
+
+  const addSubscriberLabel = (group) => {
+    if (String(group.type || "").toUpperCase() === "FLEXIBLE") {
+      return "Add";
+    }
+    const pending = Number(group.PendingSubscribers);
+    if (Number.isFinite(pending) && pending > 0) {
+      const count = Number.isInteger(pending) ? pending : Math.max(1, Math.round(pending));
+      return `Add ${count}`;
+    }
+    return "Add";
   };
 
   const closeDeleteModal = () => {
@@ -72,6 +88,44 @@ const NewGroups = ({
     }
   };
 
+  const saveEditedGroup = async (form) => {
+    if (!groupToEdit?.id) return;
+    setIsSaving(true);
+    setEditMessage(null);
+    const isFixed = String(groupToEdit.type || "").toUpperCase() === "FIXED";
+    try {
+      const response = await fetch(`${API_BASE_URL}/groups/${groupToEdit.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${user?.results?.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          groupName: form.groupName,
+          amount: isFixed ? undefined : Number(form.amount),
+          noOfSubscribers: isFixed ? undefined : Number(form.noOfSubscribers),
+          commissionType: form.commissionType,
+          commissionPercentage: Number(form.commissionPercent),
+          auctionMode: form.auctionMode,
+          auctDate: form.auctDate,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (response.ok && result.error === false) {
+        await refreshGroups();
+        setGroupToEdit(null);
+        setEditMessage(null);
+      } else {
+        setEditMessage(result.message || result.errors || "Failed to update group");
+      }
+    } catch (error) {
+      console.error("An error occurred while updating the group:", error);
+      setEditMessage("Something went wrong while saving.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (selectedTab !== "new") return null;
 
   if (newGroups.length === 0) {
@@ -91,29 +145,33 @@ const NewGroups = ({
         <GroupListCard
           key={group.id}
           group={group}
-          primaryLabel={canAddSubscriber ? "Add subscribers" : null}
+          primaryLabel={canAddSubscriber ? addSubscriberLabel(group) : null}
           onPrimary={
             canAddSubscriber
               ? () => history.push(`${basePath}/addgroupsubscriber/${group.id}`)
               : undefined
           }
-          secondary={
-            canDeleteGroup ? (
-              <button
-                type="button"
-                className="delete-button"
-                title="Delete group"
-                onClick={() => {
-                  setDeleteMessage(null);
-                  setGroupToDelete(group);
-                }}
-              >
-                Delete
-              </button>
-            ) : null
-          }
+          menuItems={[
+            {
+              label: "Edit",
+              onClick: () => {
+                setEditMessage(null);
+                setGroupToEdit(group);
+              },
+            },
+            ...(canDeleteGroup
+              ? [{
+                  label: "Delete",
+                  danger: true,
+                  onClick: () => {
+                    setDeleteMessage(null);
+                    setGroupToDelete(group);
+                  },
+                }]
+              : []),
+          ]}
           fields={[
-            { label: "Members", value: subscriberValue(group) },
+            { label: "Subscribers", value: subscriberValue(group) },
             { label: "Next auction", value: formatGroupDate(group.next_auct_date) },
             {
               label: "Auction time",
@@ -124,6 +182,20 @@ const NewGroups = ({
           ]}
         />
       ))}
+
+      {groupToEdit && (
+        <EditNewGroupModal
+          group={groupToEdit}
+          saving={isSaving}
+          error={editMessage}
+          onClose={() => {
+            if (isSaving) return;
+            setGroupToEdit(null);
+            setEditMessage(null);
+          }}
+          onSave={saveEditedGroup}
+        />
+      )}
 
       {groupToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
