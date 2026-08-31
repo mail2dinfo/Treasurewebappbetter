@@ -3,6 +3,7 @@ import { FaPlus, FaEdit, FaTrash, FaChevronDown, FaChevronUp, FaSave, FaTimes, F
 import { toast } from 'react-toastify';
 import { useProductContext } from '../context/product_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
+import Loading from '../components/Loading';
 
 const ProductsPage = () => {
   const platform = usePlatformAccess();
@@ -593,10 +594,7 @@ const ProductsPage = () => {
               {/* Product List */}
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 max-h-96 overflow-y-auto">
                 {loading ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-2"></div>
-                    <p className="text-sm font-medium">Loading products...</p>
-                  </div>
+                  <Loading fullscreen label="Loading products..." />
                 ) : error ? (
                   <div className="text-center py-8 text-red-500">
                     <div className="bg-red-100 rounded-full p-3 w-12 h-12 mx-auto mb-2 flex items-center justify-center">

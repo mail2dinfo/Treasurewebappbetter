@@ -3,6 +3,7 @@ import { FiRefreshCw, FiDollarSign } from 'react-icons/fi';
 import { usePersonalLoanContext } from '../../context/personalLoan/PersonalLoanContext';
 import PersonalLoanLoanCollectionForm from '../../components/personalLoan/PersonalLoanLoanCollectionForm';
 import { getPlLoanModeLabel } from '../../utils/personalLoanModes';
+import Loading from '../../components/Loading';
 
 const formatCurrency = (value) =>
     `₹${parseFloat(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
@@ -98,7 +99,7 @@ const PersonalLoanCollectionsPage = () => {
 
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 {isLoading && collectibleLoans.length === 0 ? (
-                    <div className="p-10 text-center text-gray-500">Loading collections…</div>
+                    <Loading fullscreen label="Loading collections…" />
                 ) : collectibleLoans.length === 0 ? (
                     <div className="p-10 text-center text-gray-500">
                         No active loans with outstanding dues.

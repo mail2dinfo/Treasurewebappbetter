@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import styled from "styled-components";
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
-import loadingImage from '../images/preloader.gif';
 import Alert from '../components/Alert';
+import Loading from './Loading';
 
 
 const EmployeeProfilecard = ({ employeeId }) => {
@@ -249,7 +249,7 @@ const EmployeeProfilecard = ({ employeeId }) => {
     if (loading) {
         return (
             <>
-                <img src={loadingImage} className='loading-img' alt='loding' />
+                <Loading />
                 <div className="placeholder" style={{ height: '50vh' }}></div>
             </>
         );

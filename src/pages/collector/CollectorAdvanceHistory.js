@@ -3,8 +3,7 @@ import { FiDollarSign, FiFilter, FiX, FiRefreshCw, FiPlus, FiCheckCircle } from 
 import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import AddAdvanceModal from '../../components/collector/AddAdvanceModal';
-import loadingImage from '../../images/preloader.gif';
-
+import Loading from '../../components/Loading';
 const CollectorAdvanceHistory = () => {
     const { user } = useCollector();
     const {
@@ -88,7 +87,7 @@ const CollectorAdvanceHistory = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <img src={loadingImage} alt="Loading..." className="w-16 h-16 mx-auto mb-4" />
+                    <Loading />
                     <p className="text-gray-600">Loading advance history...</p>
                 </div>
             </div>
@@ -384,7 +383,7 @@ const CollectorAdvanceHistory = () => {
                 {isLoading && displayedEntries.length > 0 && (
                     <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
                         <div className="bg-white rounded-lg p-6 shadow-xl">
-                            <img src={loadingImage} alt="Loading..." className="w-12 h-12 mx-auto mb-4" />
+                            <Loading />
                             <p className="text-gray-700">Refreshing...</p>
                         </div>
                     </div>

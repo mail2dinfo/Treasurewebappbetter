@@ -16,6 +16,7 @@ import {
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getRosterFill, sortByTicketId } from "../utils/groupTicketCapacity";
+import Loading from "../components/Loading";
 
 const AddSub = () => {
   const history = useHistory();
@@ -123,10 +124,7 @@ const AddSub = () => {
   if (isLoading && !data) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="mx-auto mb-3 h-10 w-10 rounded-full border-2 border-red-200 border-t-red-600 animate-spin" />
-          <p className="text-sm text-gray-500">Loading group subscribers…</p>
-        </div>
+        <Loading label="Loading group subscribers…" />
       </div>
     );
   }

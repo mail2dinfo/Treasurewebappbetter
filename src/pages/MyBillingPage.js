@@ -13,7 +13,6 @@ import PlansSelection from '../components/PlansSelection';
 import PlanUpgradeForm from '../components/PlanUpgradeForm';
 import BillingPaymentModal from '../components/BillingPaymentModal';
 import BillingCycleChangePanel from '../components/BillingCycleChangePanel';
-import loadingImage from '../images/preloader.gif';
 
 const MyBillingPage = () => {
     const { user } = useUserContext();
@@ -641,7 +640,7 @@ const MyBillingPage = () => {
     if (isLoading && !hasLoaded) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center bg-gray-50">
-                <img src={loadingImage} className="loading-img" alt="" style={{ marginTop: 0 }} />
+                <Loading />
             </div>
         );
     }

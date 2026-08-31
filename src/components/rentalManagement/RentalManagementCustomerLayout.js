@@ -9,6 +9,7 @@ import MyTreasureBrand from '../MyTreasureBrand';
 import AndroidAppNavButton from '../AndroidAppNavButton';
 import RmPhotoGallery from './RmPhotoGallery';
 import TenantAgreementDetail from './TenantAgreementDetail';
+import Loading from '../Loading';
 
 const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
@@ -139,7 +140,7 @@ const TenantHome = () => {
   }, [token]);
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500">Loading…</div>;
+    return <Loading fullscreen />;
   }
 
   return (

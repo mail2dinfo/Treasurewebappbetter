@@ -3,6 +3,7 @@ import { toast } from 'react-toastify';
 import { useGroupDetailsContext } from '../context/group_context';
 import { useCompanySubscriberContext } from '../context/companysubscriber_context';
 import { User, Phone, Search, X, AlertTriangle } from 'lucide-react';
+import Loading from './Loading';
 
 const Scenario1Modal = ({ isOpen, onClose, subscriber, groupId }) => {
     const { checkDeletionScenario, deleteGroupSubscriberWithScenario, replaceGroupSubscriber } = useGroupDetailsContext();
@@ -227,7 +228,7 @@ const Scenario1Modal = ({ isOpen, onClose, subscriber, groupId }) => {
                     {/* Scenario Analysis */}
                     {loading && !scenarioData && (
                         <div className="text-center py-8">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500 mx-auto mb-4"></div>
+                            <Loading />
                             <p className="text-gray-600">Analyzing subscriber data...</p>
                         </div>
                     )}

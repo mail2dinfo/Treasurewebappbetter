@@ -56,7 +56,7 @@ function VerifyOTP() {
         <Wrapper className="section-center">
             <div className="contain">
                 <h3>Verify OTP</h3>
-                <LoadingBar isLoading={isLoading} />
+                <LoadingBar isLoading={isLoading} offsetClass="top-3" />
                 {isVerified ? (
                     <div>
                         <p>

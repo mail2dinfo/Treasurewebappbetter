@@ -5,9 +5,9 @@ import AvatarUploader from '../components/AvatarUploader';
 import { uploadImage } from "../utils/uploadImage";
 import AlertComponent from '../components/Alert';
 import CollectorDashboardModal from './CollectorDashboardModal';
-import loadingImage from '../images/preloader.gif';
 import "../style/AddEmployee.css";
 import { API_BASE_URL } from "../utils/apiConfig";
+import Loading from './Loading';
 
 const AddEmployee = () => {
     const { user } = useUserContext();
@@ -204,7 +204,7 @@ const AddEmployee = () => {
             {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
 
             {isLoading ? (
-                <img src={loadingImage} alt="Loading..." />
+                <Loading />
             ) : (
                 <div className="overflow-x-auto">
                 <table className="employee-list">
@@ -336,7 +336,7 @@ const AddEmployee = () => {
                                 </button>
                                 <button type="submit" className="employee-modal-save" disabled={isSubmitting}>
                                     {isSubmitting ? (
-                                        <img src={loadingImage} alt="Submitting" style={{ width: 20 }} />
+                                        <Loading size="sm" />
                                     ) : (
                                         'Add Employee'
                                     )}

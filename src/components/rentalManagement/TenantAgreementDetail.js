@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { useUserContext } from '../../context/user_context';
 import AgreementSevenStepReview from './AgreementSevenStepReview';
+import Loading from '../Loading';
 
 const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
@@ -143,7 +144,7 @@ const TenantAgreementDetail = () => {
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-gray-500">Loading…</div>;
+    return <Loading fullscreen />;
   }
   if (!agreement) return null;
 

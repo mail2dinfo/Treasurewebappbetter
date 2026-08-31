@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FiDollarSign, FiTrendingUp, FiUsers, FiEye, FiRefreshCw, FiAlertCircle, FiUserCheck } from 'react-icons/fi';
 import { useCollector } from '../../context/CollectorProvider';
 import { usePlatformAccess } from '../../context/platformAccess_context';
+import Loading from '../../components/Loading';
 
 const formatAmount = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
@@ -39,7 +40,7 @@ const CollectorDashboard = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+                    <Loading />
                     <p className="mt-4 text-gray-600">Loading dashboard...</p>
                 </div>
             </div>

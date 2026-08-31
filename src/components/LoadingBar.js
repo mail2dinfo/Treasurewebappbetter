@@ -1,27 +1,19 @@
-// LoadingBar.js
-import React from 'react';
-import styled from 'styled-components';
+import React from "react";
+import { LoadingSquares } from "./Loading";
 
-const LoadingBarContainer = styled.div`
-  display: ${({ isLoading }) => (isLoading ? 'block' : 'none')};
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background-color: #007bff; /* Choose a loading bar color */
-  z-index: 9999;
-  animation: loading 2s linear infinite;
-  
-  @keyframes loading {
-    0% { width: 0; }
-    50% { width: 50%; }
-    100% { width: 0; }
-  }
-`;
+function LoadingBar({ isLoading = true, offsetClass = "top-20" }) {
+  if (!isLoading) return null;
 
-function LoadingBar({ isLoading }) {
-  return <LoadingBarContainer isLoading={isLoading} />;
+  return (
+    <div
+      className={`fixed ${offsetClass} left-0 right-0 z-[9999] flex justify-center pt-2 pointer-events-none`}
+      aria-hidden={!isLoading}
+    >
+      <div className="rounded-full bg-white/95 shadow-md px-3 py-2 border border-gray-100">
+        <LoadingSquares size="sm" />
+      </div>
+    </div>
+  );
 }
 
 export default LoadingBar;

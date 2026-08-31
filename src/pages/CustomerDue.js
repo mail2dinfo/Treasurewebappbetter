@@ -4,8 +4,7 @@ import { useHistory, useParams } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
 import { FiArrowLeft } from 'react-icons/fi';
-import loadingImage from '../images/preloader.gif';
-
+import Loading from '../components/Loading';
 const CustomerDue = () => {
 
     const history = useHistory();
@@ -75,7 +74,7 @@ const CustomerDue = () => {
         return (
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
                 <div className="text-center">
-                    <img src={loadingImage} className='w-16 h-16 mx-auto mb-4' alt='loading' />
+                    <Loading />
                     <p className="text-gray-600 font-medium">Loading customer due information...</p>
                 </div>
             </div>

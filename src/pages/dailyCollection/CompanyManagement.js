@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDailyCollectionContext } from '../../context/dailyCollection/DailyCollectionContext';
 import CompanyForm from '../../components/dailyCollection/CompanyForm';
 import { FiPlus, FiEdit2, FiTrash2, FiPhone, FiMapPin, FiAlertCircle, FiX, FiBriefcase } from 'react-icons/fi';
+import Loading from '../../components/Loading';
 
 const CompanyManagement = () => {
     const { companies, isLoading, error, fetchCompanies, createCompany, updateCompany, deleteCompany, clearError } = useDailyCollectionContext();
@@ -125,7 +126,7 @@ const CompanyManagement = () => {
                 {isLoading && companies.length === 0 && (
                     <div className="flex justify-center items-center py-20">
                         <div className="text-center">
-                            <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <Loading />
                             <p className="text-gray-600">Loading companies...</p>
                         </div>
                     </div>

@@ -3,8 +3,7 @@ import { useParams, useHistory, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
 import Alert from '../components/Alert';
-import loadingImage from '../images/preloader.gif';
-
+import Loading from '../components/Loading';
 const SubscriberPasswordUpdate = () => {
     const { id: subscriberId } = useParams();
     const history = useHistory();
@@ -128,7 +127,7 @@ const SubscriberPasswordUpdate = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <img src={loadingImage} alt="Loading..." className="mx-auto mb-4" />
+                    <Loading />
                     <p className="text-gray-600">Loading subscriber data...</p>
                 </div>
             </div>

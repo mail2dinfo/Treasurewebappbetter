@@ -16,6 +16,7 @@ import PersonalLoanRepaymentProgress from '../../components/personalLoan/Persona
 import { getPlLoanModeLabel } from '../../utils/personalLoanModes';
 import { buildPersonalLoanSchedulePreview } from '../../utils/personalLoanSchedule';
 import { resolveCompanyLogoForPdf } from '../../utils/pdfLogo';
+import Loading from '../../components/Loading';
 
 const PersonalLoanLoansPage = () => {
     const location = useLocation();
@@ -377,7 +378,7 @@ const PersonalLoanLoansPage = () => {
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     {isLoading ? (
                         <div className="p-8 text-center">
-                            <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <Loading />
                             <p className="text-gray-500 mt-4">Loading loans...</p>
                         </div>
                     ) : displayLoans.length === 0 ? (
@@ -659,7 +660,7 @@ const PersonalLoanLoansPage = () => {
                             </div>
                             {isLoadingDetails ? (
                                 <div className="p-8 text-center">
-                                    <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                    <Loading />
                                     <p className="text-gray-600 mt-4">Loading loan details...</p>
                                 </div>
                             ) : (

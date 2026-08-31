@@ -4,6 +4,7 @@ import VehicleFinanceCompanyForm from '../../components/vehicleFinance/VehicleFi
 import { getVfCompanyLogoUrl } from '../../components/vehicleFinance/vfCompanyLogo';
 import { FiPlus, FiEdit2, FiTrash2, FiPhone, FiMapPin, FiAlertCircle, FiX, FiBriefcase } from 'react-icons/fi';
 import { useVfPermission } from '../../components/vehicleFinance/useVfPermission';
+import Loading from '../../components/Loading';
 
 const VehicleFinanceCompanyManagement = () => {
     const { companies, isLoading, error, fetchCompanies, createCompany, updateCompany, deleteCompany, clearError } = useVehicleFinanceContext();
@@ -122,7 +123,7 @@ const VehicleFinanceCompanyManagement = () => {
                 {isLoading && companies.length === 0 && (
                     <div className="flex justify-center items-center py-20">
                         <div className="text-center">
-                            <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <Loading />
                             <p className="text-gray-600">Loading companies...</p>
                         </div>
                     </div>

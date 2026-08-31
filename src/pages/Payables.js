@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { usePlatformAccess } from '../context/platformAccess_context';
+import Loading from '../components/Loading';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -724,10 +725,7 @@ const Payables = () => {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
       {isLoading ? (
         <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <div className="w-16 h-16 border-4 border-custom-red border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600 text-lg">Loading payables...</p>
-          </div>
+          <Loading label="Loading payables..." />
         </div>
       ) : (
         <div className="container mx-auto px-4 py-8">

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useHistory, useLocation } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiConfig';
-import loadingImage from '../images/preloader.gif';
 import { useUserContext } from '../context/user_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
 //To generate PDF need 3 imports
@@ -15,6 +14,7 @@ import Select from 'react-select';
 import FixedMapPicker from '../components/FixedMapPicker';
 import SimpleLocationPicker from '../components/SimpleLocationPicker';
 import "../style/SubscriberProfile.css";
+import Loading from '../components/Loading';
 
 const SubscriberProfile = () => {
   const { user } = useUserContext();
@@ -525,11 +525,7 @@ const SubscriberProfile = () => {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '30vh' }}>
-        <img
-          src={loadingImage}
-          alt="Loading..."
-          style={{ maxWidth: '100px', maxHeight: '100px' }}
-        />
+        <Loading />
       </div>
     );
   }

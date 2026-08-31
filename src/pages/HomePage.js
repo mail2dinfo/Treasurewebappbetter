@@ -6,8 +6,7 @@
 // import styled from 'styled-components';
 // import { useHistory } from 'react-router-dom';
 // import GroupDataInNavbar from '../components/GroupDataInNavbar';
-// import loadingImage from '../images/preloader.gif';
-// //for ledger account
+// // //for ledger account
 // import { useLedgerAccountContext } from "../context/ledgerAccount_context";
 // import { useLedgerEntryContext } from "../context/ledgerEntry_context";
 // import { useAobContext } from "../context/aob_context";
@@ -122,7 +121,7 @@
 //   if (isLoading) {
 //     return (
 //       <>
-//         <img src={loadingImage} className='loading-img' alt='loding' />
+//         <Loading />
 //         <div className="placeholder" style={{ height: '50vh' }}></div>
 //       </>
 //     );
@@ -372,7 +371,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { ReadyGroups, NewGroups, ClosedGroups, UserDetails, ScrollToTop } from '../components';
 import { useHistory } from 'react-router-dom';
 import GroupDataInNavbar from '../components/GroupDataInNavbar';
-import loadingImage from '../images/preloader.gif';
 import { useUserContext } from '../context/user_context';
 import { useCompanySubscriberContext } from '../context/companysubscriber_context';
 import { useLedgerAccountContext } from "../context/ledgerAccount_context";
@@ -381,6 +379,7 @@ import { useAobContext } from "../context/aob_context";
 import { useGroupsDetailsContext } from "../context/groups_context";
 import { FiPlus, FiSearch } from 'react-icons/fi';
 import '../style/home.css';
+import Loading from '../components/Loading';
 
 const GROUPS_PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -467,7 +466,7 @@ const HomePage = ({
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
         <div className="flex items-center justify-center min-h-[40vh] w-full">
           <div className="text-center">
-            <img src={loadingImage} className="loading-img w-20 h-20 mx-auto mb-4" alt="" style={{ marginTop: 0 }} />
+            <Loading />
             {groupsOnly && <p className="text-gray-600 font-medium">Loading groups...</p>}
           </div>
         </div>

@@ -4,8 +4,8 @@ import { useDailyCollectionContext } from '../../context/dailyCollection/DailyCo
 import { useDcSubscriberContext } from '../../context/dailyCollection/DcSubscriberContext';
 import DailyCollectionHighlights from '../../components/dailyCollection/DailyCollectionHighlights';
 import { DC_BASE_PATH } from '../../components/dailyCollection/dailyCollectionMenuItems';
-import loadingImage from '../../images/preloader.gif';
 import '../../style/home.css';
+import Loading from '../../components/Loading';
 
 const DashboardPage = () => {
     const history = useHistory();
@@ -82,7 +82,7 @@ const DashboardPage = () => {
     if (pageLoading) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
-                <img src={loadingImage} className="loading-img" alt="" style={{ marginTop: 0 }} />
+                <Loading />
             </div>
         );
     }

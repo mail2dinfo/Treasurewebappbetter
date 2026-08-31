@@ -3,9 +3,7 @@
 // import { useParams } from 'react-router-dom';
 // import { API_BASE_URL } from '../utils/apiConfig';
 // import { useUserContext } from '../context/user_context';
-// import loadingImage from '../images/preloader.gif';
-
-// const UserDue = () => {
+// // const UserDue = () => {
 
 
 //     const { groupId } = useParams();
@@ -76,7 +74,7 @@
 //     if (isLoading) {
 //         return (
 //             <>
-//                 <img src={loadingImage} className='loading-img' alt='loding' />
+//                 <Loading />
 //                 <div className="placeholder" style={{ height: '50vh' }}></div>
 //             </>
 //         );
@@ -97,8 +95,7 @@ import { useParams } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
 import { useGroupDetailsContext } from '../context/group_context';
-import loadingImage from '../images/preloader.gif';
-
+import Loading from '../components/Loading';
 const toAmount = (value) => {
   if (value === '' || value === null || value === undefined) return 0;
   const num = Number(value);
@@ -172,7 +169,7 @@ const UserDue = () => {
   if (isLoading) {
     return (
       <>
-        <img src={loadingImage} className="loading-img" alt="loading" />
+        <Loading />
         <div className="placeholder" style={{ height: '50vh' }}></div>
       </>
     );

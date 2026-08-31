@@ -1,7 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useReceivablesContext } from '../context/receivables_context';
-import loadingImage from '../images/preloader.gif';
 import { FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiGrid, FiList, FiRefreshCw, FiDownload } from 'react-icons/fi';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ReceivablePayementModal from '../components/ReceivablePayementModal';
@@ -10,6 +9,8 @@ import { usePlatformAccess } from '../context/platformAccess_context';
 import { useUserContext } from '../context/user_context';
 import Mypdf from '../components/PDF/Mypdf';
 import { formatReceivableDueNo } from '../utils/formatReceivableDueNo';
+import Loading from '../components/Loading';
+import LoadingBar from '../components/LoadingBar';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -17,7 +18,7 @@ const Receivable = () => {
   const platform = usePlatformAccess();
   const enforceReceivableAccess = platform?.isAvailable && !platform.isOwner;
   const canPayReceivable = !enforceReceivableAccess || platform.hasPermission('chit_receivables_pay');
-  const { fetchReceivables, receivables, isLoading } = useReceivablesContext();
+  const { fetchReceivables, receivables, isLoading, hasLoaded } = useReceivablesContext();
   const { user } = useUserContext();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedReceivable, setSelectedReceivable] = useState(null);
@@ -788,16 +789,14 @@ const Receivable = () => {
     };
   };
 
-  const isInitialLoad = isLoading && receivables.length === 0;
+  const isInitialLoad = !hasLoaded || (isLoading && receivables.length === 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 sm:p-3 md:p-4 overflow-x-hidden">
+      <LoadingBar isLoading={isLoading} />
       {isInitialLoad ? (
         <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <img src={loadingImage} alt="Loading..." className="w-20 h-20 mx-auto mb-4" />
-            <p className="text-gray-600 font-medium">Loading receivables...</p>
-          </div>
+          <Loading label="Loading receivables..." />
         </div>
       ) : (
         <div className="max-w-7xl mx-auto w-full">

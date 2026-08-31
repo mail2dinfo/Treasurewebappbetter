@@ -4,8 +4,8 @@ import { FiTag, FiPlus } from 'react-icons/fi';
 import { useUserContext } from '../context/user_context';
 import { useLedgerCategoryContext } from '../context/ledgerCategory_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
-import loadingImage from '../images/preloader.gif';
 import Alert from './Alert';
+import Loading from './Loading';
 
 function LedgerCategories() {
   const { user } = useUserContext();
@@ -132,7 +132,7 @@ function LedgerCategories() {
       <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <img src={loadingImage} alt="Loading..." className="w-12 h-12" />
+            <Loading />
           </div>
         ) : categories.length === 0 ? (
           <p className="text-center text-gray-500 py-10 text-sm">No categories yet.</p>

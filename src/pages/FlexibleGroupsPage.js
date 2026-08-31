@@ -4,12 +4,12 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import styled from 'styled-components';
 import { FiPlus, FiX, FiList, FiTrash2, FiAlertTriangle } from 'react-icons/fi';
-import loadingImage from '../images/preloader.gif';
 import { useGroupDetailsContext } from '../context/group_context';
 import { useUserContext } from '../context/user_context';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { UserInfo, GroupSubscriber } from '../components';
 import GroupDetailsCard from '../components/GroupDetailsCard';
+import Loading from '../components/Loading';
 
 const Wrapper = styled.div`
   padding-top: 1.25rem;
@@ -77,10 +77,10 @@ const DueProcessedModal = ({ open, month, tenure, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[95vh] overflow-y-auto shadow-2xl">
-        <div className="bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold text-white">Dues processed</h2>
-            <p className="text-sm text-teal-100">{formatDisplayDate(month.auct_date)}</p>
+            <p className="text-sm text-red-100">{formatDisplayDate(month.auct_date)}</p>
           </div>
           <button type="button" onClick={onClose} className="text-white/80 hover:text-white p-2">
             <FiX className="w-5 h-5" />
@@ -89,7 +89,7 @@ const DueProcessedModal = ({ open, month, tenure, onClose }) => {
         <div className="p-6">
           <div className="overflow-x-auto border border-gray-200 rounded-lg">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-red-50 text-red-800">
                 <tr>
                   <th className="px-3 py-2 text-left">Subscriber</th>
                   <th className="px-3 py-2 text-left">Due no.</th>
@@ -290,7 +290,7 @@ const AddPayableModal = ({
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto shadow-2xl">
-        <div className="bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">
             {confirming ? 'Confirm payable' : 'Add payable'}
           </h2>
@@ -322,7 +322,7 @@ const AddPayableModal = ({
               </div>
               <div className="flex justify-between text-sm pt-2 border-t">
                 <span className="text-gray-500">Prize amount</span>
-                <span className="font-extrabold text-teal-800">{formatMoney(prizeNum)}</span>
+                <span className="font-extrabold text-red-800">{formatMoney(prizeNum)}</span>
               </div>
             </div>
             <div className="flex gap-3 pt-2">
@@ -338,7 +338,7 @@ const AddPayableModal = ({
                 type="button"
                 disabled={saving}
                 onClick={handleConfirm}
-                className="flex-1 px-4 py-3 bg-teal-700 text-white rounded-lg disabled:opacity-50"
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50"
               >
                 {saving ? 'Processing…' : 'Confirm'}
               </button>
@@ -355,7 +355,7 @@ const AddPayableModal = ({
               type="date"
               value={auctDate}
               onChange={(e) => setAuctDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
               required
             />
           </div>
@@ -365,7 +365,7 @@ const AddPayableModal = ({
               <select
                 value={groupSubscriberId}
                 onChange={(e) => setGroupSubscriberId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
                 required
               >
                 <option value="">Choose subscriber</option>
@@ -389,14 +389,14 @@ const AddPayableModal = ({
               min="0"
               value={customerAmount}
               onChange={(e) => setCustomerAmount(e.target.value)}
-              className="w-full px-3 py-3 border border-gray-300 rounded-lg text-xl font-bold"
+              className="w-full px-3 py-3 border border-gray-300 rounded-lg text-xl font-bold focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
               required
             />
           </div>
           {selected && (
-            <div className="rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
+            <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3">
               <p className="text-xl font-extrabold text-gray-900">{selected.name || selected.firstname}</p>
-              <p className="text-sm text-teal-800 mt-1">
+              <p className="text-sm text-red-800 mt-1">
                 Ticket {selected.accountshare_id || '—'} · {(() => {
                   let pct = Number(selected.accountshare_percentage);
                   if (!Number.isFinite(pct) || pct <= 0) pct = 100;
@@ -405,7 +405,7 @@ const AddPayableModal = ({
                 })()}
               </p>
               {prizeNum > 0 && (
-                <p className="text-2xl font-extrabold text-teal-800 mt-1">{formatMoney(prizeNum)}</p>
+                <p className="text-2xl font-extrabold text-red-800 mt-1">{formatMoney(prizeNum)}</p>
               )}
             </div>
           )}
@@ -416,7 +416,7 @@ const AddPayableModal = ({
             <button
               type="submit"
               disabled={saving || !unpaidSubscribers.length}
-              className="flex-1 px-4 py-3 bg-teal-700 text-white rounded-lg disabled:opacity-50"
+              className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50"
             >
               {saving ? 'Saving…' : 'Save payable'}
             </button>
@@ -577,7 +577,7 @@ const AddDuesModal = ({
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto shadow-2xl">
-        <div className="bg-gradient-to-r from-teal-600 to-teal-700 px-6 py-4 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">
             {confirming ? 'Confirm monthly due' : 'Add monthly due'}
           </h2>
@@ -606,7 +606,7 @@ const AddDuesModal = ({
               </div>
               <div className="overflow-x-auto border border-gray-200 rounded-lg">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-red-50 text-red-800">
                     <tr>
                       <th className="px-3 py-2 text-left">Subscriber</th>
                       <th className="px-3 py-2 text-left">Ticket</th>
@@ -644,7 +644,7 @@ const AddDuesModal = ({
                   type="button"
                   disabled={saving}
                   onClick={handleConfirmProcess}
-                  className="flex-1 px-4 py-3 bg-teal-700 text-white rounded-lg disabled:opacity-50"
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50"
                 >
                   {saving ? 'Processing…' : 'Confirm'}
                 </button>
@@ -695,7 +695,7 @@ const AddDuesModal = ({
               )}
               <div className="overflow-x-auto border border-gray-200 rounded-lg">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-red-50 text-red-800">
                     <tr>
                       <th className="px-3 py-2 text-left">Subscriber</th>
                       <th className="px-3 py-2 text-left">Ticket</th>
@@ -756,7 +756,7 @@ const AddDuesModal = ({
               type="button"
               disabled={saving || previewLoading || !ready || !rows.length}
               onClick={handleSave}
-              className="flex-1 px-4 py-3 bg-teal-700 text-white rounded-lg disabled:opacity-50"
+              className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50"
             >
               Process Monthly Due
             </button>
@@ -1053,43 +1053,43 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 min-w-0">
-              <div className="flex items-center justify-between gap-2 mb-3">
+            <section className="bg-white border border-red-100 rounded-2xl shadow-lg overflow-hidden min-w-0">
+              <div className="bg-gradient-to-r from-red-600 to-red-700 px-4 py-3 flex items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Payables</h3>
-                  <p className="text-xs text-gray-500">Prize for one subscriber at a time. Trash is only on the last payable.</p>
+                  <h3 className="text-lg font-bold text-white">Payables</h3>
+                  <p className="text-xs text-red-100">Prize for one subscriber at a time. Trash is only on the last payable.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowPayable(true)}
-                  className="shrink-0 bg-teal-700 hover:bg-teal-800 text-white px-3 py-2 rounded-lg flex items-center gap-2 text-sm"
+                  className="shrink-0 bg-white text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm"
                 >
                   <FiPlus size={16} />
                   Add payable
                 </button>
               </div>
-              <div className="overflow-x-auto">
+              <div className="p-4 overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Date</th>
-                      <th className="px-3 py-2 text-left">Subscriber</th>
-                      <th className="px-3 py-2 text-left">Prize</th>
+                  <thead>
+                    <tr className="bg-red-50 text-red-800">
+                      <th className="px-3 py-2 text-left font-semibold">Date</th>
+                      <th className="px-3 py-2 text-left font-semibold">Subscriber</th>
+                      <th className="px-3 py-2 text-left font-semibold">Prize</th>
                       <th className="px-3 py-2 text-right"> </th>
                     </tr>
                   </thead>
                   <tbody>
                     {payables.map((p) => (
-                      <tr key={p.payable_id} className="border-t">
-                        <td className="px-3 py-2">{formatDisplayDate(p.auct_date)}</td>
-                        <td className="px-3 py-2 font-semibold">{p.name || p.firstname}</td>
-                        <td className="px-3 py-2 font-bold">{formatMoney(p.payable_amount)}</td>
-                        <td className="px-3 py-2 text-right">
+                      <tr key={p.payable_id} className="border-t border-red-50 hover:bg-red-50/40">
+                        <td className="px-3 py-2.5 text-gray-700">{formatDisplayDate(p.auct_date)}</td>
+                        <td className="px-3 py-2.5 font-semibold text-gray-900">{p.name || p.firstname}</td>
+                        <td className="px-3 py-2.5 font-bold text-red-700">{formatMoney(p.payable_amount)}</td>
+                        <td className="px-3 py-2.5 text-right">
                           {lastPayable && p.group_account_id === lastPayable.group_account_id && (
                             <button
                               type="button"
                               onClick={() => openDeleteAccount('payable', p.group_account_id)}
-                              className="inline-flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg"
+                              className="inline-flex items-center gap-1 text-red-600 hover:bg-red-100 px-2 py-1 rounded-lg"
                               title="Delete last payable"
                             >
                               <FiTrash2 className="w-4 h-4" />
@@ -1100,7 +1100,7 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
                     ))}
                     {!payables.length && (
                       <tr>
-                        <td colSpan={4} className="px-3 py-6 text-center text-gray-500">No payables yet</td>
+                        <td colSpan={4} className="px-3 py-8 text-center text-gray-500">No payables yet</td>
                       </tr>
                     )}
                   </tbody>
@@ -1108,12 +1108,12 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
               </div>
             </section>
 
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 min-w-0">
-              <div className="flex items-center justify-between gap-2 mb-3">
+            <section className="bg-white border border-red-100 rounded-2xl shadow-lg overflow-hidden min-w-0">
+              <div className="bg-gradient-to-r from-red-600 to-red-700 px-4 py-3 flex items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Receivables</h3>
-                  <p className="text-xs text-gray-500">
-                    Due months: <span className="font-bold text-gray-700">{dueStatus?.due_month_count || 0}</span>
+                  <h3 className="text-lg font-bold text-white">Receivables</h3>
+                  <p className="text-xs text-red-100">
+                    Due months: <span className="font-bold text-white">{dueStatus?.due_month_count || 0}</span>
                     {dueStatus?.tenure ? ` / ${dueStatus.tenure}` : ''}
                   </p>
                 </div>
@@ -1124,17 +1124,17 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
                     setShowDues(true);
                   }}
                   disabled={dueStatus && !dueStatus.can_add_dues}
-                  className="shrink-0 bg-teal-700 hover:bg-teal-800 text-white px-3 py-2 rounded-lg flex items-center gap-2 text-sm disabled:opacity-50"
+                  className="shrink-0 bg-white text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-sm disabled:opacity-50"
                 >
                   <FiPlus size={16} />
                   Add monthly due
                 </button>
               </div>
-              <div className="space-y-2">
+              <div className="p-4 space-y-2">
                 {dueMonths.map((month) => (
                   <div
                     key={`${month.auct_date}-${month.group_account_id}`}
-                    className="border border-gray-200 rounded-lg px-3 py-2 flex flex-wrap items-center justify-between gap-2"
+                    className="border border-red-100 bg-red-50/40 rounded-xl px-3 py-2.5 flex flex-wrap items-center justify-between gap-2"
                   >
                     <span className="text-sm font-bold text-gray-900">
                       {formatDisplayDate(month.auct_date)}
@@ -1143,7 +1143,7 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
                       <button
                         type="button"
                         onClick={() => setSelectedDueMonth(month)}
-                        className="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold"
+                        className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold"
                       >
                         <FiList size={14} />
                         Dues processed
@@ -1152,7 +1152,7 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
                         <button
                           type="button"
                           onClick={() => openDeleteAccount('due', month.group_account_id)}
-                          className="inline-flex items-center gap-1 text-red-600 hover:bg-red-50 px-2 py-1.5 rounded-lg"
+                          className="inline-flex items-center gap-1 text-red-600 hover:bg-red-100 px-2 py-1.5 rounded-lg"
                           title="Delete last monthly due"
                         >
                           <FiTrash2 className="w-4 h-4" />
@@ -1252,7 +1252,7 @@ const FlexibleGroupsPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
         <div className="flex items-center justify-center min-h-[40vh]">
           <div className="text-center">
-            <img src={loadingImage} className="w-20 h-20 mx-auto mb-4" alt="loading" />
+            <Loading />
             <p className="text-gray-600 font-medium">Loading flexible group...</p>
           </div>
         </div>

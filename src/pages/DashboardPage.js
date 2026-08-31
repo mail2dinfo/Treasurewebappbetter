@@ -3,10 +3,7 @@ import { DashboardMasterInfo, DashboardAreaWiseGroups } from '../components';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useUserContext } from '../context/user_context';
 import { useDashboardContext } from '../context/dashboard_context';
-
-import loadingImage from '../images/preloader.gif';
-
-
+import Loading from '../components/Loading';
 
 const DashboardPage = () => {
 
@@ -49,7 +46,7 @@ const DashboardPage = () => {
     if (isLoading) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
-                <img src={loadingImage} className="loading-img" alt="" style={{ marginTop: 0 }} />
+                <Loading />
             </div>
         );
     }

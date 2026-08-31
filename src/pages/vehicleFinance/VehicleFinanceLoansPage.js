@@ -10,6 +10,7 @@ import VehicleFinanceLoanForeclosureModal from '../../components/vehicleFinance/
 import VehicleFinanceLoanDetails from '../../components/vehicleFinance/VehicleFinanceLoanDetails';
 import VehicleFinanceListPDF from '../../components/vehicleFinance/PDF/VehicleFinanceListPDF';
 import { useVfPermission } from '../../components/vehicleFinance/useVfPermission';
+import Loading from '../../components/Loading';
 
 const VehicleFinanceLoansPage = () => {
     const location = useLocation();
@@ -316,7 +317,7 @@ const VehicleFinanceLoansPage = () => {
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
                     {isLoading ? (
                         <div className="p-8 text-center">
-                            <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <Loading />
                             <p className="text-gray-500 mt-4">Loading loans...</p>
                         </div>
                     ) : displayLoans.length === 0 ? (

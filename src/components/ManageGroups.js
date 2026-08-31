@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useGroupsDetailsContext } from '../context/groups_context';
 import { toast, ToastContainer } from 'react-toastify';
 import { FiTrash2, FiAlertTriangle, FiLoader, FiSearch, FiFilter, FiX, FiGrid, FiList } from 'react-icons/fi';
+import Loading from './Loading';
 import 'react-toastify/dist/ReactToastify.css';
 
 const ManageGroups = () => {
@@ -208,12 +209,7 @@ const ManageGroups = () => {
             </div>
 
             {isLoading && groups.length === 0 ? (
-                <div className="flex items-center justify-center py-12">
-                    <div className="flex items-center space-x-2">
-                        <FiLoader className="animate-spin h-6 w-6 text-blue-600" />
-                        <span className="text-gray-600">Loading groups...</span>
-                    </div>
-                </div>
+                <Loading fullscreen label="Loading groups..." />
             ) : filteredGroups.length === 0 ? (
                 <div className="text-center py-12">
                     <div className="text-gray-400 mb-4">

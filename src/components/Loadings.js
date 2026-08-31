@@ -1,10 +1,6 @@
-import React from 'react'
+import React from "react";
+import Loading from "./Loading";
 
-const Loadings = () => {
- return (
-  <div className="loader">
-  </div>
- )
-}
+const Loadings = () => <Loading fullscreen />;
 
-export default Loadings
+export default Loadings;

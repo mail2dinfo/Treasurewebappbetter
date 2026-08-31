@@ -4,9 +4,7 @@ import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiX, FiCheck }
 import Modal from "./Modal";
 import { useUserContext } from "../context/user_context";
 import Alert from '../components/Alert';
-import loadingImage from '../images/preloader.gif';
-
-
+import Loading from './Loading';
 const ReceivablesList = ({ receivables, region, onFilteredCount, refreshReceivables }) => {
 
 
@@ -248,7 +246,7 @@ const ReceivablesList = ({ receivables, region, onFilteredCount, refreshReceivab
     if (loading) {
         return (
             <>
-                <img src={loadingImage} className='loading-img' alt='loding' />
+                <Loading />
                 <div className="placeholder" style={{ height: '50vh' }}></div>
             </>
         );

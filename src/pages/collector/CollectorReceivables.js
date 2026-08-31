@@ -3,11 +3,11 @@ import { FiDollarSign, FiUsers, FiTrendingUp, FiArrowLeft, FiSearch, FiFilter, F
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
-import loadingImage from '../../images/preloader.gif';
 import CollectorPaymentModal from '../../components/collector/CollectorPaymentModal';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import Mypdf from '../../components/PDF/Mypdf';
 import { formatReceivableDueNo } from '../../utils/formatReceivableDueNo';
+import Loading from '../../components/Loading';
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
@@ -811,7 +811,7 @@ const CollectorReceivables = () => {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
-                    <img src={loadingImage} alt="Loading..." className="w-20 h-20 mx-auto mb-4" />
+                    <Loading />
                     <p className="text-gray-600 font-medium">Loading receivables...</p>
                 </div>
             </div>

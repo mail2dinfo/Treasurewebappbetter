@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useRentalManagementContext } from '../../context/rentalManagement/RentalManagementContext';
 import AgreementSevenStepReview from '../../components/rentalManagement/AgreementSevenStepReview';
 import { RM_BASE_PATH } from '../../components/rentalManagement/rentalManagementMenuItems';
+import Loading from '../../components/Loading';
 
 const RentalManagementEditAgreementPage = () => {
   const { id } = useParams();
@@ -44,7 +45,7 @@ const RentalManagementEditAgreementPage = () => {
   };
 
   if (loading && !agreement) {
-    return <div className="p-8 text-center text-gray-500">Loading…</div>;
+    return <Loading fullscreen />;
   }
   if (!agreement) {
     return (

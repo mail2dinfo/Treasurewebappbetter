@@ -4,6 +4,7 @@ import { useDcSubscriberContext } from '../../context/dailyCollection/DcSubscrib
 import LoanDisbursementForm from '../../components/dailyCollection/LoanDisbursementForm';
 import LoanDetails from '../../components/dailyCollection/LoanDetails';
 import { FiPlus, FiEye, FiDollarSign, FiCalendar, FiCheckCircle, FiClock, FiImage, FiX, FiFilter, FiSearch } from 'react-icons/fi';
+import Loading from '../../components/Loading';
 
 const LoansPage = () => {
     const { loans, products, isLoading, error, fetchLoans, fetchProducts, clearError } = useDailyCollectionContext();
@@ -421,7 +422,7 @@ const LoansPage = () => {
                 {isLoading && loans.length === 0 && (
                     <div className="flex justify-center items-center py-20">
                         <div className="text-center">
-                            <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <Loading />
                             <p className="text-gray-600">Loading loans...</p>
                         </div>
                     </div>

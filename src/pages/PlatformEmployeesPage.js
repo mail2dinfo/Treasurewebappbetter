@@ -49,6 +49,7 @@ import HhSearchableSelect from '../components/hospitalManagement/HhSearchableSel
 import { useUserContext } from '../context/user_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
 import MyTreasureBrand from '../components/MyTreasureBrand';
+import Loading from '../components/Loading';
 import CollectorDashboardModal from '../components/CollectorDashboardModal';
 import ChitFundOfferLetterPDF from '../components/chitFund/PDF/ChitFundOfferLetterPDF';
 import VehicleFinanceOfferLetterPDF from '../components/vehicleFinance/PDF/VehicleFinanceOfferLetterPDF';
@@ -2129,17 +2130,7 @@ const PlatformEmployeesPage = ({
                 )}
                 {error && <div className="mb-5 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">{error}</div>}
                 {isLoading ? (
-                    <div className="py-20" aria-busy="true" aria-label="Loading">
-                        <div className="fixed top-0 left-0 right-0 z-[200] h-1 bg-red-100 overflow-hidden">
-                            <div className="h-full w-1/3 bg-red-600 animate-[platformLoadBar_1.1s_ease-in-out_infinite]" />
-                        </div>
-                        <style>{`
-                            @keyframes platformLoadBar {
-                                0% { transform: translateX(-120%); }
-                                100% { transform: translateX(320%); }
-                            }
-                        `}</style>
-                    </div>
+                    <Loading fullscreen />
                 ) : visibleEmployees.length === 0 ? (
                     <div className="relative overflow-hidden bg-white rounded-2xl border border-gray-200 shadow-sm">
                         <div className="relative px-6 py-12 sm:px-12 sm:py-16 text-center">

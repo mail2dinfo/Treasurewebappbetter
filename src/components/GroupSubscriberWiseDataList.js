@@ -7,10 +7,10 @@ import { FiDownload } from 'react-icons/fi';
 import { FaPlus, FaMinus, FaWhatsapp } from "react-icons/fa";
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import Mypdf from '../components/PDF/Mypdf';
-import loadingImage from "../images/preloader.gif";
 import ReceivableReceitPdf from "./PDF/ReceivableReceitPdf";
 import { toast } from 'react-toastify';
 import { useGroupDetailsContext } from "../context/group_context";
+import Loading from './Loading';
 
 const GroupSubscriberWiseDataList = ({ items }) => {
     const { groupId } = useParams();
@@ -225,7 +225,7 @@ const GroupSubscriberWiseDataList = ({ items }) => {
                 <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
                     {modalLoading ? (
                         <div className="flex flex-col items-center justify-center py-16 px-8">
-                            <img src={loadingImage} alt="loading" className="w-20 h-20 mb-4" />
+                            <Loading />
                             <p className="text-gray-500 text-sm font-medium">
                                 Loading subscriber details...
                             </p>

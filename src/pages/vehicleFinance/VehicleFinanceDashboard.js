@@ -3,9 +3,9 @@ import { useLocation } from 'react-router-dom';
 import { useVehicleFinanceContext } from '../../context/vehicleFinance/VehicleFinanceContext';
 import VehicleFinanceUserDetails from '../../components/vehicleFinance/VehicleFinanceUserDetails';
 import { getVehicleFinanceBasePath } from '../../components/vehicleFinance/vehicleFinanceMenuItems';
-import loadingImage from '../../images/preloader.gif';
 import '../../style/home.css';
 import { useVfPermission } from '../../components/vehicleFinance/useVfPermission';
+import Loading from '../../components/Loading';
 
 const VehicleFinanceDashboard = () => {
     const location = useLocation();
@@ -98,7 +98,7 @@ const VehicleFinanceDashboard = () => {
     if (pageLoading) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
-                <img src={loadingImage} className="loading-img" alt="" style={{ marginTop: 0 }} />
+                <Loading />
             </div>
         );
     }

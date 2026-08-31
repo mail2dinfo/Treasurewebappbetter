@@ -23,7 +23,7 @@
 //   if (!companySubscribers) {
 //     return (
 //       <>
-//         <img src={loadingImage} className="loading-img" alt="loading" />
+//         <Loading />
 //         <div className="placeholder" style={{ height: '50vh' }}></div>
 //       </>
 //     );
@@ -158,12 +158,12 @@ import { useState, useEffect, useMemo } from 'react';
 import Subcriber from './Subcriber';
 import { useHistory, useParams } from 'react-router-dom';
 import { useCompanySubscriberContext } from '../context/companysubscriber_context';
-import loadingImage from '../images/preloader.gif';
 import { useUserContext } from '../context/user_context';
 import { useGroupDetailsContext } from '../context/group_context';
 import { getRosterFill, sortByTicketId } from '../utils/groupTicketCapacity';
 import { FiPlus, FiSearch, FiGrid, FiList, FiUsers, FiX, FiArrowLeft } from 'react-icons/fi';
 import '../style/home.css';
+import Loading from './Loading';
 
 const formatSharePct = (value) => {
   let pct = Number(value);
@@ -302,7 +302,7 @@ const Subscribers = ({
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
         <div className="flex items-center justify-center min-h-[40vh]">
           <div className="text-center">
-            <img src={loadingImage} alt="" className="w-20 h-20 mx-auto mb-4" />
+            <Loading />
             <p className="text-gray-600 font-medium">Loading subscribers...</p>
           </div>
         </div>

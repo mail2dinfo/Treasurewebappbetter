@@ -10,6 +10,7 @@ import AndroidAppNavButton from '../components/AndroidAppNavButton';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { BILLING_APP_CODES, getBillingPathForApp } from '../utils/billingAppCodes';
 import { BILLING_PLANS, mergePlansWithCatalog } from '../utils/billingPlans';
+import Loading from '../components/Loading';
 
 /** Distinct look per product so cards are easy to tell apart at a glance. */
 const APP_THEMES = {
@@ -1251,10 +1252,7 @@ const AppSelectionPage = () => {
     if (!platform?.hasLoaded) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-10 h-10 border-4 border-red-200 border-t-red-600 rounded-full animate-spin mx-auto" />
-                    <p className="mt-4 text-gray-600">Loading your applications…</p>
-                </div>
+                <Loading label="Loading your applications…" />
             </div>
         );
     }

@@ -161,7 +161,7 @@ const GroupDetailsCard = ({
                     {isFlexible ? (
                         <>
                             <div className="text-center">
-                                <div className={`${circleSize} bg-gradient-to-br from-teal-500 to-teal-700 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg px-2`}>
+                                <div className={`${circleSize} bg-gradient-to-br from-red-500 to-red-700 rounded-full flex items-center justify-center mx-auto mb-2 shadow-lg px-2`}>
                                     <span className={circleText}>
                                         {payablesSettled || 0} / {payablesTotal || 0}
                                     </span>

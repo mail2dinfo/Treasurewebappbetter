@@ -6,6 +6,7 @@ import VehicleFinanceLedgerAccountForm from '../../components/vehicleFinance/Veh
 import VehicleFinanceLedgerEntryForm from '../../components/vehicleFinance/VehicleFinanceLedgerEntryForm';
 import VehicleFinanceDayBookTab from '../../components/vehicleFinance/VehicleFinanceDayBookTab';
 import { useVfPermission } from '../../components/vehicleFinance/useVfPermission';
+import Loading from '../../components/Loading';
 
 const VehicleFinanceLedgerPage = () => {
     const history = useHistory();
@@ -268,7 +269,7 @@ const VehicleFinanceLedgerPage = () => {
                 {isLoading && activeTab !== 'daybook' && (
                     <div className="flex justify-center items-center py-20">
                         <div className="text-center">
-                            <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <Loading />
                             <p className="text-gray-600">Loading ledger data...</p>
                         </div>
                     </div>

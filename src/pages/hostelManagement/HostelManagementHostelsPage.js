@@ -4,6 +4,7 @@ import { useHostelManagement } from '../../context/hostelManagement/HostelManage
 import { useHmPermission } from '../../components/hostelManagement/useHmPermission';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { uploadImage } from '../../utils/uploadImage';
+import Loading from '../../components/Loading';
 
 const EMPTY_FORM = {
   hostelName: '',
@@ -297,7 +298,7 @@ const HostelManagementHostelsPage = ({ embedded = false }) => {
             All hostels ({hostels.length})
           </p>
         </div>
-        {isLoading ? <p className="p-6 text-gray-500">Loading…</p> : hostels.length === 0 ? (
+        {isLoading ? <Loading fullscreen /> : hostels.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-gray-500 text-sm">No hostels yet.</p>
             {canCreate && !formOpen && (

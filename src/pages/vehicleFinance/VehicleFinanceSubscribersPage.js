@@ -4,6 +4,7 @@ import VehicleFinanceSubscriberForm from '../../components/vehicleFinance/Vehicl
 import { FiPlus, FiEdit2, FiTrash2, FiPhone, FiMapPin, FiUser, FiAlertCircle, FiImage, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { useVfPermission } from '../../components/vehicleFinance/useVfPermission';
+import Loading from '../../components/Loading';
 
 const VehicleFinanceSubscribersPage = () => {
     const {
@@ -179,7 +180,7 @@ const VehicleFinanceSubscribersPage = () => {
                 {isLoading && subscribers.length === 0 && (
                     <div className="flex justify-center items-center py-20">
                         <div className="text-center">
-                            <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <Loading />
                             <p className="text-gray-600">Loading subscribers...</p>
                         </div>
                     </div>

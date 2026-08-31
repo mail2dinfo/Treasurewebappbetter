@@ -4,8 +4,8 @@ import { FiMapPin, FiPlus } from 'react-icons/fi';
 import { useUserContext } from '../context/user_context';
 import { useAobContext } from '../context/aob_context';
 import { usePlatformAccess } from '../context/platformAccess_context';
-import loadingImage from '../images/preloader.gif';
 import Alert from '../components/Alert';
+import Loading from './Loading';
 
 function AddAob() {
   const { user } = useUserContext();
@@ -123,7 +123,7 @@ function AddAob() {
         </div>
         {isLoading ? (
           <div className="py-10 flex justify-center">
-            <img src={loadingImage} alt="Loading areas" className="w-12 h-12" />
+            <Loading />
           </div>
         ) : aobs.length ? (
           <div className="divide-y divide-gray-100">

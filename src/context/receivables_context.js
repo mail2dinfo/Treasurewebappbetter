@@ -8,7 +8,8 @@ const ReceivablesContext = createContext();
 
 const initialState = {
   receivables: [],
-  isLoading: false,
+  isLoading: true,
+  hasLoaded: false,
   error: null,
 };
 
@@ -17,9 +18,14 @@ function receivablesReducer(state, action) {
     case "FETCH_START":
       return { ...state, isLoading: true, error: null };
     case "FETCH_SUCCESS":
-      return { ...state, isLoading: false, receivables: action.payload };
+      return {
+        ...state,
+        isLoading: false,
+        hasLoaded: true,
+        receivables: action.payload,
+      };
     case "FETCH_ERROR":
-      return { ...state, isLoading: false, error: action.payload };
+      return { ...state, isLoading: false, hasLoaded: true, error: action.payload };
     default:
       return state;
   }
@@ -30,7 +36,10 @@ export const ReceivablesProvider = ({ children }) => {
   const [state, dispatch] = useReducer(receivablesReducer, initialState);
 
   const fetchReceivables = useCallback(async (options = {}) => {
-    if (!user?.results?.token) return;
+    if (!user?.results?.token) {
+      dispatch({ type: "FETCH_ERROR", payload: "Not signed in" });
+      return;
+    }
 
     const membershipId = getChitCompanyMembershipId(user);
     if (!membershipId) {
@@ -77,6 +86,7 @@ export const ReceivablesProvider = ({ children }) => {
       value={{
         receivables: state.receivables,
         isLoading: state.isLoading,
+        hasLoaded: state.hasLoaded,
         error: state.error,
         fetchReceivables
       }}

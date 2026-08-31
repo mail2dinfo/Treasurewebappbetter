@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { useHistory } from 'react-router-dom'; // Import useHistory hook
-import loadingImage from '../images/preloader.gif';
 import CollectorDashboardModal from './CollectorDashboardModal';
+import Loading from './Loading';
 
 const EmployeeList = ({ items, removeItem, editItem, toggleList }) => {
     const [signedUrls, setSignedUrls] = useState({});
@@ -60,7 +60,7 @@ const EmployeeList = ({ items, removeItem, editItem, toggleList }) => {
     }, [items]);
 
     if (loading) {
-        return <p>Loading...</p>;
+        return <Loading fullscreen />;
     }
 
     if (error) {
@@ -101,15 +101,6 @@ const EmployeeList = ({ items, removeItem, editItem, toggleList }) => {
         setShowCollectorModal(false);
         setSelectedCollector(null);
     };
-
-    if (loading) {
-        return (
-            <>
-                <img src={loadingImage} className='loading-img' alt='loding' />
-                <div className="placeholder" style={{ height: '50vh' }}></div>
-            </>
-        );
-    }
 
     return (
         <>

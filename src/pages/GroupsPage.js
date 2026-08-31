@@ -1,8 +1,7 @@
 // import { useEffect } from 'react';
 // import { Groups, GroupSubscriber, UserInfo } from '../components';
 // import { useParams } from 'react-router-dom';
-// import loadingImage from '../images/preloader.gif';
-// import { useGroupDetailsContext } from '../context/group_context';
+// // import { useGroupDetailsContext } from '../context/group_context';
 
 // const GroupsPage = () => {
 //   const { groupId } = useParams();
@@ -17,7 +16,7 @@
 //   if (state.isLoading) {
 //     return (
 //       <>
-//         <img src={loadingImage} className='loading-img' alt='loading' />
+//         <Loading />
 //         <div className="placeholder" style={{ height: '50vh' }}></div>
 //       </>
 //     );
@@ -44,9 +43,7 @@
 // import { API_BASE_URL } from '../utils/apiConfig';
 // import { useUserContext } from '../context/user_context';
 // import { useGroupDetailsContext } from '../context/group_context';
-// import loadingImage from '../images/preloader.gif';
-
-// const GroupsPage = () => {
+// // const GroupsPage = () => {
 
 
 //     const { groupId } = useParams();
@@ -96,7 +93,7 @@
 //     if (isLoading) {
 //         return (
 //             <>
-//                 <img src={loadingImage} className='loading-img' alt='loding' />
+//                 <Loading />
 //                 <div className="placeholder" style={{ height: '50vh' }}></div>
 //             </>
 //         );
@@ -121,8 +118,8 @@
 import { useEffect } from "react";
 import { useParams, useHistory, useLocation } from "react-router-dom";
 import { UserInfo, Groups, GroupSubscriber } from "../components";
-import loadingImage from "../images/preloader.gif";
 import { useGroupDetailsContext } from "../context/group_context";
+import Loading from '../components/Loading';
 
 const GroupsPage = () => {
     const { groupId } = useParams();
@@ -155,7 +152,7 @@ const GroupsPage = () => {
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
                 <div className="flex items-center justify-center min-h-[40vh]">
                     <div className="text-center">
-                        <img src={loadingImage} className="w-20 h-20 mx-auto mb-4" alt="loading" />
+                        <Loading />
                         <p className="text-gray-600 font-medium">Loading group...</p>
                     </div>
                 </div>

@@ -5,7 +5,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import styled from 'styled-components';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { FiDownload, FiPlus, FiX } from 'react-icons/fi';
-import loadingImage from '../images/preloader.gif';
 import { useGroupDetailsContext } from '../context/group_context';
 import { useUserContext } from '../context/user_context';
 import { API_BASE_URL } from '../utils/apiConfig';
@@ -13,6 +12,7 @@ import { UserInfo, GroupSubscriber } from '../components';
 import GroupAccountsPdf from '../components/PDF/GroupAccountsPdf';
 import GroupsAccounts from '../components/GroupsAccounts';
 import GroupDetailsCard from '../components/GroupDetailsCard';
+import Loading from '../components/Loading';
 
 const todayISO = () => {
   const d = new Date();
@@ -630,7 +630,7 @@ const AdaptiveGroupsPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-2 md:p-4">
         <div className="flex items-center justify-center min-h-[40vh]">
           <div className="text-center">
-            <img src={loadingImage} className="w-20 h-20 mx-auto mb-4" alt="loading" />
+            <Loading />
             <p className="text-gray-600 font-medium">Loading adaptive group...</p>
           </div>
         </div>

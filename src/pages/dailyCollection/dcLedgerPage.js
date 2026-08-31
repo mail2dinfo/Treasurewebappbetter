@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDcLedgerContext } from '../../context/dailyCollection/dcLedgerContext';
 import DayBookTab from './DayBookTab';
 import { FiPlus, FiDollarSign, FiTrendingUp, FiCalendar, FiRefreshCw } from 'react-icons/fi';
+import Loading from '../../components/Loading';
 
 const DcLedgerPage = () => {
     const {
@@ -235,7 +236,7 @@ const DcLedgerPage = () => {
                 {isLoading && (
                     <div className="flex justify-center items-center py-20">
                         <div className="text-center">
-                            <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <Loading />
                             <p className="text-gray-600">Loading ledger data...</p>
                         </div>
                     </div>

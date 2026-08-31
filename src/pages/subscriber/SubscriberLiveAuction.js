@@ -4,6 +4,7 @@ import { useSubscriberContext } from '../../context/subscriber/SubscriberContext
 import io from 'socket.io-client';
 import { WEBSOCKET_URL } from '../../utils/apiConfig';
 import { toast } from 'react-toastify';
+import Loading from '../../components/Loading';
 
 const SubscriberLiveAuction = () => {
     const { groupId, grpSubId } = useParams();
@@ -346,7 +347,7 @@ const SubscriberLiveAuction = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+                    <Loading />
                     <p className="text-gray-600">Loading auction details...</p>
                 </div>
             </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiChevronLeft, FiChevronRight, FiCalendar, FiRefreshCw } from 'react-icons/fi';
+import Loading from '../../components/Loading';
 
 const DayBookTab = ({ dayBook, fetchDayBook }) => {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -148,7 +149,7 @@ const DayBookTab = ({ dayBook, fetchDayBook }) => {
             {/* Loading State */}
             {isLoading && !dayBook && (
                 <div className="bg-white rounded-xl shadow-sm p-12 text-center border border-gray-200">
-                    <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <Loading />
                     <p className="text-gray-600">Loading day book data...</p>
                 </div>
             )}

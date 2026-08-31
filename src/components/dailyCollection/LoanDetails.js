@@ -6,6 +6,7 @@ import { API_BASE_URL } from '../../utils/apiConfig';
 import { uploadImage } from '../../utils/uploadImage';
 import { FiX, FiUser, FiCalendar, FiDollarSign, FiCheckCircle, FiAlertCircle, FiTrash2, FiUpload, FiFile, FiCheck, FiDownload } from 'react-icons/fi';
 import LoanAgreementPDF from './PDF/LoanAgreementPDF';
+import Loading from '../Loading';
 
 const LoanDetails = ({ loan, onClose }) => {
     const { getLoanDetails, deleteLoan } = useDailyCollectionContext();
@@ -176,7 +177,7 @@ const LoanDetails = ({ loan, onClose }) => {
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-xl p-8">
-                    <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <Loading />
                     <p className="text-gray-600 mt-4 text-center">Loading loan details...</p>
                 </div>
             </div>

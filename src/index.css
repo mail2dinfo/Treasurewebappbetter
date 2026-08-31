@@ -2,6 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Sequential square loader — used on every page via <Loading /> */
+.page-loading-squares {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.page-loading-squares--sm {
+  gap: 4px;
+}
+
+.page-loading-squares--lg {
+  gap: 8px;
+}
+
+.page-loading-square {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #dc2626;
+  opacity: 0.22;
+  transform: scale(0.85);
+  animation: page-loading-square 1.05s ease-in-out infinite;
+}
+
+.page-loading-squares--sm .page-loading-square {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.page-loading-squares--lg .page-loading-square {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+@keyframes page-loading-square {
+  0%,
+  100% {
+    opacity: 0.22;
+    transform: scale(0.85);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  70% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+}
+
 /* Import Subscriber App Styles */
 @import './styles/subscriber.css';
 

@@ -185,7 +185,7 @@ function SignupModal({ isOpen, onClose }) {
                 <div className="p-6">
                     {alert.show && <Alert {...alert} removeAlert={showAlert} list={list} />}
 
-                    {isLoading && <LoadingBar />}
+                    {isLoading && <LoadingBar offsetClass="top-3" />}
 
                     {showSuccess ? (
                         <div className="text-center py-8">

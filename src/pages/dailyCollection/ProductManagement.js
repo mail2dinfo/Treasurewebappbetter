@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDailyCollectionContext } from '../../context/dailyCollection/DailyCollectionContext';
 import ProductForm from '../../components/dailyCollection/ProductForm';
 import { FiPlus, FiEdit2, FiTrash2, FiClock, FiPercent, FiX } from 'react-icons/fi';
+import Loading from '../../components/Loading';
 
 const ProductManagement = () => {
     const { products, isLoading, error, fetchProducts, createProduct, updateProduct, deleteProduct, clearError } = useDailyCollectionContext();
@@ -101,7 +102,7 @@ const ProductManagement = () => {
                 {isLoading && products.length === 0 && (
                     <div className="flex justify-center items-center py-20">
                         <div className="text-center">
-                            <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                            <Loading />
                             <p className="text-gray-600">Loading products...</p>
                         </div>
                     </div>

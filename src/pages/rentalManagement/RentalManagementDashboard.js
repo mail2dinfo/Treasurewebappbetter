@@ -4,8 +4,7 @@ import { toast } from 'react-toastify';
 import { useRentalManagementContext } from '../../context/rentalManagement/RentalManagementContext';
 import { RM_BASE_PATH } from '../../components/rentalManagement/rentalManagementMenuItems';
 import RmPhotoGallery from '../../components/rentalManagement/RmPhotoGallery';
-import loadingImage from '../../images/preloader.gif';
-
+import Loading from '../../components/Loading';
 const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
 const formatMonth = (dueMonth) => {
@@ -309,7 +308,7 @@ const RentalManagementDashboard = () => {
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <img src={loadingImage} alt="" className="loading-img" style={{ marginTop: 0 }} />
+        <Loading />
       </div>
     );
   }

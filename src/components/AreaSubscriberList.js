@@ -4,8 +4,7 @@ import { MdOutlineAttachMoney, MdLocationOn, MdTimeline, MdTimeToLeave } from "r
 import Modal from "./Modal";
 import { useUserContext } from "../context/user_context";
 import Alert from '../components/Alert';
-import loadingImage from '../images/preloader.gif';
-
+import Loading from './Loading';
 const AreaSubscriberList = ({ people, empRegion, onFilteredCount, refreshDueSubscribers }) => {
     const [, setPaymentSuccess] = useState(false);
     const [list] = useState([]);
@@ -279,7 +278,7 @@ const AreaSubscriberList = ({ people, empRegion, onFilteredCount, refreshDueSubs
     if (loading) {
         return (
             <>
-                <img src={loadingImage} className='loading-img' alt='loding' />
+                <Loading />
                 <div className="placeholder" style={{ height: '50vh' }}></div>
             </>
         );

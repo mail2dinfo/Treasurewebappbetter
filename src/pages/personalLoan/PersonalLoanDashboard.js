@@ -3,8 +3,8 @@ import { useHistory } from 'react-router-dom';
 import { usePersonalLoanContext } from '../../context/personalLoan/PersonalLoanContext';
 import PersonalLoanHighlights from '../../components/personalLoan/PersonalLoanHighlights';
 import { PL_BASE_PATH } from '../../components/personalLoan/personalLoanMenuItems';
-import loadingImage from '../../images/preloader.gif';
 import '../../style/home.css';
+import Loading from '../../components/Loading';
 
 const PersonalLoanDashboard = () => {
     const history = useHistory();
@@ -105,7 +105,7 @@ const PersonalLoanDashboard = () => {
     if (pageLoading) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
-                <img src={loadingImage} className="loading-img" alt="" style={{ marginTop: 0 }} />
+                <Loading />
             </div>
         );
     }
