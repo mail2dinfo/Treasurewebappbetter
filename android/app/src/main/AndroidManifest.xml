@@ -45,6 +45,12 @@
         <package android:name="net.one97.paytm" />
         <intent>
             <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="upi" android:host="pay" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
             <data android:scheme="upi" android:host="pay" />
         </intent>
         <intent>

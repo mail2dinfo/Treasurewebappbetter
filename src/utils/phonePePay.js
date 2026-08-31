@@ -112,30 +112,27 @@ export const copyText = async (text) => {
 };
 
 export const launchUpiPay = async (hrefs = {}) => {
-    const urls = [hrefs.upiHref, hrefs.phonePeHref, hrefs.intentHref].filter(Boolean);
-    if (!urls.length) return false;
+    const url = hrefs.upiHref || hrefs.phonePeHref || hrefs.intentHref;
+    if (!url) return false;
+
+    if (typeof window !== 'undefined' && window.MytreasureUpi && typeof window.MytreasureUpi.open === 'function') {
+        window.MytreasureUpi.open(url);
+        return true;
+    }
 
     try {
-        await UpiPay.open({
-            url: hrefs.upiHref || urls[0],
-            packageName: 'com.phonepe.app',
-        });
+        await UpiPay.open({ url, packageName: 'com.phonepe.app' });
         return true;
     } catch (_) {
-        /* try remaining urls */
+        /* native plugin missing or rejected */
     }
 
-    for (const url of urls) {
-        try {
-            await UpiPay.open({ url });
-            return true;
-        } catch (_) {
-            /* try next */
-        }
+    try {
+        await UpiPay.open({ url: hrefs.phonePeHref || url });
+        return true;
+    } catch (_) {
+        return false;
     }
-
-    window.location.href = urls[0];
-    return false;
 };
 
 export const buildChitUserPhonePeHref = (groupDetails, user, amount, note) =>
