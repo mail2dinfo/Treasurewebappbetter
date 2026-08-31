@@ -15,11 +15,7 @@ export const getChitUserPhoneDigits = (raw) => {
     return '';
 };
 
-/**
- * Opens PhonePe (UPI VPA = 10-digit number @ybl) with optional amount.
- * Android uses an intent so the PhonePe app is preferred over the dialer.
- */
-export const buildPhonePePayHref = ({ phone, name, amount, note } = {}) => {
+const buildUpiQuery = ({ phone, name, amount, note } = {}) => {
     const ten = getChitUserPhoneDigits(phone);
     if (ten.length !== 10) return null;
 
@@ -34,19 +30,50 @@ export const buildPhonePePayHref = ({ phone, name, amount, note } = {}) => {
     if (note) {
         params.set('tn', String(note).slice(0, 50));
     }
+    return { ten, query: params.toString() };
+};
 
-    const query = params.toString();
-    const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
-    if (isAndroid) {
-        return `intent://pay?${query}#Intent;scheme=phonepe;package=com.phonepe.app;end`;
-    }
-    return `phonepe://pay?${query}`;
+/** Standard UPI link — Android Chrome opens PhonePe / GPay / others. */
+export const buildUpiPayHref = (opts = {}) => {
+    const built = buildUpiQuery(opts);
+    return built ? `upi://pay?${built.query}` : null;
+};
+
+export const buildPhonePePayHref = (opts = {}) => {
+    const built = buildUpiQuery(opts);
+    return built ? `phonepe://pay?${built.query}` : null;
 };
 
 export const buildChitUserPhonePeHref = (groupDetails, user, amount, note) =>
-    buildPhonePePayHref({
+    buildUpiPayHref({
         phone: getRawChitUserPhone(groupDetails, user),
         name: groupDetails?.chitUserName || user?.userCompany?.name || 'Chit fund',
         amount,
         note,
     });
+
+export const openChitUserPhonePe = (groupDetails, user, amount, note) => {
+    const phone = getRawChitUserPhone(groupDetails, user);
+    const name = groupDetails?.chitUserName || user?.userCompany?.name || 'Chit fund';
+    const built = buildUpiQuery({ phone, name, amount, note });
+    if (!built) {
+        window.alert('Chit fund user phone number is not available for PhonePe.');
+        return;
+    }
+
+    const upiHref = `upi://pay?${built.query}`;
+    const vpa = `${built.ten}@ybl`;
+    const amt = Number(amount) > 0 ? `₹${Number(amount).toLocaleString('en-IN')}` : 'the due amount';
+
+    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+    const isMobile = /android|iphone|ipad|ipod/i.test(ua);
+
+    if (!isMobile) {
+        window.alert(
+            `Pay ${amt} in PhonePe to ${vpa}.\n\nOpen this page on your phone and tap Pay to launch PhonePe.`
+        );
+        return;
+    }
+
+    window.location.href = upiHref;
+};

@@ -239,7 +239,7 @@ const SubscriberGroupDetails = () => {
     }
 
     return (
-        <div className="subscriber-group-details min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
+        <div className="subscriber-group-details min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 px-3 py-3 sm:p-6 lg:p-8">
             <div className="max-w-6xl mx-auto">
                 <div className="group-details-header mb-6 sm:mb-8">
                     <button onClick={handleBackClick} className="back-btn text-base sm:text-lg lg:text-xl font-semibold bg-white hover:bg-gray-50 px-4 py-3 rounded-xl transition-all duration-200 shadow-lg border border-gray-200 hover:border-gray-300">

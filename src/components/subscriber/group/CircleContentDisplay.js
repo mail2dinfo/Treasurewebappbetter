@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSubscriberContext } from '../../../context/subscriber/SubscriberContext';
-import { buildChitUserPhonePeHref } from '../../../utils/phonePePay';
+import { openChitUserPhonePe } from '../../../utils/phonePePay';
 
 const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, groupAccountId }) => {
 
@@ -404,26 +404,15 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
     const isDuePaid = (transaction) =>
         transaction.status === 'Success' || transaction.status === 'Paid';
 
-    const handlePayDue = (event, amount, note) => {
-        const href = buildChitUserPhonePeHref(groupDetails, user, amount, note);
-        if (!href) {
-            event.preventDefault();
-            window.alert('Chit fund user phone number is not available for PhonePe.');
-        }
-    };
-
-    const PayDueButton = ({ className = '', amount = 0, note = '' }) => {
-        const href = buildChitUserPhonePeHref(groupDetails, user, amount, note);
-        return (
-            <a
-                href={href || '#'}
-                onClick={(event) => handlePayDue(event, amount, note)}
-                className={`inline-flex items-center justify-center rounded-md bg-red-600 text-white text-sm font-bold px-4 py-2 shadow ${className}`}
-            >
-                Pay
-            </a>
-        );
-    };
+    const PayDueButton = ({ className = '', amount = 0, note = '' }) => (
+        <button
+            type="button"
+            onClick={() => openChitUserPhonePe(groupDetails, user, amount, note)}
+            className={`inline-flex items-center justify-center rounded-md bg-red-600 text-white text-sm font-bold px-4 py-2 shadow ${className}`}
+        >
+            Pay
+        </button>
+    );
 
     const renderDueDetails = () => {
         const dueData = transactionInfo || groupDetails?.transactionInfo || groupDetails?.dueInfo || groupDetails?.receivableInfo || [];
@@ -502,9 +491,9 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
                     </table>
                 </div>
 
-                <div className="md:hidden p-4 space-y-4">
+                <div className="md:hidden p-3 space-y-3">
                     {dueData.map((transaction, index) => (
-                        <div key={index} className="bg-white rounded-lg p-4 border border-gray-200 shadow-md">
+                        <div key={index} className="bg-white rounded-lg p-3 border border-gray-200 shadow-md">
                             <div className="flex justify-between items-center mb-4">
                                 <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                                     #{transaction.dueNumber || index + 1}

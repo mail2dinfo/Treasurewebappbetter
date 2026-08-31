@@ -152,7 +152,7 @@ const ProgressCircles = ({ groupDetails, selectedCircle, onCircleClick, auctionS
     return (
         <>
             <div className="progress-circles-container mb-6 sm:mb-8">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 max-w-6xl mx-auto px-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-6 lg:gap-8 max-w-6xl mx-auto px-0 sm:px-4">
                     {circles.map((circle) => (
                         <div key={circle.id} className="flex justify-center relative">
                             <div
