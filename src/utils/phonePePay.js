@@ -1,3 +1,15 @@
+import { registerPlugin } from '@capacitor/core';
+
+const UpiPay = registerPlugin('UpiPay', {
+    web: {
+        open: async ({ url }) => {
+            if (url) {
+                window.location.href = url;
+            }
+        },
+    },
+});
+
 const getCompany = (user) => {
     const company = user?.userCompany || user?.results?.userCompany;
     if (Array.isArray(company)) return company[0] || null;
@@ -29,6 +41,7 @@ const buildUpiQuery = ({ phone, name, amount, note } = {}) => {
         pa: `${ten}@ybl`,
         pn: name || 'Chit fund',
         cu: 'INR',
+        tr: `MT${Date.now()}`,
     });
     if (Number(amount) > 0) {
         params.set('am', Number(amount).toFixed(2));
@@ -69,7 +82,7 @@ export const buildChitUserPaySheet = (groupDetails, user, amount, note) => {
         vpa: `${built.ten}@ybl`,
         upiHref: `upi://pay?${built.query}`,
         phonePeHref: `phonepe://pay?${built.query}`,
-        intentHref: `intent://pay?${built.query}#Intent;scheme=upi;action=android.intent.action.VIEW;end`,
+        intentHref: `intent://pay?${built.query}#Intent;scheme=upi;package=com.phonepe.app;end`,
     };
 };
 
@@ -100,24 +113,29 @@ export const copyText = async (text) => {
 
 export const launchUpiPay = async (hrefs = {}) => {
     const urls = [hrefs.upiHref, hrefs.phonePeHref, hrefs.intentHref].filter(Boolean);
-    const plugin = typeof window !== 'undefined' ? window.Capacitor?.Plugins?.UpiPay : null;
+    if (!urls.length) return false;
 
-    if (plugin?.open) {
-        for (const url of urls) {
-            try {
-                await plugin.open({ url });
-                return true;
-            } catch (_) {
-                /* try next */
-            }
-        }
-        return false;
+    try {
+        await UpiPay.open({
+            url: hrefs.upiHref || urls[0],
+            packageName: 'com.phonepe.app',
+        });
+        return true;
+    } catch (_) {
+        /* try remaining urls */
     }
 
-    const first = urls[0];
-    if (!first) return false;
-    window.location.href = first;
-    return true;
+    for (const url of urls) {
+        try {
+            await UpiPay.open({ url });
+            return true;
+        } catch (_) {
+            /* try next */
+        }
+    }
+
+    window.location.href = urls[0];
+    return false;
 };
 
 export const buildChitUserPhonePeHref = (groupDetails, user, amount, note) =>

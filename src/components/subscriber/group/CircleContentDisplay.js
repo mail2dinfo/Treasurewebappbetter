@@ -16,11 +16,13 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
     const [sortConfig, setSortConfig] = useState({ key: 'sno', direction: 'asc' });
     const [paySheet, setPaySheet] = useState(null);
     const [payCopied, setPayCopied] = useState(false);
+    const [payLaunchError, setPayLaunchError] = useState('');
     const paySheetLockRef = useRef(false);
 
     const openPaySheet = (amount, note) => {
         paySheetLockRef.current = true;
         setPayCopied(false);
+        setPayLaunchError('');
         setPaySheet(buildChitUserPaySheet(groupDetails, user, amount, note));
         window.setTimeout(() => {
             paySheetLockRef.current = false;
@@ -808,18 +810,26 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    <a
-                                        href={paySheet.upiHref}
+                                    <button
+                                        type="button"
                                         onClick={async (event) => {
-                                            if (typeof window !== 'undefined' && window.Capacitor?.Plugins?.UpiPay?.open) {
-                                                event.preventDefault();
-                                                await launchUpiPay(paySheet);
+                                            event.preventDefault();
+                                            event.stopPropagation();
+                                            setPayLaunchError('');
+                                            const opened = await launchUpiPay(paySheet);
+                                            if (!opened) {
+                                                setPayLaunchError(
+                                                    'PhonePe did not open. Copy the UPI ID and pay in PhonePe, or install the latest Mytreasure APK.'
+                                                );
                                             }
                                         }}
                                         className="inline-flex items-center justify-center rounded-md bg-red-600 text-white text-sm font-bold px-4 py-3"
                                     >
-                                        Open PhonePe / UPI
-                                    </a>
+                                        Open PhonePe
+                                    </button>
+                                    {payLaunchError ? (
+                                        <p className="text-xs text-red-600">{payLaunchError}</p>
+                                    ) : null}
                                     <button
                                         type="button"
                                         onClick={async () => {
