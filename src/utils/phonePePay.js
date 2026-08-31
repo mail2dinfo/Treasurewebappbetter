@@ -37,19 +37,19 @@ const buildUpiQuery = ({ phone, name, amount, note } = {}) => {
     const ten = getChitUserPhoneDigits(phone);
     if (ten.length !== 10) return null;
 
-    const params = new URLSearchParams({
-        pa: `${ten}@ybl`,
-        pn: name || 'Chit fund',
-        cu: 'INR',
-        tr: `MT${Date.now()}`,
-    });
+    const payee = (name || 'Chit fund').replace(/[^\w\s.-]/g, '').slice(0, 50) || 'Chit fund';
+    const parts = [
+        `pa=${ten}@ybl`,
+        `pn=${encodeURIComponent(payee)}`,
+        'cu=INR',
+    ];
     if (Number(amount) > 0) {
-        params.set('am', Number(amount).toFixed(2));
+        parts.push(`am=${Number(amount).toFixed(2)}`);
     }
     if (note) {
-        params.set('tn', String(note).slice(0, 50));
+        parts.push(`tn=${encodeURIComponent(String(note).slice(0, 50))}`);
     }
-    return { ten, query: params.toString() };
+    return { ten, query: parts.join('&') };
 };
 
 export const buildUpiPayHref = (opts = {}) => {

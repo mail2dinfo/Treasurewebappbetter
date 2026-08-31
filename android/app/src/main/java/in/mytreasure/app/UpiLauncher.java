@@ -2,13 +2,11 @@ package in.mytreasure.app;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.widget.Toast;
 
 final class UpiLauncher {
 
-    private static final String PHONEPE = "com.phonepe.app";
     private static final String[] PAY_PACKAGES = {
         "com.phonepe.app",
         "com.phonepe.app.preprod",
@@ -26,23 +24,39 @@ final class UpiLauncher {
 
         activity.runOnUiThread(() -> {
             try {
-                Uri uri = Uri.parse(url);
-                Intent base = new Intent(Intent.ACTION_VIEW, uri);
-
-                if (tryPackage(activity, base, PHONEPE)) {
+                if (url.startsWith("intent:")) {
+                    Intent parsed = Intent.parseUri(url, Intent.URI_INTENT_SCHEME);
+                    parsed.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    activity.startActivity(parsed);
                     return;
                 }
 
+                Uri uri = Uri.parse(url);
+                Intent base = new Intent(Intent.ACTION_VIEW, uri);
+                base.addCategory(Intent.CATEGORY_BROWSABLE);
+
                 for (String pkg : PAY_PACKAGES) {
-                    if (PHONEPE.equals(pkg)) {
-                        continue;
-                    }
-                    if (tryPackage(activity, base, pkg)) {
+                    try {
+                        Intent targeted = new Intent(Intent.ACTION_VIEW, uri);
+                        targeted.setPackage(pkg);
+                        targeted.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        activity.startActivity(targeted);
                         return;
+                    } catch (Exception ignored) {
+                        // try next app
                     }
                 }
 
-                Intent chooser = Intent.createChooser(new Intent(base), "Pay with UPI");
+                try {
+                    Intent open = new Intent(Intent.ACTION_VIEW, uri);
+                    open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    activity.startActivity(open);
+                    return;
+                } catch (Exception ignored) {
+                    // fall through to chooser
+                }
+
+                Intent chooser = Intent.createChooser(base, "Pay with UPI");
                 chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 activity.startActivity(chooser);
             } catch (Exception ex) {
@@ -53,29 +67,5 @@ final class UpiLauncher {
                 ).show();
             }
         });
-    }
-
-    private static boolean tryPackage(Activity activity, Intent base, String packageName) {
-        if (!isInstalled(activity, packageName)) {
-            return false;
-        }
-        try {
-            Intent targeted = new Intent(base);
-            targeted.setPackage(packageName);
-            targeted.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            activity.startActivity(targeted);
-            return true;
-        } catch (Exception ignored) {
-            return false;
-        }
-    }
-
-    private static boolean isInstalled(Activity activity, String packageName) {
-        try {
-            activity.getPackageManager().getPackageInfo(packageName, 0);
-            return true;
-        } catch (PackageManager.NameNotFoundException e) {
-            return false;
-        }
     }
 }
