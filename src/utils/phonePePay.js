@@ -1,5 +1,11 @@
+const getCompany = (user) => {
+    const company = user?.userCompany || user?.results?.userCompany;
+    if (Array.isArray(company)) return company[0] || null;
+    return company || null;
+};
+
 const getRawChitUserPhone = (groupDetails, user) => {
-    const company = user?.userCompany;
+    const company = getCompany(user);
     return (
         groupDetails?.chitUserPhone ||
         company?.phone ||
@@ -33,7 +39,6 @@ const buildUpiQuery = ({ phone, name, amount, note } = {}) => {
     return { ten, query: params.toString() };
 };
 
-/** Standard UPI link — Android Chrome opens PhonePe / GPay / others. */
 export const buildUpiPayHref = (opts = {}) => {
     const built = buildUpiQuery(opts);
     return built ? `upi://pay?${built.query}` : null;
@@ -44,36 +49,81 @@ export const buildPhonePePayHref = (opts = {}) => {
     return built ? `phonepe://pay?${built.query}` : null;
 };
 
+export const buildChitUserPaySheet = (groupDetails, user, amount, note) => {
+    const phone = getRawChitUserPhone(groupDetails, user);
+    const name = groupDetails?.chitUserName || getCompany(user)?.name || 'Chit fund';
+    const built = buildUpiQuery({ phone, name, amount, note });
+    if (!built) {
+        return {
+            error: 'Chit fund user phone number is not available for UPI payment.',
+            name,
+            amount,
+            note,
+        };
+    }
+    return {
+        error: null,
+        name,
+        amount,
+        note,
+        vpa: `${built.ten}@ybl`,
+        upiHref: `upi://pay?${built.query}`,
+        phonePeHref: `phonepe://pay?${built.query}`,
+        intentHref: `intent://pay?${built.query}#Intent;scheme=upi;action=android.intent.action.VIEW;end`,
+    };
+};
+
+export const copyText = async (text) => {
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch (_) {
+        /* fall through */
+    }
+    try {
+        const input = document.createElement('textarea');
+        input.value = text;
+        input.setAttribute('readonly', '');
+        input.style.position = 'fixed';
+        input.style.left = '-9999px';
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        input.remove();
+        return true;
+    } catch (_) {
+        return false;
+    }
+};
+
+export const launchUpiPay = async (hrefs = {}) => {
+    const urls = [hrefs.upiHref, hrefs.phonePeHref, hrefs.intentHref].filter(Boolean);
+    const plugin = typeof window !== 'undefined' ? window.Capacitor?.Plugins?.UpiPay : null;
+
+    if (plugin?.open) {
+        for (const url of urls) {
+            try {
+                await plugin.open({ url });
+                return true;
+            } catch (_) {
+                /* try next */
+            }
+        }
+        return false;
+    }
+
+    const first = urls[0];
+    if (!first) return false;
+    window.location.href = first;
+    return true;
+};
+
 export const buildChitUserPhonePeHref = (groupDetails, user, amount, note) =>
     buildUpiPayHref({
         phone: getRawChitUserPhone(groupDetails, user),
-        name: groupDetails?.chitUserName || user?.userCompany?.name || 'Chit fund',
+        name: groupDetails?.chitUserName || getCompany(user)?.name || 'Chit fund',
         amount,
         note,
     });
-
-export const openChitUserPhonePe = (groupDetails, user, amount, note) => {
-    const phone = getRawChitUserPhone(groupDetails, user);
-    const name = groupDetails?.chitUserName || user?.userCompany?.name || 'Chit fund';
-    const built = buildUpiQuery({ phone, name, amount, note });
-    if (!built) {
-        window.alert('Chit fund user phone number is not available for PhonePe.');
-        return;
-    }
-
-    const upiHref = `upi://pay?${built.query}`;
-    const vpa = `${built.ten}@ybl`;
-    const amt = Number(amount) > 0 ? `₹${Number(amount).toLocaleString('en-IN')}` : 'the due amount';
-
-    const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-    const isMobile = /android|iphone|ipad|ipod/i.test(ua);
-
-    if (!isMobile) {
-        window.alert(
-            `Pay ${amt} in PhonePe to ${vpa}.\n\nOpen this page on your phone and tap Pay to launch PhonePe.`
-        );
-        return;
-    }
-
-    window.location.href = upiHref;
-};

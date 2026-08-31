@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import ReactDOM from 'react-dom';
 import { useSubscriberContext } from '../../../context/subscriber/SubscriberContext';
-import { openChitUserPhonePe } from '../../../utils/phonePePay';
+import { buildChitUserPaySheet, copyText, launchUpiPay } from '../../../utils/phonePePay';
 
 const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, groupAccountId }) => {
 
@@ -13,6 +14,8 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
 
     // State for sorting
     const [sortConfig, setSortConfig] = useState({ key: 'sno', direction: 'asc' });
+    const [paySheet, setPaySheet] = useState(null);
+    const [payCopied, setPayCopied] = useState(false);
 
     // Function to handle column header click for sorting
     const handleSort = (key) => {
@@ -407,7 +410,10 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
     const PayDueButton = ({ className = '', amount = 0, note = '' }) => (
         <button
             type="button"
-            onClick={() => openChitUserPhonePe(groupDetails, user, amount, note)}
+            onClick={() => {
+                setPayCopied(false);
+                setPaySheet(buildChitUserPaySheet(groupDetails, user, amount, note));
+            }}
             className={`inline-flex items-center justify-center rounded-md bg-red-600 text-white text-sm font-bold px-4 py-2 shadow ${className}`}
         >
             Pay
@@ -743,6 +749,85 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
     return (
         <div className="mt-6">
             {renderContent()}
+            {paySheet && ReactDOM.createPortal(
+                <div
+                    className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
+                    onClick={() => setPaySheet(null)}
+                    role="presentation"
+                >
+                    <div
+                        className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5"
+                        onClick={(event) => event.stopPropagation()}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="pay-sheet-title"
+                    >
+                        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 sm:hidden" />
+                        <h3 id="pay-sheet-title" className="text-lg font-bold text-gray-900 mb-1">Pay due</h3>
+                        {paySheet.note ? (
+                            <p className="text-sm text-gray-500 mb-4">{paySheet.note}</p>
+                        ) : (
+                            <p className="mb-4" />
+                        )}
+
+                        {paySheet.error ? (
+                            <p className="text-sm text-red-600 mb-4">{paySheet.error}</p>
+                        ) : (
+                            <>
+                                <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 mb-4 space-y-2">
+                                    <div className="flex justify-between gap-3">
+                                        <span className="text-sm text-gray-600">Amount</span>
+                                        <span className="text-base font-extrabold text-red-600">
+                                            ₹{Number(paySheet.amount || 0).toLocaleString('en-IN')}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between gap-3">
+                                        <span className="text-sm text-gray-600">Pay to</span>
+                                        <span className="text-sm font-semibold text-gray-900 text-right">{paySheet.name}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center gap-3">
+                                        <span className="text-sm text-gray-600">UPI ID</span>
+                                        <span className="text-sm font-mono font-semibold text-gray-900">{paySheet.vpa}</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <a
+                                        href={paySheet.upiHref}
+                                        onClick={async (event) => {
+                                            if (typeof window !== 'undefined' && window.Capacitor?.Plugins?.UpiPay?.open) {
+                                                event.preventDefault();
+                                                await launchUpiPay(paySheet);
+                                            }
+                                        }}
+                                        className="inline-flex items-center justify-center rounded-md bg-red-600 text-white text-sm font-bold px-4 py-3"
+                                    >
+                                        Open PhonePe / UPI
+                                    </a>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            const ok = await copyText(paySheet.vpa);
+                                            setPayCopied(ok);
+                                        }}
+                                        className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white text-gray-800 text-sm font-semibold px-4 py-3"
+                                    >
+                                        {payCopied ? 'UPI ID copied' : 'Copy UPI ID'}
+                                    </button>
+                                </div>
+                            </>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={() => setPaySheet(null)}
+                            className="mt-3 w-full text-sm font-medium text-gray-500 py-2"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };
