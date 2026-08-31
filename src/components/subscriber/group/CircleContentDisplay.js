@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { useSubscriberContext } from '../../../context/subscriber/SubscriberContext';
 import { buildChitUserPaySheet, copyText, launchUpiPay } from '../../../utils/phonePePay';
@@ -16,6 +16,21 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
     const [sortConfig, setSortConfig] = useState({ key: 'sno', direction: 'asc' });
     const [paySheet, setPaySheet] = useState(null);
     const [payCopied, setPayCopied] = useState(false);
+    const paySheetLockRef = useRef(false);
+
+    const openPaySheet = (amount, note) => {
+        paySheetLockRef.current = true;
+        setPayCopied(false);
+        setPaySheet(buildChitUserPaySheet(groupDetails, user, amount, note));
+        window.setTimeout(() => {
+            paySheetLockRef.current = false;
+        }, 700);
+    };
+
+    const closePaySheet = () => {
+        if (paySheetLockRef.current) return;
+        setPaySheet(null);
+    };
 
     // Function to handle column header click for sorting
     const handleSort = (key) => {
@@ -410,10 +425,7 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
     const PayDueButton = ({ className = '', amount = 0, note = '' }) => (
         <button
             type="button"
-            onClick={() => {
-                setPayCopied(false);
-                setPaySheet(buildChitUserPaySheet(groupDetails, user, amount, note));
-            }}
+            onClick={() => openPaySheet(amount, note)}
             className={`inline-flex items-center justify-center rounded-md bg-red-600 text-white text-sm font-bold px-4 py-2 shadow ${className}`}
         >
             Pay
@@ -751,12 +763,17 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
             {renderContent()}
             {paySheet && ReactDOM.createPortal(
                 <div
-                    className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
-                    onClick={() => setPaySheet(null)}
+                    className="fixed inset-0 flex items-center justify-center bg-black/50 p-4"
+                    style={{ zIndex: 2147483646 }}
+                    onPointerUp={(event) => {
+                        if (event.target !== event.currentTarget) return;
+                        closePaySheet();
+                    }}
                     role="presentation"
                 >
                     <div
-                        className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5"
+                        className="w-full max-w-md bg-white rounded-2xl shadow-xl p-5 max-h-[90vh] overflow-y-auto"
+                        onPointerUp={(event) => event.stopPropagation()}
                         onClick={(event) => event.stopPropagation()}
                         role="dialog"
                         aria-modal="true"
@@ -820,6 +837,7 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
                         <button
                             type="button"
                             onClick={() => setPaySheet(null)}
+                            onPointerUp={(event) => event.stopPropagation()}
                             className="mt-3 w-full text-sm font-medium text-gray-500 py-2"
                         >
                             Close
