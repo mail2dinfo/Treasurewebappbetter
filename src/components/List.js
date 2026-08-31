@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { FaEdit, FaTrash } from 'react-icons/fa';
+import { sortByTicketId } from '../utils/groupTicketCapacity';
 
 const List = ({ items, removeItem, editItem }) => {
     const [subscriberFilter, setSubscriberFilter] = useState('');
 
     // Filter items based on the subscriber name
-    const filteredItems = items.filter((item) =>
-        item.name.toLowerCase().includes(subscriberFilter.toLowerCase())
+    const filteredItems = sortByTicketId(
+        items.filter((item) =>
+            item.name.toLowerCase().includes(subscriberFilter.toLowerCase())
+        )
     );
 
     return (

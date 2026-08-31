@@ -161,7 +161,7 @@ import { useCompanySubscriberContext } from '../context/companysubscriber_contex
 import loadingImage from '../images/preloader.gif';
 import { useUserContext } from '../context/user_context';
 import { useGroupDetailsContext } from '../context/group_context';
-import { getRosterFill } from '../utils/groupTicketCapacity';
+import { getRosterFill, sortByTicketId } from '../utils/groupTicketCapacity';
 import { FiPlus, FiSearch, FiGrid, FiList, FiUsers, FiX, FiArrowLeft } from 'react-icons/fi';
 import '../style/home.css';
 
@@ -220,7 +220,10 @@ const Subscribers = ({
   };
 
   const searchTerm = (nameFilter || '').trim().toLowerCase();
-  const groupMembers = isAddToGroup ? (groupData?.results?.groupSubcriberResult || []) : [];
+  const groupMembers = useMemo(() => {
+    const list = isAddToGroup ? (groupData?.results?.groupSubcriberResult || []) : [];
+    return sortByTicketId(list);
+  }, [isAddToGroup, groupData?.results?.groupSubcriberResult]);
   const group = groupData?.results || {};
   const groupName = group.groupName || '';
   const groupType = String(group.type || '').toUpperCase();

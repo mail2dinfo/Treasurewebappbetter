@@ -15,7 +15,7 @@ import {
 } from "react-icons/fi";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { getRosterFill } from "../utils/groupTicketCapacity";
+import { getRosterFill, sortByTicketId } from "../utils/groupTicketCapacity";
 
 const AddSub = () => {
   const history = useHistory();
@@ -52,7 +52,10 @@ const AddSub = () => {
   }, [groupId]);
 
   const group = data?.results || {};
-  const subscribers = group.groupSubcriberResult || [];
+  const subscribers = useMemo(
+    () => sortByTicketId(group.groupSubcriberResult || []),
+    [group.groupSubcriberResult]
+  );
   const groupName = group.groupName || "Group";
   const groupType = String(group.type || "").toUpperCase();
   const groupAmount = Number(group.amount || 0);
