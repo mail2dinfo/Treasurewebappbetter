@@ -552,7 +552,12 @@ const HomePage = ({
                 </div>
 
                 {selectedTab === 'ready' && (
-                  <ReadyGroups groups={pagedGroups} selectedTab={selectedTab} basePath={basePath} />
+                  <ReadyGroups
+                    groups={pagedGroups}
+                    selectedTab={selectedTab}
+                    refreshGroups={fetchAllGroups}
+                    basePath={basePath}
+                  />
                 )}
                 {selectedTab === 'new' && (
                   <NewGroups
