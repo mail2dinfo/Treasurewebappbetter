@@ -133,20 +133,7 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
 
     const renderFlexibleDues = (title) => {
         const dueData = transactionInfo || groupDetails?.transactionInfo || [];
-        const byDue = {};
-        (dueData || []).forEach((row) => {
-            const key = String(row.dueNumber || row.auctiondate || '');
-            const status = row.status === 'Success' ? 'Paid' : (row.status || 'Due');
-            if (!byDue[key] || status === 'Due') {
-                byDue[key] = {
-                    dueMonth: row.auctiondate,
-                    dueNumber: row.dueNumber,
-                    amount: row.amount || row.receivableAmount || 0,
-                    status,
-                };
-            }
-        });
-        const rows = Object.values(byDue).sort((a, b) => Number(a.dueNumber || 0) - Number(b.dueNumber || 0));
+        const rows = getDueBreakdowns(dueData);
 
         if (!rows.length) {
             return (
@@ -161,7 +148,7 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
 
         return (
             <div className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-100">
-                <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white p-4">
+                <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-4">
                     <h3 className="text-xl font-bold text-center">{title}</h3>
                 </div>
                 <div className="overflow-x-auto">
@@ -170,23 +157,27 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
                             <tr>
                                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Due number</th>
                                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Due month</th>
-                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Amount</th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Total</th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Paid</th>
+                                <th className="px-4 py-3 text-left font-semibold text-gray-600">Due</th>
                                 <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {rows.map((row) => (
-                                <tr key={`${row.dueNumber}-${row.dueMonth}`} className="border-t border-gray-100">
+                                <tr key={`${row.dueNumber}-${row.auctiondate}`} className="border-t border-gray-100">
                                     <td className="px-4 py-3 font-semibold">{row.dueNumber || '—'}</td>
                                     <td className="px-4 py-3">
-                                        {row.dueMonth ? new Date(row.dueMonth).toLocaleDateString() : '—'}
+                                        {row.auctiondate ? new Date(row.auctiondate).toLocaleDateString() : '—'}
                                     </td>
-                                    <td className="px-4 py-3 font-bold text-red-600">₹{Number(row.amount || 0).toLocaleString()}</td>
+                                    <td className="px-4 py-3 font-bold text-blue-700">{formatMoney(row.total)}</td>
+                                    <td className="px-4 py-3 font-bold text-green-700">{formatMoney(row.paid)}</td>
+                                    <td className="px-4 py-3 font-bold text-red-700">{formatMoney(row.due)}</td>
                                     <td className="px-4 py-3">
                                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                            row.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
+                                            isDuePaid(row) ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'
                                         }`}>
-                                            {row.status}
+                                            {isDuePaid(row) ? 'Paid' : 'Due'}
                                         </span>
                                     </td>
                                 </tr>
@@ -416,11 +407,47 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
         return Number.isNaN(parsed.getTime()) ? 'N/A' : parsed.toLocaleDateString();
     };
 
-    const getDueAmount = (transaction) =>
-        Number(transaction.amount || transaction.receivableAmount || transaction.payment_amount || transaction.customerDue || 0);
+    const formatMoney = (value) =>
+        `₹${Number(value || 0).toLocaleString('en-IN')}`;
 
-    const isDuePaid = (transaction) =>
-        transaction.status === 'Success' || transaction.status === 'Paid';
+    const getDueBreakdowns = (dueData = []) => {
+        const byKey = {};
+        dueData.forEach((row, index) => {
+            const key = String(row.dueNumber ?? row.auctiondate ?? index);
+            if (!byKey[key]) {
+                byKey[key] = {
+                    dueNumber: row.dueNumber || index + 1,
+                    auctiondate: row.auctiondate,
+                    transacted_date: row.transacted_date || row.transactedDate,
+                    date: row.date || row.createdAt,
+                    total: 0,
+                    paid: 0,
+                    due: 0,
+                };
+            }
+            const amount = Number(
+                row.amount || row.receivableAmount || row.payment_amount || row.customerDue || 0
+            );
+            const status = String(row.status || '');
+            if (status === 'Success' || status === 'Paid') {
+                byKey[key].paid += amount;
+                if (row.transacted_date || row.transactedDate) {
+                    byKey[key].transacted_date = row.transacted_date || row.transactedDate;
+                }
+                if (row.date || row.createdAt) {
+                    byKey[key].date = row.date || row.createdAt;
+                }
+            } else {
+                byKey[key].due += amount;
+            }
+            byKey[key].total = byKey[key].paid + byKey[key].due;
+        });
+        return Object.values(byKey).sort(
+            (a, b) => Number(a.dueNumber || 0) - Number(b.dueNumber || 0)
+        );
+    };
+
+    const isDuePaid = (row) => Number(row.due || 0) <= 0;
 
     const PayDueButton = ({ className = '', amount = 0, note = '' }) => (
         <button
@@ -435,7 +462,9 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
     const renderDueDetails = () => {
         const dueData = transactionInfo || groupDetails?.transactionInfo || groupDetails?.dueInfo || groupDetails?.receivableInfo || [];
 
-        if (!dueData || dueData.length === 0) {
+        const dueRows = getDueBreakdowns(dueData);
+
+        if (!dueRows.length) {
             return (
                 <div className="bg-white rounded-lg shadow-md p-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">Due Details</h3>
@@ -461,43 +490,51 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auction Date</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transacted Date</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pay</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {dueData.map((transaction, index) => (
-                                <tr key={index} className="hover:bg-gray-50">
+                            {dueRows.map((row) => (
+                                <tr key={row.dueNumber} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         <span className="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                                            #{transaction.dueNumber || index + 1}
+                                            #{row.dueNumber}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                        {formatDueDate(transaction.auctiondate)}
+                                        {formatDueDate(row.auctiondate)}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                        {formatDueDate(transaction.transacted_date || transaction.transactedDate)}
+                                        {formatDueDate(row.transacted_date)}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                        {formatDueDate(transaction.date || transaction.createdAt)}
+                                        {formatDueDate(row.date)}
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                        ₹{getDueAmount(transaction).toLocaleString()}
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-blue-700">
+                                        {formatMoney(row.total)}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-green-700">
+                                        {formatMoney(row.paid)}
+                                    </td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold text-red-700">
+                                        {formatMoney(row.due)}
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                            isDuePaid(transaction) ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                            isDuePaid(row) ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                                         }`}>
-                                            {isDuePaid(transaction) ? '✅ Paid' : '⏳ Due'}
+                                            {isDuePaid(row) ? '✅ Paid' : '⏳ Due'}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
-                                        {!isDuePaid(transaction) ? (
+                                        {!isDuePaid(row) ? (
                                             <PayDueButton
-                                                amount={getDueAmount(transaction)}
-                                                note={`Due #${transaction.dueNumber || index + 1}`}
+                                                amount={row.due}
+                                                note={`Due #${row.dueNumber}`}
                                             />
                                         ) : (
                                             <span className="text-xs text-gray-400">—</span>
@@ -510,46 +547,54 @@ const CircleContentDisplay = ({ selectedCircle, groupDetails, auctionStatus, gro
                 </div>
 
                 <div className="md:hidden p-3 space-y-3">
-                    {dueData.map((transaction, index) => (
-                        <div key={index} className="bg-white rounded-lg p-3 border border-gray-200 shadow-md">
+                    {dueRows.map((row) => (
+                        <div key={row.dueNumber} className="bg-white rounded-lg p-3 border border-gray-200 shadow-md">
                             <div className="flex justify-between items-center mb-4">
                                 <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-bold">
-                                    #{transaction.dueNumber || index + 1}
+                                    #{row.dueNumber}
                                 </span>
                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                                    isDuePaid(transaction) ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                                    isDuePaid(row) ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                                 }`}>
-                                    {isDuePaid(transaction) ? '✅ Paid' : '⏳ Due'}
+                                    {isDuePaid(row) ? '✅ Paid' : '⏳ Due'}
                                 </span>
                             </div>
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                     <span className="text-sm text-gray-600 font-medium">Auction Date:</span>
-                                    <span className="text-sm font-bold text-gray-900">{formatDueDate(transaction.auctiondate)}</span>
+                                    <span className="text-sm font-bold text-gray-900">{formatDueDate(row.auctiondate)}</span>
                                 </div>
                                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                     <span className="text-sm text-gray-600 font-medium">Transacted Date:</span>
                                     <span className="text-sm font-bold text-gray-900">
-                                        {formatDueDate(transaction.transacted_date || transaction.transactedDate)}
+                                        {formatDueDate(row.transacted_date)}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                     <span className="text-sm text-gray-600 font-medium">Created At:</span>
                                     <span className="text-sm font-bold text-gray-900">
-                                        {formatDueDate(transaction.date || transaction.createdAt)}
+                                        {formatDueDate(row.date)}
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg px-3">
-                                    <span className="text-sm text-gray-700 font-bold">Amount:</span>
-                                    <span className="text-lg font-extrabold text-blue-600">
-                                        ₹{getDueAmount(transaction).toLocaleString()}
-                                    </span>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="text-center p-2 bg-blue-50 rounded-lg">
+                                        <p className="text-[10px] text-blue-600 font-medium uppercase">Total</p>
+                                        <p className="text-sm font-bold text-blue-700">{formatMoney(row.total)}</p>
+                                    </div>
+                                    <div className="text-center p-2 bg-green-50 rounded-lg">
+                                        <p className="text-[10px] text-green-600 font-medium uppercase">Paid</p>
+                                        <p className="text-sm font-bold text-green-700">{formatMoney(row.paid)}</p>
+                                    </div>
+                                    <div className="text-center p-2 bg-red-50 rounded-lg">
+                                        <p className="text-[10px] text-red-600 font-medium uppercase">Due</p>
+                                        <p className="text-sm font-bold text-red-700">{formatMoney(row.due)}</p>
+                                    </div>
                                 </div>
-                                {!isDuePaid(transaction) ? (
+                                {!isDuePaid(row) ? (
                                     <PayDueButton
                                         className="w-full mt-1"
-                                        amount={getDueAmount(transaction)}
-                                        note={`Due #${transaction.dueNumber || index + 1}`}
+                                        amount={row.due}
+                                        note={`Due #${row.dueNumber}`}
                                     />
                                 ) : null}
                             </div>
