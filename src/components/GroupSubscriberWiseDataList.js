@@ -11,6 +11,7 @@ import ReceivableReceitPdf from "./PDF/ReceivableReceitPdf";
 import { toast } from 'react-toastify';
 import { useGroupDetailsContext } from "../context/group_context";
 import Loading from './Loading';
+import { formatReceivableDueNo } from '../utils/formatReceivableDueNo';
 
 const GroupSubscriberWiseDataList = ({ items }) => {
     const { groupId } = useParams();
@@ -114,6 +115,8 @@ const GroupSubscriberWiseDataList = ({ items }) => {
 
     const formatBillAmount = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN')}`;
 
+    const dueNoForAuction = (auctionItem) => formatReceivableDueNo(auctionItem);
+
     const sendBillToSubscriber = (payment, auctionItem) => {
         const phoneSource =
             selectedSubscriber?.phone
@@ -136,6 +139,7 @@ const GroupSubscriberWiseDataList = ({ items }) => {
             `Subscriber Name: ${selectedSubscriber?.name || auctionItem?.name || '-'}`,
             `Receivable Date: ${formatBillDate(auctionItem?.auct_date)}`,
             `Group Name: ${groupName || '-'}`,
+            `Due no.: ${dueNoForAuction(auctionItem)}`,
             `Auction Date: ${formatBillDate(auctionItem?.auct_date)}`,
             `Amount Paid (toward due): ${formatBillAmount(payment.payment_amount)}`,
             `Cash Collected: ${formatBillAmount(payment.payment_amount)}`,
@@ -398,6 +402,9 @@ const GroupSubscriberWiseDataList = ({ items }) => {
                                                                                                                             paymentType: p.payment_type,
                                                                                                                             paymentMethod: p.payment_method,
                                                                                                                             groupName: groupName,
+                                                                                                                            dueNo: dueNoForAuction(item),
+                                                                                                                            dueNumber: item.due_number,
+                                                                                                                            dueTotal: item.due_total,
                                                                                                                             auctionDate: item.auct_date
                                                                                                                                 ? new Date(item.auct_date).toLocaleDateString()
                                                                                                                                 : '-',
