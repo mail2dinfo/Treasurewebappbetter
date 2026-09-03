@@ -8,6 +8,7 @@ import ReceivableConfirmPanel, { ReceivableLiveBalancePanel } from "../Receivabl
 import ReceivableReceitPdf from "../PDF/ReceivableReceitPdf";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { FiUser, FiPhone, FiCalendar, FiDollarSign, FiX, FiCheck, FiAlertCircle, FiPrinter, FiDownload } from 'react-icons/fi';
+import { formatReceivableDueNo } from '../../utils/formatReceivableDueNo';
 import { useCollector } from '../../context/CollectorProvider';
 import { useCollectorLedger } from '../../context/CollectorLedgerContext';
 import 'react-toastify/dist/ReactToastify.css';
@@ -271,6 +272,9 @@ const CollectorPaymentModal = ({
                     cashAmount,
                     advanceAmount: advanceUsed,
                     totalTowardDue,
+                    dueNo: formatReceivableDueNo(currentReceivable),
+                    dueNumber: currentReceivable.due_number,
+                    dueTotal: currentReceivable.due_total,
                 });
 
                 // Refresh receivables immediately to show updated status
@@ -483,6 +487,10 @@ const CollectorPaymentModal = ({
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Group Name:</span>
                                     <span className="font-semibold">{group_name}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Due no.:</span>
+                                    <span className="font-semibold">{receiptData.dueNo || formatReceivableDueNo(currentReceivable)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Auction Date:</span>

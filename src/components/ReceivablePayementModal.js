@@ -13,6 +13,7 @@ import ReceivableConfirmPanel, { ReceivableLiveBalancePanel } from "./Receivable
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { FiDownload, FiUser, FiPhone, FiCalendar, FiDollarSign, FiX, FiCheck, FiAlertCircle, FiPrinter } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
+import { formatReceivableDueNo } from '../utils/formatReceivableDueNo';
 import 'react-toastify/dist/ReactToastify.css';
 
 const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables }) => {
@@ -231,6 +232,9 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                     cashAmount,
                     advanceAmount: advanceUsed,
                     totalTowardDue,
+                    dueNo: formatReceivableDueNo(currentReceivable),
+                    dueNumber: currentReceivable.due_number,
+                    dueTotal: currentReceivable.due_total,
                 });
                 setTimeout(() => fetchReceivables(), 2000);
                 fetchLedgerAccounts();
@@ -318,6 +322,7 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
             `Subscriber Name: ${receiptData.subscriberName || name || '-'}`,
             `Receivable Date: ${formatDate(receivableDate)}`,
             `Group Name: ${group_name || '-'}`,
+            `Due no.: ${receiptData.dueNo || formatReceivableDueNo(currentReceivable)}`,
             `Auction Date: ${formatDate(auct_date)}`,
             `Amount Paid (toward due): ${formatCurrency(receiptData.totalTowardDue ?? receiptData.paymentAmount)}`,
             receiptData.advanceAmount > 0
@@ -482,6 +487,10 @@ const ReceivablePayementModal = ({ isOpen, onClose, receivable, fetchReceivables
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Group Name:</span>
                                     <span className="font-semibold">{group_name}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">Due no.:</span>
+                                    <span className="font-semibold">{receiptData.dueNo || formatReceivableDueNo(currentReceivable)}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Auction Date:</span>

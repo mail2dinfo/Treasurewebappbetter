@@ -116,6 +116,9 @@ const ReceivableReceitPdf = ({ receivableData = {}, companyData = {} }) => {
                     <Field label="Payment Type" value={receivableData.paymentType} />
                     <Field label="Payment Method" value={receivableData.paymentMethod} />
                     <Field label="Group Name" value={receivableData.groupName} />
+                    {receivableData.dueNo && receivableData.dueNo !== '—' ? (
+                        <Field label="Due no." value={receivableData.dueNo} />
+                    ) : null}
                     <Field label="Auction Date" value={receivableData.auctionDate} />
                     <Field label="Transacted Date" value={receivableData.transactedDate || receivableData.transacted_date || '-'} />
                     <Field label="Created At" value={receivableData.createdAt || receivableData.created_at || '-'} />
