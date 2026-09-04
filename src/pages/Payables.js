@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { usePayablesContext } from '../context/payables_context';
 import { useAobContext } from '../context/aob_context';
 import { useUserContext } from '../context/user_context';
@@ -46,6 +46,7 @@ const Payables = () => {
   const [groupFilter, setGroupFilter] = useState("");
   const [subscriberFilter, setSubscriberFilter] = useState("");
   const [areaFilter, setAreaFilter] = useState("");
+  const [selectedGroupId, setSelectedGroupId] = useState("");
 
   useEffect(() => {
     fetchPayables();
@@ -54,7 +55,7 @@ const Payables = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [groupFilter, subscriberFilter, areaFilter, pageSize]);
+  }, [groupFilter, subscriberFilter, areaFilter, selectedGroupId, pageSize]);
 
   const formatCurrency = (amount) => `₹${Number(amount ?? 0).toLocaleString("en-IN")}`;
 
@@ -147,18 +148,33 @@ const Payables = () => {
     );
   };
 
-  const filteredPayables = payables.filter(({ group_name, name, area, aob }) => {
-    const groupMatch = !groupFilter || group_name.toLowerCase().includes(groupFilter.toLowerCase());
-    const subscriberMatch = !subscriberFilter || name.toLowerCase().includes(subscriberFilter.toLowerCase());
+  const groupOptions = useMemo(() => {
+    const map = new Map();
+    payables.forEach((row) => {
+      const id = String(row.group_id || row.group_name || '').trim();
+      if (!id) return;
+      const name = row.group_name || 'Unnamed group';
+      if (!map.has(id)) map.set(id, { id, name, count: 0 });
+      map.get(id).count += 1;
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  }, [payables]);
+
+  const filteredPayables = payables.filter(({ group_name, group_id, name, area, aob }) => {
+    const groupKey = String(group_id || group_name || '');
+    const groupChipMatch = !selectedGroupId || groupKey === selectedGroupId;
+    const groupSearchMatch = !groupFilter || (group_name || '').toLowerCase().includes(groupFilter.toLowerCase());
+    const subscriberMatch = !subscriberFilter || (name || '').toLowerCase().includes(subscriberFilter.toLowerCase());
     const areaValue = area || aob || '';
     const areaMatch = !areaFilter || areaValue.toLowerCase().includes(areaFilter.toLowerCase());
-    return groupMatch && subscriberMatch && areaMatch;
+    return groupChipMatch && groupSearchMatch && subscriberMatch && areaMatch;
   });
 
   const clearFilters = () => {
     setGroupFilter("");
     setSubscriberFilter("");
     setAreaFilter("");
+    setSelectedGroupId("");
     setCurrentPage(1);
   };
 
@@ -792,14 +808,49 @@ const Payables = () => {
                 </button>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-sm text-gray-600">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span>Showing {filteredPayables.length} of {payables.length} payables</span>
-                  {(groupFilter || subscriberFilter || areaFilter) && (
-                    <span className="text-custom-red font-medium">Filters applied</span>
-                  )}
+              <div className="flex flex-col gap-3 text-sm text-gray-600">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span>Showing {filteredPayables.length} of {payables.length} payables</span>
+                    {(groupFilter || subscriberFilter || areaFilter || selectedGroupId) && (
+                      <span className="text-custom-red font-medium">Filters applied</span>
+                    )}
+                  </div>
+                  {renderViewToggle()}
                 </div>
-                {renderViewToggle()}
+                {groupOptions.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGroupId('')}
+                      className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold border transition-colors ${
+                        !selectedGroupId
+                          ? 'bg-red-600 text-white border-red-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:text-red-700'
+                      }`}
+                    >
+                      All ({payables.length})
+                    </button>
+                    {groupOptions.map((group) => {
+                      const active = selectedGroupId === group.id;
+                      return (
+                        <button
+                          key={group.id}
+                          type="button"
+                          title={group.name}
+                          onClick={() => setSelectedGroupId(active ? '' : group.id)}
+                          className={`max-w-full px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold border transition-colors truncate ${
+                            active
+                              ? 'bg-red-600 text-white border-red-600'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:text-red-700'
+                          }`}
+                        >
+                          {group.name} ({group.count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>

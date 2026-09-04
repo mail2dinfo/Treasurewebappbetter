@@ -161,7 +161,8 @@ import { useCompanySubscriberContext } from '../context/companysubscriber_contex
 import { useUserContext } from '../context/user_context';
 import { useGroupDetailsContext } from '../context/group_context';
 import { getRosterFill, sortByTicketId } from '../utils/groupTicketCapacity';
-import { FiPlus, FiSearch, FiGrid, FiList, FiUsers, FiX, FiArrowLeft } from 'react-icons/fi';
+import { FiPlus, FiSearch, FiGrid, FiList, FiUsers, FiX, FiArrowLeft, FiTrash2 } from 'react-icons/fi';
+import { toast } from 'react-toastify';
 import '../style/home.css';
 import Loading from './Loading';
 
@@ -181,9 +182,16 @@ const formatTicketLabel = (raw) => {
   return `Ticket ${id}`;
 };
 
+const sharePctNumber = (value) => {
+  let pct = Number(value);
+  if (!Number.isFinite(pct) || pct <= 0) pct = 100;
+  if (pct > 0 && pct <= 1) pct *= 100;
+  return Math.min(100, Math.max(0, pct));
+};
+
 const formatGroupMemberLine = (member) => {
   const name = member?.name || member?.firstname || '—';
-  return `${name} - ${formatSharePct(member?.accountshare_percentage)} - ${formatTicketLabel(member?.accountshare_id)}`;
+  return `${formatTicketLabel(member?.accountshare_id)} - ${name} - ${formatSharePct(member?.accountshare_percentage)}`;
 };
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -195,13 +203,15 @@ const Subscribers = ({
   const history = useHistory();
   const { groupId } = useParams();
   const { companySubscribers, isLoading } = useCompanySubscriberContext();
-  const { fetchGroups, data: groupData } = useGroupDetailsContext();
+  const { fetchGroups, data: groupData, deleteGroupSubscriber } = useGroupDetailsContext();
   const { user } = useUserContext();
 
   const [nameFilter, setNameFilter] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [confirmMember, setConfirmMember] = useState(null);
+  const [removingId, setRemovingId] = useState(null);
 
   const subscribers = companySubscribers || [];
   const isAddToGroup = Boolean(groupId);
@@ -217,6 +227,23 @@ const Subscribers = ({
       addSubscriberPath
       || `/chit-fund/user/addcompanymultisubscriber/${user.results.userAccounts[0].parent_membership_id}`
     );
+  };
+
+  const handleRemoveMember = async (member) => {
+    const id = member?.group_subscriber_id;
+    if (!id || !groupId) {
+      toast.error('Cannot remove this subscriber.');
+      return;
+    }
+    setRemovingId(id);
+    const result = await deleteGroupSubscriber(id, groupId);
+    setRemovingId(null);
+    setConfirmMember(null);
+    if (result?.success) {
+      toast.success(result.message || 'Subscriber removed from this group.');
+    } else {
+      toast.error(result?.message || 'Failed to remove subscriber.');
+    }
   };
 
   const searchTerm = (nameFilter || '').trim().toLowerCase();
@@ -239,6 +266,17 @@ const Subscribers = ({
   });
   const addedCount = groupMembers.length;
   const capacityLabel = roster.unlimited ? 'Open' : (Number(groupCapacity) > 0 ? groupCapacity : '—');
+  const remainingToAdd = roster.unlimited
+    ? null
+    : Math.max(0, Number(groupCapacity || 0) - addedCount);
+  const [fillAnim, setFillAnim] = useState(0);
+
+  useEffect(() => {
+    const cap = Number(groupCapacity);
+    const target = cap > 0 ? Math.min(100, (addedCount / cap) * 100) : 0;
+    const frame = requestAnimationFrame(() => setFillAnim(target));
+    return () => cancelAnimationFrame(frame);
+  }, [addedCount, groupCapacity]);
 
   const uniqueGroupMembers = useMemo(() => {
     const map = new Map();
@@ -362,8 +400,8 @@ const Subscribers = ({
             <>
               <div className={`flex gap-4 items-start ${isAddToGroup ? 'flex-col md:flex-row' : 'flex-col'}`}>
               {isAddToGroup && (
-                <aside className="w-full md:w-72 lg:w-80 flex-shrink-0 rounded-xl border border-gray-200 bg-white overflow-hidden">
-                  <div className="px-4 py-3 bg-gray-100 border-b border-gray-200 space-y-2.5">
+                <aside className="w-full md:w-80 lg:w-96 flex-shrink-0 md:sticky md:top-24 md:max-h-[calc(100vh-7rem)] flex flex-col rounded-xl border border-gray-200 bg-white shadow-sm">
+                  <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 space-y-3 flex-shrink-0">
                     <div>
                       <p className="text-xs font-semibold text-gray-500">Group Name</p>
                       <p className="text-sm font-bold text-gray-900 truncate mt-0.5" title={groupName || undefined}>
@@ -371,26 +409,87 @@ const Subscribers = ({
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-gray-500">Subscribers</p>
-                      <p className="text-sm font-semibold text-gray-700 mt-0.5">
-                        {addedCount} / {capacityLabel}
-                      </p>
+                      <div className="flex items-end justify-between gap-2">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500">Subscribers</p>
+                          <p className="text-sm font-semibold text-gray-800 mt-0.5">
+                            {addedCount} / {capacityLabel}
+                          </p>
+                        </div>
+                        {!roster.unlimited && remainingToAdd != null && (
+                          <p className={`text-xs font-semibold ${remainingToAdd === 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {remainingToAdd === 0
+                              ? 'Complete'
+                              : `${remainingToAdd} more to add`}
+                          </p>
+                        )}
+                      </div>
+                      {!roster.unlimited && Number(groupCapacity) > 0 && (
+                        <div className="mt-2 h-2.5 rounded-full bg-gray-200 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
+                            style={{ width: `${fillAnim}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="max-h-80 overflow-y-auto">
+                  <div
+                    className="flex-1 min-h-[16rem] overflow-y-scroll overscroll-contain [scrollbar-gutter:stable] [&::-webkit-scrollbar]:w-2.5 [&::-webkit-scrollbar-track]:bg-gray-100 [&::-webkit-scrollbar-thumb]:bg-red-400 [&::-webkit-scrollbar-thumb]:rounded-full"
+                    style={{ scrollbarGutter: 'stable', scrollbarWidth: 'thin' }}
+                  >
                     {groupMembers.length === 0 ? (
                       <p className="px-4 py-3 text-sm text-gray-500">No one has been added yet.</p>
                     ) : (
                       <ul className="divide-y divide-gray-100">
-                        {groupMembers.map((member, index) => (
-                          <li
-                            key={String(member.group_subscriber_id || `${member.subscriber_id}-${index}`)}
-                            className="px-4 py-2.5 text-sm font-medium text-gray-900 leading-snug"
-                            title={formatGroupMemberLine(member)}
-                          >
-                            {formatGroupMemberLine(member)}
+                        {groupMembers.map((member, index) => {
+                          const share = sharePctNumber(member?.accountshare_percentage);
+                          return (
+                            <li
+                              key={String(member.group_subscriber_id || `${member.subscriber_id}-${index}`)}
+                              className="px-4 py-2.5"
+                              title={formatGroupMemberLine(member)}
+                            >
+                              <div className="flex items-start gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-semibold text-gray-900 leading-snug">
+                                    {formatTicketLabel(member?.accountshare_id)}
+                                    <span className="font-medium text-gray-500"> — </span>
+                                    {member?.name || member?.firstname || '—'}
+                                    <span className="font-medium text-gray-500"> — </span>
+                                    <span className="text-red-700">{formatSharePct(member?.accountshare_percentage)}</span>
+                                  </p>
+                                  <div className="mt-1.5 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                                    <div
+                                      className="h-full rounded-full bg-emerald-500 transition-all duration-700 ease-out"
+                                      style={{ width: `${share}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmMember(member)}
+                                  disabled={removingId === member.group_subscriber_id}
+                                  className="shrink-0 p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50"
+                                  title="Remove from group"
+                                  aria-label={`Remove ${member?.name || 'subscriber'} from group`}
+                                >
+                                  <FiTrash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </li>
+                          );
+                        })}
+                        {remainingToAdd > 0 && (
+                          <li className="px-4 py-3 bg-red-50/70">
+                            <p className="text-sm font-semibold text-red-700">
+                              {remainingToAdd} open ticket{remainingToAdd === 1 ? '' : 's'} to add
+                            </p>
+                            <p className="text-xs text-red-600 mt-0.5">
+                              {addedCount} filled · {remainingToAdd} remaining of {capacityLabel}
+                            </p>
                           </li>
-                        ))}
+                        )}
                       </ul>
                     )}
                   </div>
@@ -533,6 +632,34 @@ const Subscribers = ({
           )}
         </div>
       </div>
+      {confirmMember && (
+        <div className="fixed inset-0 z-[80] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Remove subscriber?</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              {formatTicketLabel(confirmMember.accountshare_id)} — {confirmMember.name || confirmMember.firstname || 'This subscriber'} will be removed from {groupName || 'this group'}. Their company profile will not be deleted.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmMember(null)}
+                disabled={Boolean(removingId)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRemoveMember(confirmMember)}
+                disabled={removingId === confirmMember.group_subscriber_id}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 disabled:opacity-50"
+              >
+                {removingId === confirmMember.group_subscriber_id ? 'Removing…' : 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

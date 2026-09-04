@@ -78,6 +78,7 @@ const Groups = ({ data, groupId, onRefresh }) => {
           groupTransactionInfo={groupTransactionInfo}
           type={type}
           groupId={groupId || data?.results?.groupId}
+          allowDeleteLast={['ACCUMULATIVE', 'DEDUCTIVE'].includes(String(type || '').trim().toUpperCase())}
           allowClearLastCompleted={String(type || '').trim().toUpperCase() === 'FIXED'}
           onRefresh={onRefresh}
         />

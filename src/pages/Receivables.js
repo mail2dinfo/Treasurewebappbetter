@@ -1,7 +1,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useReceivablesContext } from '../context/receivables_context';
-import { FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiGrid, FiList, FiRefreshCw, FiDownload } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiX, FiUser, FiPhone, FiCalendar, FiDollarSign, FiCreditCard, FiGrid, FiList, FiRefreshCw, FiDownload, FiChevronUp, FiChevronDown } from 'react-icons/fi';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import ReceivablePayementModal from '../components/ReceivablePayementModal';
 import { useAobContext } from '../context/aob_context';
@@ -48,6 +48,9 @@ const Receivable = () => {
   const [groupFilter, setGroupFilter] = useState("");
   const [subscriberFilter, setSubscriberFilter] = useState("");
   const [areaFilter, setAreaFilter] = useState(""); // if you want to implement area filter too
+  const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState('asc');
 
 
   const formatCurrency = (amount) => {
@@ -127,14 +130,75 @@ const Receivable = () => {
   //   );
   // });
 
-  const filteredReceivables = receivables.filter(({ group_name, name, area, aob }) => {
-    const groupMatch = !groupFilter || group_name.toLowerCase().includes(groupFilter.toLowerCase());
-    const subscriberMatch = !subscriberFilter || name.toLowerCase().includes(subscriberFilter.toLowerCase());
+  const groupOptions = useMemo(() => {
+    const map = new Map();
+    receivables.forEach((row) => {
+      const id = String(row.group_id || row.group_name || '').trim();
+      if (!id) return;
+      const name = row.group_name || 'Unnamed group';
+      if (!map.has(id)) map.set(id, { id, name, count: 0 });
+      map.get(id).count += 1;
+    });
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+  }, [receivables]);
+
+  const filteredReceivables = receivables.filter(({ group_name, group_id, name, area, aob }) => {
+    const groupKey = String(group_id || group_name || '');
+    const groupChipMatch = !selectedGroupId || groupKey === selectedGroupId;
+    const groupSearchMatch = !groupFilter || (group_name || '').toLowerCase().includes(groupFilter.toLowerCase());
+    const subscriberMatch = !subscriberFilter || (name || '').toLowerCase().includes(subscriberFilter.toLowerCase());
     const areaValue = area || aob || '';
     const areaMatch = !areaFilter || areaValue.toLowerCase().includes(areaFilter.toLowerCase());
 
-    return groupMatch && subscriberMatch && areaMatch;
+    return groupChipMatch && groupSearchMatch && subscriberMatch && areaMatch;
   });
+
+  const toggleSort = (key) => {
+    if (sortKey === key) {
+      setSortDir((dir) => (dir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir(key === 'auct_date' ? 'desc' : 'asc');
+    }
+  };
+
+  const sortedReceivables = useMemo(() => {
+    if (!sortKey) return filteredReceivables;
+    const dir = sortDir === 'desc' ? -1 : 1;
+    return [...filteredReceivables].sort((a, b) => {
+      if (sortKey === 'auct_date') {
+        const aTime = new Date(a.auct_date || 0).getTime() || 0;
+        const bTime = new Date(b.auct_date || 0).getTime() || 0;
+        if (aTime === bTime) return 0;
+        return aTime > bTime ? dir : -dir;
+      }
+      const aDue = Number(a.due_number) || 0;
+      const bDue = Number(b.due_number) || 0;
+      if (aDue !== bDue) return aDue > bDue ? dir : -dir;
+      const aTotal = Number(a.due_total) || 0;
+      const bTotal = Number(b.due_total) || 0;
+      if (aTotal === bTotal) return 0;
+      return aTotal > bTotal ? dir : -dir;
+    });
+  }, [filteredReceivables, sortKey, sortDir]);
+
+  const renderSortHeader = (label, column) => {
+    const active = sortKey === column;
+    return (
+      <button
+        type="button"
+        onClick={() => toggleSort(column)}
+        className="inline-flex items-center gap-1.5 font-semibold text-white hover:text-red-100"
+        title={`Sort by ${label} ${active && sortDir === 'asc' ? 'descending' : 'ascending'}`}
+      >
+        <span>{label}</span>
+        <span className="inline-flex flex-col leading-none -space-y-1" aria-hidden="true">
+          <FiChevronUp className={`w-3 h-3 ${active && sortDir === 'asc' ? 'text-white' : 'text-white/40'}`} />
+          <FiChevronDown className={`w-3 h-3 ${active && sortDir === 'desc' ? 'text-white' : 'text-white/40'}`} />
+        </span>
+      </button>
+    );
+  };
 
   const pdfHeaders = [
     { title: 'Subscriber', value: 'name' },
@@ -149,7 +213,7 @@ const Receivable = () => {
   ];
 
   const pdfRows = useMemo(() => {
-    const rows = filteredReceivables.map((item) => ({
+    const rows = sortedReceivables.map((item) => ({
       name: item.name || '—',
       phone: item.phone || '—',
       group_name: item.group_name || '—',
@@ -161,7 +225,7 @@ const Receivable = () => {
       due: Number(item.rbdue || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 }),
     }));
     if (rows.length) {
-      const totals = filteredReceivables.reduce(
+      const totals = sortedReceivables.reduce(
         (acc, item) => {
           acc.total += parseFloat(item.rbtotal || 0);
           acc.paid += parseFloat(item.rbpaid || 0);
@@ -183,16 +247,17 @@ const Receivable = () => {
       });
     }
     return rows;
-  }, [filteredReceivables]);
+  }, [sortedReceivables]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [groupFilter, subscriberFilter, areaFilter, pageSize]);
+  }, [groupFilter, subscriberFilter, areaFilter, selectedGroupId, pageSize, sortKey, sortDir]);
 
   const clearFilters = () => {
     setGroupFilter("");
     setSubscriberFilter("");
     setAreaFilter("");
+    setSelectedGroupId("");
     setCurrentPage(1);
   };
 
@@ -645,10 +710,10 @@ const Receivable = () => {
                 <th className="px-4 py-3 text-left text-sm font-semibold">Photo</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Subscriber</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Group</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Auction</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">{renderSortHeader('Auction', 'auct_date')}</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Area</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Advance</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Due no.</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold">{renderSortHeader('Due no.', 'due_number')}</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Total Due</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Paid</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold">Balance</th>
@@ -911,21 +976,79 @@ const Receivable = () => {
               </div>
 
               {/* Results Summary */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 text-sm text-gray-600">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span>Showing {filteredReceivables.length} of {receivables.length} receivables</span>
-                  {(groupFilter || subscriberFilter || areaFilter) && (
-                    <span className="text-custom-red font-medium">Filters applied</span>
-                  )}
+              <div className="flex flex-col gap-3 text-sm text-gray-600">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <span>Showing {filteredReceivables.length} of {receivables.length} receivables</span>
+                    {(groupFilter || subscriberFilter || areaFilter || selectedGroupId) && (
+                      <span className="text-custom-red font-medium">Filters applied</span>
+                    )}
+                  </div>
+                  {renderViewToggle()}
                 </div>
-                {renderViewToggle()}
+                {groupOptions.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGroupId('')}
+                      className={`px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold border transition-colors ${
+                        !selectedGroupId
+                          ? 'bg-red-600 text-white border-red-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:text-red-700'
+                      }`}
+                    >
+                      All ({receivables.length})
+                    </button>
+                    {groupOptions.map((group) => {
+                      const active = selectedGroupId === group.id;
+                      return (
+                        <button
+                          key={group.id}
+                          type="button"
+                          title={group.name}
+                          onClick={() => setSelectedGroupId(active ? '' : group.id)}
+                          className={`max-w-full px-3 py-1.5 rounded-full text-xs sm:text-sm font-semibold border transition-colors truncate ${
+                            active
+                              ? 'bg-red-600 text-white border-red-600'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:text-red-700'
+                          }`}
+                        >
+                          {group.name} ({group.count})
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center gap-2 md:hidden">
+                  <span className="text-xs font-semibold text-gray-500">Sort:</span>
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('auct_date')}
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                      sortKey === 'auct_date' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300'
+                    }`}
+                  >
+                    Auction
+                    {sortKey === 'auct_date' && sortDir === 'asc' ? <FiChevronUp className="w-3 h-3" /> : <FiChevronDown className="w-3 h-3" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('due_number')}
+                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold border ${
+                      sortKey === 'due_number' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-700 border-gray-300'
+                    }`}
+                  >
+                    Due no.
+                    {sortKey === 'due_number' && sortDir === 'asc' ? <FiChevronUp className="w-3 h-3" /> : <FiChevronDown className="w-3 h-3" />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Receivables List */}
           {filteredReceivables.length > 0 ? (
-            renderPaginatedReceivables(filteredReceivables)
+            renderPaginatedReceivables(sortedReceivables)
           ) : (
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
               <div className="w-24 h-24 mx-auto mb-6 bg-gray-100 rounded-full flex items-center justify-center">
@@ -938,7 +1061,7 @@ const Receivable = () => {
                   : "No receivables match your current filter criteria."
                 }
               </p>
-              {(groupFilter || subscriberFilter || areaFilter) && (
+              {(groupFilter || subscriberFilter || areaFilter || selectedGroupId) && (
                 <button
                   onClick={clearFilters}
                   className="px-6 py-2 bg-custom-red text-white rounded-lg hover:bg-red-600 transition-colors duration-200"

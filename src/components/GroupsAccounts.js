@@ -239,7 +239,9 @@ const GroupsAccounts = ({
       try {
         const previewPath = isClearMode
           ? `${API_BASE_URL}/groups/${groupId}/accounts/${deleteTarget.grpAccountId}/clear-preview?t=${deleteTarget.openedAt || Date.now()}`
-          : `${API_BASE_URL}/adaptive-groups/${groupId}/accounts/${deleteTarget.grpAccountId}/delete-preview?t=${deleteTarget.openedAt || Date.now()}`;
+          : String(type || '').toUpperCase() === 'ADAPTIVE'
+            ? `${API_BASE_URL}/adaptive-groups/${groupId}/accounts/${deleteTarget.grpAccountId}/delete-preview?t=${deleteTarget.openedAt || Date.now()}`
+            : `${API_BASE_URL}/groups/${groupId}/accounts/${deleteTarget.grpAccountId}/delete-preview?t=${deleteTarget.openedAt || Date.now()}`;
         const res = await fetch(previewPath, {
             cache: 'no-store',
             headers: {
@@ -267,7 +269,7 @@ const GroupsAccounts = ({
     return () => {
       cancelled = true;
     };
-  }, [deleteTarget?.grpAccountId, deleteTarget?.openedAt, groupId, user?.results?.token, isClearMode]);
+  }, [deleteTarget?.grpAccountId, deleteTarget?.openedAt, groupId, user?.results?.token, isClearMode, type]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -286,7 +288,9 @@ const GroupsAccounts = ({
       const res = await fetch(
         isClearMode
           ? `${API_BASE_URL}/groups/${groupId}/accounts/${deleteTarget.grpAccountId}/clear-transactions`
-          : `${API_BASE_URL}/adaptive-groups/${groupId}/accounts/${deleteTarget.grpAccountId}`,
+          : String(type || '').toUpperCase() === 'ADAPTIVE'
+            ? `${API_BASE_URL}/adaptive-groups/${groupId}/accounts/${deleteTarget.grpAccountId}`
+            : `${API_BASE_URL}/groups/${groupId}/accounts/${deleteTarget.grpAccountId}`,
         {
           method: isClearMode ? 'POST' : 'DELETE',
           headers: {
