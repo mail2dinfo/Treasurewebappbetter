@@ -813,9 +813,9 @@ const ProductsPage = () => {
                 </div>
 
                 {/* Product Details Section */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200">
                   {/* Header with gradient background */}
-                  <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
+                  <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 rounded-t-xl">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-lg font-bold text-white">Tenure Details</h3>
@@ -838,12 +838,20 @@ const ProductsPage = () => {
                     </div>
                   </div>
 
-                  <div className="p-6">
+                  <div className="p-4 sm:p-6">
                     {(selectedProduct.monthlyDetails || []).length > 0 ? (
-                      <div className="space-y-3 overflow-x-auto">
-                        <div className="min-w-[860px] space-y-3">
+                      <div className="overflow-x-auto pb-2">
+                        <div
+                          className="min-w-[720px] space-y-3"
+                          style={{
+                            '--tenure-cols': '56px repeat(6, minmax(72px, 1fr)) 104px',
+                          }}
+                        >
                         {/* Header Row */}
-                        <div className="grid grid-cols-8 gap-2 md:gap-3 p-4 bg-gradient-to-r from-red-50 to-red-100 rounded-xl font-bold text-sm text-red-800 shadow-sm border border-red-200">
+                        <div
+                          className="grid gap-2 p-3 bg-gradient-to-r from-red-50 to-red-100 rounded-xl font-bold text-sm text-red-800 shadow-sm border border-red-200"
+                          style={{ gridTemplateColumns: 'var(--tenure-cols)' }}
+                        >
                           <div className="text-center flex items-center justify-center gap-1 cursor-pointer bg-red-600 text-white hover:bg-red-700 rounded px-2 py-1" onClick={handleTenureSort}>
                             Tenure
                             {tenureSortOrder === 'asc' ? (
@@ -852,13 +860,13 @@ const ProductsPage = () => {
                               <FaChevronDown className="w-3 h-3" />
                             )}
                           </div>
-                          <div className="text-center">Bid</div>
-                          <div className="text-center">Prize</div>
-                          <div className="text-center">Comm</div>
-                          <div className="text-center">Bal</div>
-                          <div className="text-center">Profit</div>
-                          <div className="text-center">Due</div>
-                          <div className="text-center">Action</div>
+                          <div className="text-center self-center">Bid</div>
+                          <div className="text-center self-center">Prize</div>
+                          <div className="text-center self-center">Comm</div>
+                          <div className="text-center self-center">Bal</div>
+                          <div className="text-center self-center">Profit</div>
+                          <div className="text-center self-center">Due</div>
+                          <div className="text-center self-center sticky right-0 bg-gradient-to-r from-red-50 to-red-100 z-10">Action</div>
                         </div>
 
                         {/* Data Rows */}
@@ -868,65 +876,68 @@ const ProductsPage = () => {
                           return (
                             <div
                               key={detail.sequence}
-                              className="grid grid-cols-8 gap-2 md:gap-3 p-4 bg-white border border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-200 hover:shadow-md transition-all duration-200"
+                              className="grid gap-2 p-3 bg-white border border-gray-200 rounded-xl hover:bg-red-50 hover:border-red-200 hover:shadow-md transition-all duration-200"
+                              style={{ gridTemplateColumns: 'var(--tenure-cols)' }}
                             >
                               {/* Tenure Period */}
-                              <div className="flex items-center justify-center">
+                              <div className="flex items-center justify-center min-w-0">
                                 <span className="text-xs font-bold text-white bg-red-600 px-2 py-1 rounded-full">
                                   {detail.sequence}
                                 </span>
                               </div>
 
                               {/* Bid */}
-                              <div className="flex items-center justify-center">
-                                <span className="text-sm font-medium text-gray-900 bg-red-50 px-3 py-2 rounded-lg border border-red-200 min-w-[70px] text-center shadow-sm">
+                              <div className="flex items-center justify-center min-w-0">
+                                <span className="w-full truncate text-sm font-medium text-gray-900 bg-red-50 px-2 py-2 rounded-lg border border-red-200 text-center shadow-sm">
                                   {detail.bid || '-'}
                                 </span>
                               </div>
 
                               {/* Prize */}
-                              <div className="flex items-center justify-center">
-                                <span className="text-sm font-medium text-gray-900 bg-red-50 px-3 py-2 rounded-lg border border-red-200 min-w-[70px] text-center shadow-sm">
+                              <div className="flex items-center justify-center min-w-0">
+                                <span className="w-full truncate text-sm font-medium text-gray-900 bg-red-50 px-2 py-2 rounded-lg border border-red-200 text-center shadow-sm">
                                   {detail.prize || '-'}
                                 </span>
                               </div>
 
                               {/* Comm */}
-                              <div className="flex items-center justify-center">
-                                <span className="text-sm font-medium text-gray-900 bg-red-50 px-3 py-2 rounded-lg border border-red-200 min-w-[70px] text-center shadow-sm">
+                              <div className="flex items-center justify-center min-w-0">
+                                <span className="w-full truncate text-sm font-medium text-gray-900 bg-red-50 px-2 py-2 rounded-lg border border-red-200 text-center shadow-sm">
                                   {detail.comm || '-'}
                                 </span>
                               </div>
 
                               {/* Bal */}
-                              <div className="flex items-center justify-center">
-                                <span className="text-sm font-medium text-gray-900 bg-red-50 px-3 py-2 rounded-lg border border-red-200 min-w-[70px] text-center shadow-sm">
+                              <div className="flex items-center justify-center min-w-0">
+                                <span className="w-full truncate text-sm font-medium text-gray-900 bg-red-50 px-2 py-2 rounded-lg border border-red-200 text-center shadow-sm">
                                   {detail.bal || '-'}
                                 </span>
                               </div>
 
                               {/* Profit */}
-                              <div className="flex items-center justify-center">
-                                <span className="text-sm font-medium text-gray-900 bg-red-50 px-3 py-2 rounded-lg border border-red-200 min-w-[70px] text-center shadow-sm">
+                              <div className="flex items-center justify-center min-w-0">
+                                <span className="w-full truncate text-sm font-medium text-gray-900 bg-red-50 px-2 py-2 rounded-lg border border-red-200 text-center shadow-sm">
                                   {detail.profit || '-'}
                                 </span>
                               </div>
 
                               {/* Due */}
-                              <div className="flex items-center justify-center">
-                                <span className="text-sm font-medium text-gray-900 bg-red-50 px-3 py-2 rounded-lg border border-red-200 min-w-[70px] text-center shadow-sm">
+                              <div className="flex items-center justify-center min-w-0">
+                                <span className="w-full truncate text-sm font-medium text-gray-900 bg-red-50 px-2 py-2 rounded-lg border border-red-200 text-center shadow-sm">
                                   {detail.due || '-'}
                                 </span>
                               </div>
 
                               {/* Action */}
-                              <div className="flex items-center justify-center">
+                              <div className="flex items-center justify-center min-w-[96px] sticky right-0 bg-white hover:bg-red-50 z-10 rounded-r-xl">
                                 <button
+                                  type="button"
                                   onClick={() => handleRowClick(originalIndex)}
-                                  className="flex items-center gap-1 px-4 py-2 text-sm bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                                  className="inline-flex items-center justify-center gap-1.5 shrink-0 min-w-[88px] px-3 py-2 text-sm font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 shadow-md"
                                   title="Edit this tenure period"
                                 >
-                                  <FaEdit className="w-4 h-4" />
+                                  <FaEdit className="w-3.5 h-3.5" />
+                                  Edit
                                 </button>
                               </div>
                             </div>
