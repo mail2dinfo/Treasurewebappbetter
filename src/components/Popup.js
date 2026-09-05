@@ -1,12 +1,11 @@
 import React from "react";
 import "./Popup.css";
 import { useHistory, useLocation } from 'react-router-dom';
+import { getChitBasePath } from '../utils/chitBasePath';
 const Popup = ({ text, closePopup, groupId, noofCompanySubscriber, noofSubscriber }) => {
   const history = useHistory();
   const location = useLocation();
-  const basePath = location.pathname.startsWith('/chit-fund/manager')
-    ? '/chit-fund/manager'
-    : '/chit-fund/user';
+  const basePath = getChitBasePath(location.pathname);
   // export const Popup = ({ text, closePopup }) => {
   const handleAddNewClick = () => {
     // Navigate to the specific URL when "Add New" is clicked

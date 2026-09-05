@@ -5,6 +5,7 @@ import Alert from "../components/Alert";
 import { API_BASE_URL } from "../utils/apiConfig";
 import { useUserContext } from "../context/user_context";
 import { usePlatformAccess } from "../context/platformAccess_context";
+import { getChitBasePath } from '../utils/chitBasePath';
 import { Gavel } from "lucide-react";
 
 const GroupDetailsCard = ({
@@ -33,9 +34,7 @@ const GroupDetailsCard = ({
     // const { subscriber } = React.useContext(SubContext);
     const history = useHistory();
     const locationDetails = useLocation();
-    const basePath = locationDetails.pathname.startsWith('/chit-fund/manager')
-        ? '/chit-fund/manager'
-        : '/chit-fund/user';
+    const basePath = getChitBasePath(locationDetails.pathname);
     const isManagerPath = basePath === '/chit-fund/manager';
     const canViewReceivables = !isManagerPath || platform.hasAnyPermission([
         'chit_receivables_view',

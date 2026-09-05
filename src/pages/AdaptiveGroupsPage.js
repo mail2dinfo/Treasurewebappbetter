@@ -13,6 +13,7 @@ import GroupAccountsPdf from '../components/PDF/GroupAccountsPdf';
 import GroupsAccounts from '../components/GroupsAccounts';
 import GroupDetailsCard from '../components/GroupDetailsCard';
 import Loading from '../components/Loading';
+import { getChitBasePath } from '../utils/chitBasePath';
 
 const todayISO = () => {
   const d = new Date();
@@ -614,9 +615,7 @@ const AdaptiveGroupsPage = () => {
     const type = String(data?.results?.type || '').toUpperCase();
     if (!type || isLoading) return;
     if (type !== 'ADAPTIVE') {
-      const base = location.pathname.includes('/manager/')
-        ? '/chit-fund/manager'
-        : '/chit-fund/user';
+      const base = getChitBasePath(location.pathname);
       const dest =
         type === 'FLEXIBLE'
           ? `${base}/flexible-groups/${groupId}`

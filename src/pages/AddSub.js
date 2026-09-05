@@ -17,14 +17,13 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getRosterFill, sortByTicketId } from "../utils/groupTicketCapacity";
 import Loading from "../components/Loading";
+import { getChitBasePath } from "../utils/chitBasePath";
 
 const AddSub = () => {
   const history = useHistory();
   const location = useLocation();
   const { groupId } = useParams();
-  const basePath = location.pathname.startsWith("/chit-fund/manager")
-    ? "/chit-fund/manager"
-    : "/chit-fund/user";
+  const basePath = getChitBasePath(location.pathname);
   const { data, isLoading, fetchGroups, deleteGroupSubscriber } =
     useGroupDetailsContext();
   const { companySubscribers } = useCompanySubscriberContext();

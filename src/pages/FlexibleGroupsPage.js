@@ -10,6 +10,7 @@ import { API_BASE_URL } from '../utils/apiConfig';
 import { UserInfo, GroupSubscriber } from '../components';
 import GroupDetailsCard from '../components/GroupDetailsCard';
 import Loading from '../components/Loading';
+import { getChitBasePath } from '../utils/chitBasePath';
 
 const Wrapper = styled.div`
   padding-top: 1.25rem;
@@ -1236,9 +1237,7 @@ const FlexibleGroupsPage = () => {
     const groupType = String(data?.results?.type || '').toUpperCase();
     if (!groupType || isLoading) return;
     if (groupType !== 'FLEXIBLE') {
-      const base = location.pathname.includes('/manager/')
-        ? '/chit-fund/manager'
-        : '/chit-fund/user';
+      const base = getChitBasePath(location.pathname);
       const dest =
         groupType === 'ADAPTIVE'
           ? `${base}/adaptive-groups/${groupId}`

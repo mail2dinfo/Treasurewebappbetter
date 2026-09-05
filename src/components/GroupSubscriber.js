@@ -333,16 +333,21 @@ import Scenario4Modal from "./Scenario4Modal";
 import { useHistory, useLocation } from "react-router-dom";
 import { FiUserPlus } from "react-icons/fi";
 import { usePlatformAccess } from "../context/platformAccess_context";
+import { getChitBasePath } from "../utils/chitBasePath";
 
 const GroupsSubscriber = () => {
   const location = useLocation();
   const history = useHistory();
   const platform = usePlatformAccess();
   const isManagerPath = location.pathname.startsWith('/chit-fund/manager');
-  const canDeleteSubscriber = !isManagerPath
-    || platform.hasPermission('chit_subscriber_delete');
+  const isAccountantPath = location.pathname.startsWith('/chit-fund/accountant');
+  const canDeleteSubscriber = !isAccountantPath && (
+    !isManagerPath || platform.hasPermission('chit_subscriber_delete')
+  );
   const canManageSubscribers = canDeleteSubscriber;
-  const canAddSubscriber = !isManagerPath || platform.hasPermission('chit_subscriber_add');
+  const canAddSubscriber = !isAccountantPath && (
+    !isManagerPath || platform.hasPermission('chit_subscriber_add')
+  );
 
   const { data, deleteGroupSubscriberbyCompositekey, checkDeletionScenario } = useGroupDetailsContext();
 
@@ -559,8 +564,7 @@ const GroupsSubscriber = () => {
               <button
                 type="button"
                 onClick={() => {
-                  const base = isManagerPath ? '/chit-fund/manager' : '/chit-fund/user';
-                  history.push(`${base}/addgroupsubscriber/${data.results.groupId}`);
+                  history.push(`${getChitBasePath(location.pathname)}/addgroupsubscriber/${data.results.groupId}`);
                 }}
                 className="bg-teal-700 hover:bg-teal-800 text-white px-4 py-2 rounded-lg shadow-md flex items-center gap-2"
               >

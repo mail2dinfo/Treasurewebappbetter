@@ -11,13 +11,12 @@ import { GroupSubscriberDetailsPopup } from "../components";
 import { FaArrowLeft, FaGavel, FaUsers, FaClock, FaMoneyBillWave, FaTrophy, FaPlay } from 'react-icons/fa';
 import { useGroupDetailsContext } from '../context/group_context';
 import { toast } from 'react-toastify';
+import { getChitBasePath } from '../utils/chitBasePath';
 
 const AuctionsPage = () => {
     const history = useHistory();
     const location = useLocation();
-    const chitBasePath = location.pathname.startsWith('/chit-fund/manager')
-        ? '/chit-fund/manager'
-        : '/chit-fund/user';
+    const chitBasePath = getChitBasePath(location.pathname);
     const { user } = useUserContext();
     const { data } = useGroupDetailsContext();
 

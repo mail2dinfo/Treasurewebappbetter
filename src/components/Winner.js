@@ -3,13 +3,12 @@ import Confetti from "react-confetti";
 import { useHistory, useParams } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiConfig';
 import { FaTrophy, FaHome, FaArrowLeft, FaCheckCircle, FaStar, FaMedal, FaGift, FaCoins, FaCalendar, FaUser, FaCreditCard } from 'react-icons/fa';
+import { getChitBasePath } from '../utils/chitBasePath';
 
 const Winner = ({ location }) => {
     const history = useHistory();
     const { groupId, reserve } = useParams();
-    const chitBasePath = location?.pathname?.startsWith('/chit-fund/manager')
-        ? '/chit-fund/manager'
-        : '/chit-fund/user';
+    const chitBasePath = getChitBasePath(location?.pathname);
     const [previewImage, setPreviewImage] = useState('https://github.com/OlgaKoplik/CodePen/blob/master/profile.jpg?raw=true');
     const [, setError] = useState(null);
     const [confettiActive, setConfettiActive] = useState(true);

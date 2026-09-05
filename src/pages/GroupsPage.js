@@ -120,6 +120,7 @@ import { useParams, useHistory, useLocation } from "react-router-dom";
 import { UserInfo, Groups, GroupSubscriber } from "../components";
 import { useGroupDetailsContext } from "../context/group_context";
 import Loading from '../components/Loading';
+import { getChitBasePath } from '../utils/chitBasePath';
 
 const GroupsPage = () => {
     const { groupId } = useParams();
@@ -137,9 +138,7 @@ const GroupsPage = () => {
     useEffect(() => {
         const type = String(data?.results?.type || '').toUpperCase();
         if (isLoading) return;
-        const base = location.pathname.includes('/manager/')
-            ? '/chit-fund/manager'
-            : '/chit-fund/user';
+        const base = getChitBasePath(location.pathname);
         if (type === 'ADAPTIVE') {
             history.replace(`${base}/adaptive-groups/${groupId}`);
         } else if (type === 'FLEXIBLE') {

@@ -6,6 +6,7 @@ import { useGroupDetailsContext } from '../context/group_context';
 import Alert from '../components/Alert';
 import AssignGroupAmountPopup from '../components/AssignGroupAmountPopup';
 import { FiPhone, FiEye, FiUser, FiMail, FiPlus } from 'react-icons/fi';
+import { getChitBasePath } from '../utils/chitBasePath';
 
 const isValidUserImage = (url) => {
   if (!url || typeof url !== 'string') return false;
@@ -31,9 +32,7 @@ const Subscriber = ({
   const [alert, setAlert] = useState({ show: false, msg: '', type: '' });
   const [imageError, setImageError] = useState(false);
   const location = useLocation();
-  const basePath = location.pathname.startsWith('/chit-fund/manager')
-    ? '/chit-fund/manager'
-    : '/chit-fund/user';
+  const basePath = getChitBasePath(location.pathname);
   const { user } = useUserContext();
   const { groupId } = useParams();
   const { fetchGroups } = useGroupDetailsContext();
