@@ -205,7 +205,8 @@ const PersonalFinanceDashboardPage = () => {
     const [editingAccount, setEditingAccount] = useState(null);
     const [saving, setSaving] = useState(false);
 
-    const [txnType, setTxnType] = useState('EXPENSE');
+    const [txnType, setTxnType] = useState('');
+    const [txnTypeError, setTxnTypeError] = useState('');
     const [amount, setAmount] = useState('');
     const [accountId, setAccountId] = useState('');
     const [categoryId, setCategoryId] = useState('');
@@ -338,6 +339,10 @@ const PersonalFinanceDashboardPage = () => {
     }, [ensureLookups]);
 
     useEffect(() => {
+        if (txnType !== 'INCOME' && txnType !== 'EXPENSE') {
+            setCategoryId('');
+            return;
+        }
         const list = txnType === 'INCOME' ? incomeCats : expenseCats;
         setCategoryId((prev) => {
             if (list.some((c) => c.id === prev)) return prev;
@@ -345,8 +350,9 @@ const PersonalFinanceDashboardPage = () => {
         });
     }, [txnType, incomeCats, expenseCats]);
 
-    const openTxnModal = async (type = 'EXPENSE') => {
-        setTxnType(type);
+    const openTxnModal = async () => {
+        setTxnType('');
+        setTxnTypeError('');
         setAmount('');
         setTxnDate(todayISO());
         setNote('');
@@ -360,7 +366,7 @@ const PersonalFinanceDashboardPage = () => {
         const nextType =
             preferredType === 'INCOME' || preferredType === 'EXPENSE'
                 ? preferredType
-                : (txnType === 'INCOME' ? 'INCOME' : 'EXPENSE');
+                : (txnType === 'INCOME' || txnType === 'EXPENSE' ? txnType : catType);
         setCatType(nextType);
         setShowCatModal(true);
     };
@@ -482,6 +488,12 @@ const PersonalFinanceDashboardPage = () => {
 
     const submitTransaction = async (e) => {
         e.preventDefault();
+        if (txnType !== 'INCOME' && txnType !== 'EXPENSE') {
+            setTxnTypeError('Select Income or Expense');
+            toast.error('Select Income or Expense');
+            return;
+        }
+        setTxnTypeError('');
         if (!amount || Number(amount) <= 0) {
             toast.error('Enter a valid amount');
             return;
@@ -659,7 +671,11 @@ const PersonalFinanceDashboardPage = () => {
         period_income: periodIncome,
     };
     const categoryList = catType === 'INCOME' ? incomeCats : expenseCats;
-    const txnCategories = txnType === 'INCOME' ? incomeCats : expenseCats;
+    const txnCategories = txnType === 'INCOME'
+        ? incomeCats
+        : txnType === 'EXPENSE'
+            ? expenseCats
+            : [];
 
     const periodLabel =
         PERIODS.find((p) => p.id === period)?.label
@@ -1002,7 +1018,7 @@ const PersonalFinanceDashboardPage = () => {
                                     <div className="flex flex-wrap items-center gap-2">
                                         <button
                                             type="button"
-                                            onClick={() => openTxnModal('EXPENSE')}
+                                            onClick={() => openTxnModal()}
                                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 shadow-sm"
                                         >
                                             <FaPlus className="w-3 h-3" />
@@ -1412,7 +1428,11 @@ const PersonalFinanceDashboardPage = () => {
                             <div className="flex items-center justify-between mb-6">
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-900">
-                                        {txnType === 'INCOME' ? 'Log Income' : 'Log Expense'}
+                                        {txnType === 'INCOME'
+                                            ? 'Log Income'
+                                            : txnType === 'EXPENSE'
+                                                ? 'Log Expense'
+                                                : 'Add Entry'}
                                     </h2>
                                 </div>
                                 <button
@@ -1425,29 +1445,41 @@ const PersonalFinanceDashboardPage = () => {
                             </div>
 
                             <form onSubmit={submitTransaction} className="space-y-3">
-                                <div className="grid grid-cols-2 gap-2 mb-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setTxnType('INCOME')}
-                                        className={`py-2 rounded-lg text-sm font-bold transition-all ${
-                                            txnType === 'INCOME'
-                                                ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md'
-                                                : 'bg-gray-100 text-gray-600'
-                                        }`}
-                                    >
-                                        Income
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setTxnType('EXPENSE')}
-                                        className={`py-2 rounded-lg text-sm font-bold transition-all ${
-                                            txnType === 'EXPENSE'
-                                                ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md'
-                                                : 'bg-gray-100 text-gray-600'
-                                        }`}
-                                    >
-                                        Expense
-                                    </button>
+                                <div>
+                                    <p className="block text-sm font-medium text-gray-700 mb-1">Type *</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setTxnType('INCOME');
+                                                setTxnTypeError('');
+                                            }}
+                                            className={`py-2 rounded-lg text-sm font-bold transition-all ${
+                                                txnType === 'INCOME'
+                                                    ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            Income
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setTxnType('EXPENSE');
+                                                setTxnTypeError('');
+                                            }}
+                                            className={`py-2 rounded-lg text-sm font-bold transition-all ${
+                                                txnType === 'EXPENSE'
+                                                    ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-md'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            Expense
+                                        </button>
+                                    </div>
+                                    {txnTypeError ? (
+                                        <p className="mt-1 text-sm text-red-600">{txnTypeError}</p>
+                                    ) : null}
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1497,8 +1529,14 @@ const PersonalFinanceDashboardPage = () => {
                                             onChange={(e) => setCategoryId(e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                                             required
+                                            disabled={txnType !== 'INCOME' && txnType !== 'EXPENSE'}
                                         >
-                                            {txnCategories.length === 0 && <option value="">No categories</option>}
+                                            {txnType !== 'INCOME' && txnType !== 'EXPENSE' && (
+                                                <option value="">Select Income or Expense first</option>
+                                            )}
+                                            {(txnType === 'INCOME' || txnType === 'EXPENSE') && txnCategories.length === 0 && (
+                                                <option value="">No categories</option>
+                                            )}
                                             {txnCategories.map((c) => (
                                                 <option key={c.id} value={c.id}>{c.name}</option>
                                             ))}
