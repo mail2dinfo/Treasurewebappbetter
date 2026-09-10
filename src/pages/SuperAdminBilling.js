@@ -6,13 +6,7 @@ import { fetchSuperAdminApi } from '../utils/superAdminApi';
 import { API_BASE_URL } from '../utils/apiConfig';
 import SuperAdminShell from '../components/superAdmin/SuperAdminShell';
 import { SuperAdminPanel } from '../components/superAdmin/SuperAdminDashboardCards';
-
-const APP_LABELS = {
-    CHIT_FUND: 'Chit Fund',
-    DAILY_COLLECTION: 'Daily Collection',
-    VEHICLE_FINANCE: 'Vehicle Finance',
-    PERSONAL_LOAN: 'Personal Loan',
-};
+import { getBillingAppLabel } from '../utils/billingAppLabels';
 
 const STATUS_LABELS = {
     active: 'Running',
@@ -329,7 +323,7 @@ const SuperAdminBilling = () => {
                                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                             <div>
                                                 <p className="font-semibold text-slate-900">
-                                                    {APP_LABELS[app.app_code] || app.app_code}
+                                                    {getBillingAppLabel(app.app_code)}
                                                 </p>
                                                 <p className="mt-1 text-xs text-slate-500">
                                                     Status:{' '}

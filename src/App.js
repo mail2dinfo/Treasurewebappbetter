@@ -27,6 +27,7 @@ import DailyCollectionCustomerLayout from './components/dailyCollection/DailyCol
 import DailyCollectionCollectorLayout from './components/dailyCollection/DailyCollectionCollectorLayout';
 import PersonalLoanAdminLayout from './components/personalLoan/PersonalLoanAdminLayout';
 import PersonalFinanceLayout from './components/personalFinance/PersonalFinanceLayout';
+import DocumentsLayout from './components/documents/DocumentsLayout';
 import VehicleFinanceAdminLayout from './components/vehicleFinance/VehicleFinanceAdminLayout';
 import VehicleFinanceManagerLayout from './components/vehicleFinance/VehicleFinanceManagerLayout';
 import VehicleFinanceCollectorLayout from './components/vehicleFinance/VehicleFinanceCollectorLayout';
@@ -126,6 +127,15 @@ function App() {
 
                         {/* Personal Finance App Routes */}
                         <Route path="/personal-finance" component={PersonalFinanceLayout} />
+                        <Route path="/documents-box" component={DocumentsLayout} />
+                        <Route
+                            path="/documents"
+                            render={({ location }) => (
+                                <Redirect
+                                    to={`${location.pathname.replace(/^\/documents(?=\/|$)/, '/documents-box')}${location.search || ''}`}
+                                />
+                            )}
+                        />
 
                         {/* Rental Management App Routes */}
                         <Route path="/rental-management/user" component={RentalManagementAdminLayout} />

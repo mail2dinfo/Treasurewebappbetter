@@ -3,13 +3,7 @@ import { useHistory } from 'react-router-dom';
 import { useBilling } from '../context/billing_context';
 import BillingPaymentModal from './BillingPaymentModal';
 import { formatBillingAmount } from '../utils/billingPaymentUtils';
-
-const APP_LABELS = {
-    CHIT_FUND: 'Chit Fund',
-    DAILY_COLLECTION: 'Daily Collection',
-    VEHICLE_FINANCE: 'Vehicle Finance',
-    PERSONAL_LOAN: 'Personal Loan',
-};
+import { getBillingAppLabel } from '../utils/billingAppLabels';
 
 /**
  * Blocks app content when suspended with dues, or unpaid while active.
@@ -66,7 +60,7 @@ const BillingAccessGate = ({ children }) => {
         return children;
     }
 
-    const appLabel = APP_LABELS[appCode] || appCode;
+    const appLabel = getBillingAppLabel(appCode);
 
     const handleResume = async () => {
         setResumeError(null);

@@ -458,6 +458,7 @@ const APP_DISPLAY_ORDER = [
     'HOSTEL_MANAGEMENT',
     'MUTTON_STALL',
     'HOSPITAL_MANAGEMENT',
+    'DOCUMENTS',
     'DAILY_COLLECTION',
     'PERSONAL_LOAN',
     'TWO_WHEELER_FINANCE',
@@ -471,6 +472,7 @@ const defaultAppLabel = (appCode) => {
         HOSTEL_MANAGEMENT: 'Hostel Management',
         MUTTON_STALL: 'Mutton Stall',
         HOSPITAL_MANAGEMENT: 'Hospital Management',
+        DOCUMENTS: 'Documents',
         DAILY_COLLECTION: 'Daily Collection',
         PERSONAL_LOAN: 'Personal Loan',
         TWO_WHEELER_FINANCE: 'Two Wheeler Finance',
@@ -580,6 +582,15 @@ const FALLBACK_APP_CATALOG = [
             fallbackFeature('pl_collections', 'Collections', 'Collections', ['MANAGER', 'COLLECTOR']),
             fallbackFeature('pl_ledger', 'Ledger', 'Accounting', ['ACCOUNTANT']),
             fallbackFeature('pl_reports', 'Reports', 'Reports', ['MANAGER', 'ACCOUNTANT']),
+        ],
+    },
+    {
+        appCode: 'DOCUMENTS',
+        displayName: 'Documents',
+        description: 'Document box — store, preview, and download PDF and images',
+        features: [
+            fallbackFeature('dbx_box_view', 'View Documents', 'Documents Box', ['USER', 'MANAGER']),
+            fallbackFeature('dbx_box_manage', 'Manage Documents', 'Documents Box', ['USER', 'MANAGER']),
         ],
     },
 ];

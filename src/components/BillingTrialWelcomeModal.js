@@ -1,13 +1,7 @@
 import React from 'react';
 import { FiX } from 'react-icons/fi';
 import { BILLING_PLANS } from '../utils/billingPlans';
-
-const APP_LABELS = {
-    CHIT_FUND: 'Chit Fund',
-    DAILY_COLLECTION: 'Daily Collection',
-    VEHICLE_FINANCE: 'Vehicle Finance',
-    PERSONAL_LOAN: 'Personal Loan',
-};
+import { getBillingAppLabel } from '../utils/billingAppLabels';
 
 const BillingTrialWelcomeModal = ({
     open,
@@ -18,7 +12,7 @@ const BillingTrialWelcomeModal = ({
 }) => {
     if (!open) return null;
 
-    const appLabel = APP_LABELS[appCode] || appCode;
+    const appLabel = getBillingAppLabel(appCode);
     const plan = BILLING_PLANS.find((p) => p.id === 'VeryBasic') || BILLING_PLANS[0];
     const monthlyAmount = trial?.monthly_amount ?? plan?.price ?? 100;
     const trialDays = trial?.trial_days ?? 30;

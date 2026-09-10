@@ -43,6 +43,12 @@ const APPS = [
         title: "Rental",
         plain: "Properties & rent",
     },
+    {
+        code: "DBX",
+        color: "violet",
+        title: "Documents",
+        plain: "PDF & image box",
+    },
 ];
 
 const colorMap = {

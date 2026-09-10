@@ -17,6 +17,7 @@ export const RESERVED_STALL_SLUGS = new Set([
   'login', 'signup', 'sign-up', 'verify-otp', 'forget-password', 'forgot-password',
   'app-selection', 'platform', 'super-admin', 'customer', 'collector', 'subscriber',
   'chit-fund', 'daily-collection', 'vehicle-finance', 'personal-loan', 'personal-finance',
+  'documents', 'documents-box',
   'rental-management', 'hostel-management', 'mutton-stall', 'stall', 'api', 'static',
   'assets', 'home', 'dashboard', 'billing', 'help', 'faq',
 ]);

@@ -3,6 +3,7 @@ import { useBilling } from '../context/billing_context';
 import { useUserContext } from '../context/user_context';
 import { MANUAL_CRON_ENABLED } from '../utils/apiConfig';
 import { getLivePlanPrice } from '../utils/billingPlans';
+import { getBillingAppLabel } from '../utils/billingAppLabels';
 import {
     formatBillingAmount,
     getBillingPaymentSummary,
@@ -35,13 +36,7 @@ const MyBillingPage = () => {
         resetBillingData
     } = useBilling();
 
-    const appLabel = {
-        CHIT_FUND: 'Chit Fund',
-        DAILY_COLLECTION: 'Daily Collection',
-        VEHICLE_FINANCE: 'Vehicle Finance',
-        PERSONAL_LOAN: 'Personal Loan',
-        PERSONAL_FINANCE: 'Personal Finance',
-    }[appCode] || appCode;
+    const appLabel = getBillingAppLabel(appCode);
 
     const [activeTab, setActiveTab] = useState('billing');
     const [selectedPlan, setSelectedPlan] = useState(null);
