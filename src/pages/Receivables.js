@@ -12,7 +12,7 @@ import { formatReceivableDueNo } from '../utils/formatReceivableDueNo';
 import Loading from '../components/Loading';
 import LoadingBar from '../components/LoadingBar';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 1000];
 
 const Receivable = () => {
   const platform = usePlatformAccess();
