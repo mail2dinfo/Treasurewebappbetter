@@ -24,6 +24,12 @@ import {
     HH_MANAGER_DEFAULT_FEATURES,
     hhPermissionGrantsFeature,
 } from '../utils/hhPermissionCatalog';
+import {
+    VP_MANAGER_DEFAULT_FEATURES,
+    VP_COLLECTOR_DEFAULT_FEATURES,
+    VP_ACCOUNTANT_DEFAULT_FEATURES,
+    vpPermissionGrantsFeature,
+} from '../utils/vpPermissionCatalog';
 import { useUserContext } from './user_context';
 
 const STORAGE_KEY = 'platform_active_context';
@@ -212,6 +218,9 @@ export const PlatformAccessProvider = ({ children }) => {
                 localStorage.setItem('vf_collector_membership_id', String(parentMembershipId || ''));
             }
         }
+        if (nextContext.appCode === 'VEHICLE_PARKING' && parentMembershipId) {
+            localStorage.setItem('vp_parent_membership_id', String(parentMembershipId));
+        }
         return nextContext;
     }, [user]);
 
@@ -226,8 +235,9 @@ export const PlatformAccessProvider = ({ children }) => {
         // Fail closed for VF/HM/HH staff until session/context is known.
         const isHmFeature = key.startsWith('hm_') || key === 'people_access_manage';
         const isHhFeature = key.startsWith('hh_');
+        const isVpFeature = key.startsWith('vp_');
         if (!isAvailable || !hasLoaded) {
-            return (isVfFeature || ((isHmFeature || isHhFeature) && staffRoleActive)) ? false : true;
+            return (isVfFeature || ((isHmFeature || isHhFeature || isVpFeature) && staffRoleActive)) ? false : true;
         }
         if (!activeContext) {
             return isVfFeature ? false : true;
@@ -313,6 +323,19 @@ export const PlatformAccessProvider = ({ children }) => {
                 effectivePermissions = MS_MANAGER_DEFAULT_FEATURES;
             } else if (activeContext.appCode === 'HOSPITAL_MANAGEMENT') {
                 effectivePermissions = HH_MANAGER_DEFAULT_FEATURES;
+            } else if (activeContext.appCode === 'VEHICLE_PARKING') {
+                effectivePermissions = VP_MANAGER_DEFAULT_FEATURES;
+            }
+        }
+        if (
+            !assignedPermissions.length
+            && !matrixConfigured
+            && activeContext.appCode === 'VEHICLE_PARKING'
+        ) {
+            if (activeContext.roleCode === 'COLLECTOR') {
+                effectivePermissions = VP_COLLECTOR_DEFAULT_FEATURES;
+            } else if (activeContext.roleCode === 'ACCOUNTANT') {
+                effectivePermissions = VP_ACCOUNTANT_DEFAULT_FEATURES;
             }
         }
 
@@ -323,6 +346,7 @@ export const PlatformAccessProvider = ({ children }) => {
                 || hmPermissionGrantsFeature(permission, requested)
                 || msPermissionGrantsFeature(permission, requested)
                 || hhPermissionGrantsFeature(permission, requested)
+                || vpPermissionGrantsFeature(permission, requested)
             ))
         ));
     }, [activeContext, hasLoaded, isAvailable, session]);

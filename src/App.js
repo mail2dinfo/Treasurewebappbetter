@@ -28,6 +28,8 @@ import DailyCollectionCollectorLayout from './components/dailyCollection/DailyCo
 import PersonalLoanAdminLayout from './components/personalLoan/PersonalLoanAdminLayout';
 import PersonalFinanceLayout from './components/personalFinance/PersonalFinanceLayout';
 import DocumentsLayout from './components/documents/DocumentsLayout';
+import VehicleParkingLayout from './components/vehicleParking/VehicleParkingLayout';
+import VehicleParkingCustomerLayout from './components/vehicleParking/VehicleParkingCustomerLayout';
 import VehicleFinanceAdminLayout from './components/vehicleFinance/VehicleFinanceAdminLayout';
 import VehicleFinanceManagerLayout from './components/vehicleFinance/VehicleFinanceManagerLayout';
 import VehicleFinanceCollectorLayout from './components/vehicleFinance/VehicleFinanceCollectorLayout';
@@ -127,6 +129,8 @@ function App() {
 
                         {/* Personal Finance App Routes */}
                         <Route path="/personal-finance" component={PersonalFinanceLayout} />
+                        <Route path="/vehicle-parking/customer" component={VehicleParkingCustomerLayout} />
+                        <Route path="/vehicle-parking" component={VehicleParkingLayout} />
                         <Route path="/documents-box" component={DocumentsLayout} />
                         <Route
                             path="/documents"

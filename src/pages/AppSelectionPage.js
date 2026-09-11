@@ -104,6 +104,15 @@ const APP_THEMES = {
         bar: 'bg-violet-600',
         ring: 'ring-violet-100',
     },
+    VEHICLE_PARKING: {
+        shortName: 'Vehicle Parking',
+        accent: '#334155',
+        iconBg: 'bg-slate-700',
+        softBg: 'bg-slate-50',
+        border: 'border-slate-200 hover:border-slate-500',
+        bar: 'bg-slate-700',
+        ring: 'ring-slate-100',
+    },
     PEOPLE_ACCESS: {
         shortName: 'Employee & Access',
         accent: '#44403C',
@@ -226,6 +235,12 @@ const APP_ROUTES = {
         COLLECTOR: '/documents-box/user/box',
         ACCOUNTANT: '/documents-box/user/box',
     },
+    VEHICLE_PARKING: {
+        USER: '/vehicle-parking/user/dashboard',
+        MANAGER: '/vehicle-parking/user/dashboard',
+        COLLECTOR: '/vehicle-parking/user/check-in',
+        ACCOUNTANT: '/vehicle-parking/user/accounts',
+    },
 };
 
 const CUSTOMER_APP_PATHS = {
@@ -236,6 +251,7 @@ const CUSTOMER_APP_PATHS = {
     RENTAL_MANAGEMENT: '/rental-management/customer/dashboard',
     HOSTEL_MANAGEMENT: '/hostel-management/resident/dashboard',
     MUTTON_STALL: '/mutton-stall/customer/dashboard',
+    VEHICLE_PARKING: '/vehicle-parking/customer/dashboard',
 };
 
 const PLATFORM_ACCOUNT_ROLE = {
@@ -614,6 +630,20 @@ const AppSelectionPage = () => {
                 </svg>
             ),
             path: '/documents-box/user/box',
+            isActive: true
+        },
+        {
+            id: 11,
+            appCode: 'VEHICLE_PARKING',
+            name: 'Vehicle Parking',
+            description: 'Locations, slots, check-in/out, payments, ledger & reports',
+            icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3.375 4.5C2.339 4.5 1.5 5.34 1.5 6.375V13.5h6V7.125c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V13.5h6V6.375c0-1.036-.84-1.875-1.875-1.875h-12.75zM12.75 12.75V6.375h-2.25v6.375h2.25z" />
+                    <path d="M1.5 15h21v1.125c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 16.125V15z" />
+                </svg>
+            ),
+            path: '/vehicle-parking/user/dashboard',
             isActive: true
         }
     ], []);
@@ -1072,7 +1102,8 @@ const AppSelectionPage = () => {
             ?? choice.parentMembershipId
             ?? platform.organizations?.[0]?.parentMembershipId
             ?? platform.organizations?.[0]?.parent_membership_id
-            ?? membershipAccounts[0]?.parent_membership_id;
+            ?? membershipAccounts[0]?.parent_membership_id
+            ?? membershipAccounts[0]?.membershipId;
 
         platform.selectAppRole(parentMembershipId, app, choice);
         updateUserRole(formatAccountLabel(choice.accountName || choice.roleCode));
@@ -1092,6 +1123,9 @@ const AppSelectionPage = () => {
             if (app.appCode === 'CHIT_FUND' && user?.results?.token) {
                 localStorage.setItem('subscriber_token', user.results.token);
                 localStorage.setItem('subscriber_user', JSON.stringify(user.results));
+            }
+            if (app.appCode === 'VEHICLE_PARKING' && app.parentMembershipId) {
+                localStorage.setItem('vp_customer_parent_id', String(app.parentMembershipId));
             }
             updateUserRole('Subscriber');
             history.push(app.path);

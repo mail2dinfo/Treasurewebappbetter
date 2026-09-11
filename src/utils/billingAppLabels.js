@@ -9,6 +9,7 @@ export const BILLING_APP_LABELS = Object.freeze({
   MUTTON_STALL: 'Mutton Stall',
   HOSPITAL_MANAGEMENT: 'Hospital Management',
   DOCUMENTS: 'Documents',
+  VEHICLE_PARKING: 'Vehicle Parking',
 });
 
 export const getBillingAppLabel = (appCode) =>

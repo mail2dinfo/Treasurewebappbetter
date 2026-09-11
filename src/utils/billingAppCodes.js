@@ -9,6 +9,7 @@ export const BILLING_APP_CODES = Object.freeze({
   MUTTON_STALL: 'MUTTON_STALL',
   HOSPITAL_MANAGEMENT: 'HOSPITAL_MANAGEMENT',
   DOCUMENTS: 'DOCUMENTS',
+  VEHICLE_PARKING: 'VEHICLE_PARKING',
 });
 
 export const DEFAULT_BILLING_APP_CODE = BILLING_APP_CODES.CHIT_FUND;
@@ -24,6 +25,7 @@ export const BILLING_PATHS = Object.freeze({
   MUTTON_STALL: '/mutton-stall/user/billing',
   HOSPITAL_MANAGEMENT: '/hospital-management/user/billing',
   DOCUMENTS: '/documents-box/user/billing',
+  VEHICLE_PARKING: '/vehicle-parking/user/billing',
 });
 
 export const getBillingPathForApp = (appCode) =>

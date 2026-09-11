@@ -79,6 +79,7 @@ export const getLoggedInRoleLabel = ({
     if (path.includes('/collector')) return 'Collector';
     if (path.includes('/accountant')) return 'Accountant';
     if (path.includes('/subscriber')) return 'Subscriber';
+    if (path.includes('/vehicle-parking/customer')) return 'Subscriber';
     if (path.includes('/user')) return 'User';
 
     return 'User';

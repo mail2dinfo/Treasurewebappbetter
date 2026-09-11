@@ -49,6 +49,12 @@ const APPS = [
         title: "Documents",
         plain: "PDF & image box",
     },
+    {
+        code: "VP",
+        color: "blue",
+        title: "Parking",
+        plain: "Slots, tickets & pay",
+    },
 ];
 
 const colorMap = {
