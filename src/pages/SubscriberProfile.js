@@ -276,10 +276,10 @@ const SubscriberProfile = () => {
 
 
   // Fetch subscriber details form user table
-  const fetchSubscriberData = async () => {
+  const fetchSubscriberData = async ({ silent } = {}) => {
     try {
       console.log('Mandiayia');
-      setLoading(true);
+      if (!silent) setLoading(true);
       const apiUrl = `${API_BASE_URL}/subscribers/${subscriberId}`;
       const response = await fetch(apiUrl, {
         method: 'GET',
@@ -363,17 +363,17 @@ const SubscriberProfile = () => {
         });
         const responseData = await response.json();
         if (!response.ok) {
-
-
           showAlert(true, 'danger', responseData.errors || responseData.message || "An error occurred");
+          return;
         }
 
         showAlert(true, 'success', responseData.message);
         setPdfGenerating(true);
-        // Optionally, refresh subscriber data here
+        await fetchSubscriberData({ silent: true });
       } catch (error) {
         console.error(`❌ Error updating ${section}:`, error.message || error);
-        // Optionally show toast: toast.error(`Error updating ${section}`)
+        showAlert(true, 'danger', error.message || `Error updating ${section}`);
+        return;
       }
     }
 
@@ -435,11 +435,15 @@ const SubscriberProfile = () => {
   };
 
   const handleChange = (section, field, value) => {
+    const nextValue =
+      section === 'personalDetails' && field === 'phone'
+        ? String(value || '').replace(/\D/g, '').slice(0, 10)
+        : value;
     setSubscriberData((prev) => ({
       ...prev,
       [section]: {
         ...prev[section],
-        [field]: value,
+        [field]: nextValue,
       },
     }));
   };
