@@ -6,6 +6,7 @@ import {
     FiPackage,
     FiDollarSign,
     FiBookOpen,
+    FiBook,
     FiCreditCard,
     FiBarChart2,
 } from 'react-icons/fi';
@@ -20,6 +21,7 @@ const MENU_ICONS = {
     products: FiPackage,
     loans: FiDollarSign,
     ledger: FiBookOpen,
+    daybook: FiBook,
     collections: FiCreditCard,
     reports: FiBarChart2,
 };

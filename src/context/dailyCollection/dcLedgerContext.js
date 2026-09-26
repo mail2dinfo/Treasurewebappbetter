@@ -313,8 +313,6 @@ export function DcLedgerProvider({ children }) {
             return { success: false, error: 'Membership ID not found' };
         }
 
-        dispatch({ type: 'SET_LOADING', payload: true });
-
         try {
             const queryParams = new URLSearchParams({
                 parent_membership_id: membershipId,
@@ -342,14 +340,12 @@ export function DcLedgerProvider({ children }) {
             console.log('✅ Day Book API Response:', data);
 
             dispatch({ type: 'SET_DAY_BOOK', payload: data.results || null });
-            dispatch({ type: 'SET_LOADING', payload: false });
             dispatch({ type: 'CLEAR_ERROR' });
             return { success: true };
         } catch (error) {
             const errorMessage = error.message || "Unknown error occurred";
             console.error('❌ Error fetching day book:', error);
             dispatch({ type: 'SET_ERROR', payload: errorMessage });
-            dispatch({ type: 'SET_LOADING', payload: false });
             return { success: false, error: errorMessage };
         }
     }, [user]);

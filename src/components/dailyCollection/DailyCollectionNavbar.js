@@ -3,7 +3,7 @@ import { useHistory, useLocation } from 'react-router-dom';
 import { useUserContext } from '../../context/user_context';
 import { usePlatformAccess } from '../../context/platformAccess_context';
 import {
-    FiLogOut, FiCreditCard, FiHome, FiUsers, FiPackage, FiDollarSign, FiBookOpen, FiBarChart2,
+    FiLogOut, FiCreditCard, FiHome, FiUsers, FiPackage, FiDollarSign, FiBookOpen, FiBook, FiBarChart2,
 } from 'react-icons/fi';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { downloadImage } from '../../utils/downloadImage';
@@ -21,6 +21,7 @@ const MENU_ICONS = {
     products: FiPackage,
     loans: FiDollarSign,
     ledger: FiBookOpen,
+    daybook: FiBook,
     collections: FiCreditCard,
     reports: FiBarChart2,
 };

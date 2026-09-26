@@ -6,6 +6,7 @@ export const DC_APP_MENU_IDS = [
     'products',
     'loans',
     'ledger',
+    'daybook',
     'collections',
     'reports',
 ];
@@ -44,7 +45,14 @@ export const getDailyCollectionMenuItems = (basePath = DC_BASE_PATH) => [
         label: 'Ledger',
         path: `${basePath}/ledger`,
         icon: '📒',
-        description: 'Accounts & day book',
+        description: 'Accounts & entries',
+    },
+    {
+        id: 'daybook',
+        label: 'Day Book',
+        path: `${basePath}/day-book`,
+        icon: '📖',
+        description: 'Daily cash book',
     },
     {
         id: 'collections',

@@ -155,8 +155,11 @@ const DayBookTab = ({ dayBook, fetchDayBook }) => {
             )}
 
             {/* Balance Summary Card */}
-            {dayBook && !isLoading && (
+            {dayBook && (
                 <>
+                    {isLoading && (
+                        <p className="text-sm text-gray-500 text-center">Updating day book…</p>
+                    )}
                     <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">Balance Summary</h3>

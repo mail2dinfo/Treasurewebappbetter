@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useDcLedgerContext } from '../../context/dailyCollection/dcLedgerContext';
-import DayBookTab from './DayBookTab';
 import { FiPlus, FiDollarSign, FiTrendingUp, FiCalendar, FiRefreshCw } from 'react-icons/fi';
 import Loading from '../../components/Loading';
 
@@ -9,7 +8,6 @@ const DcLedgerPage = () => {
         accounts,
         entries,
         summary,
-        dayBook,
         isLoading,
         error,
         fetchAccounts,
@@ -17,11 +15,9 @@ const DcLedgerPage = () => {
         fetchEntries,
         createEntry,
         fetchSummary,
-        fetchDayBook,
         clearError
     } = useDcLedgerContext();
 
-    const [activeTab, setActiveTab] = useState('accounts');
     const [showAccountForm, setShowAccountForm] = useState(false);
     const [showEntryForm, setShowEntryForm] = useState(false);
     const [filters, setFilters] = useState({
@@ -48,6 +44,7 @@ const DcLedgerPage = () => {
     useEffect(() => {
         fetchAccounts();
         fetchSummary();
+        fetchEntries(filters);
     }, [fetchAccounts, fetchSummary]);
 
     // Listen for loan deletion events and refresh accounts (to update balances)
@@ -67,12 +64,9 @@ const DcLedgerPage = () => {
     }, [fetchAccounts]);
 
     useEffect(() => {
-        if (activeTab === 'entries') {
-            fetchEntries(filters);
-        }
-        // Day book is loaded separately by DayBookTab component
+        fetchEntries(filters);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeTab, filters]);
+    }, [filters]);
 
     const handleCreateAccount = async (e) => {
         e.preventDefault();
@@ -116,6 +110,16 @@ const DcLedgerPage = () => {
             year: "numeric",
         });
     };
+
+    const isCreditEntry = (entry) => parseFloat(entry.amount || 0) >= 0;
+    const totalCredit = (entries || []).reduce((sum, entry) => {
+        const amount = parseFloat(entry.amount || 0);
+        return amount >= 0 ? sum + amount : sum;
+    }, 0);
+    const totalDebit = (entries || []).reduce((sum, entry) => {
+        const amount = parseFloat(entry.amount || 0);
+        return amount < 0 ? sum + Math.abs(amount) : sum;
+    }, 0);
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
@@ -197,43 +201,7 @@ const DcLedgerPage = () => {
                     </div>
                 )}
 
-                {/* Tabs */}
-                <div className="mb-6">
-                    <div className="border-b border-gray-200">
-                        <div className="flex gap-4">
-                            <button
-                                onClick={() => setActiveTab('accounts')}
-                                className={`px-4 py-3 font-medium border-b-2 transition-colors ${activeTab === 'accounts'
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-600 hover:text-gray-800'
-                                    }`}
-                            >
-                                Ledger Accounts
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('entries')}
-                                className={`px-4 py-3 font-medium border-b-2 transition-colors ${activeTab === 'entries'
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-600 hover:text-gray-800'
-                                    }`}
-                            >
-                                Ledger Entries
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('daybook')}
-                                className={`px-4 py-3 font-medium border-b-2 transition-colors ${activeTab === 'daybook'
-                                    ? 'border-blue-500 text-blue-600'
-                                    : 'border-transparent text-gray-600 hover:text-gray-800'
-                                    }`}
-                            >
-                                Day Book
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Loading State */}
-                {isLoading && (
+                {isLoading && accounts.length === 0 && entries.length === 0 && (
                     <div className="flex justify-center items-center py-20">
                         <div className="text-center">
                             <Loading />
@@ -258,19 +226,18 @@ const DcLedgerPage = () => {
                     </div>
                 )}
 
-                {/* Accounts Tab */}
-                {activeTab === 'accounts' && !isLoading && (
+                {/* Ledger: Accounts + Entries together (like Chit Fund) */}
+                {!(isLoading && accounts.length === 0 && entries.length === 0) && (
                     <>
-                        {/* Accounts Header with Add Button */}
                         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-800">Ledger Accounts</h3>
-                                    <p className="text-sm text-gray-600 mt-1">Manage your financial accounts</p>
+                                    <p className="text-sm text-gray-600 mt-1">Opening vs current balance for each cash or bank account. Click an account to filter entries.</p>
                                 </div>
                                 <button
                                     onClick={() => setShowAccountForm(true)}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                                 >
                                     <FiPlus className="w-4 h-4" />
                                     Add Account
@@ -278,51 +245,72 @@ const DcLedgerPage = () => {
                             </div>
                         </div>
 
-                        {/* Accounts Table */}
                         {accounts.length > 0 ? (
-                            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                            <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
                                         <thead className="bg-gray-50">
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Account Name</th>
-                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Opening Balance</th>
-                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Current Balance</th>
-                                                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Created Date</th>
+                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Opening</th>
+                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Current</th>
+                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Diff</th>
+                                                <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
-                                            {accounts.map((account) => (
-                                                <tr key={account.id} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4">
-                                                        <div className="font-medium text-gray-900">{account.account_name}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className="text-sm font-semibold text-gray-600">
-                                                            {formatCurrency(account.opening_balance)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className={`text-sm font-semibold ${parseFloat(account.current_balance) >= 0
-                                                            ? 'text-green-600'
-                                                            : 'text-red-600'
+                                            {accounts.map((account) => {
+                                                const opening = parseFloat(account.opening_balance || 0);
+                                                const current = parseFloat(account.current_balance || 0);
+                                                const diff = Math.abs(current - opening);
+                                                const isSelected = filters.account_id === String(account.id);
+                                                return (
+                                                    <tr
+                                                        key={account.id}
+                                                        className={`hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-red-50' : ''}`}
+                                                        onClick={() => setFilters({
+                                                            ...filters,
+                                                            account_id: isSelected ? '' : String(account.id),
+                                                        })}
+                                                    >
+                                                        <td className="px-6 py-4">
+                                                            <div className="font-medium text-gray-900">{account.account_name}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="text-sm font-semibold text-gray-600">
+                                                                {formatCurrency(opening)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className={`text-sm font-semibold ${current >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                                {formatCurrency(current)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="text-sm font-semibold text-gray-800">
+                                                                {formatCurrency(diff)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-center">
+                                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                current > opening
+                                                                    ? 'bg-green-100 text-green-800'
+                                                                    : current < opening
+                                                                        ? 'bg-red-100 text-red-800'
+                                                                        : 'bg-gray-100 text-gray-700'
                                                             }`}>
-                                                            {formatCurrency(account.current_balance)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <span className="text-sm text-gray-600">
-                                                            {formatDate(account.created_at)}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                                                {current > opening ? 'Profit' : current < opening ? 'Loss' : 'Break-even'}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                            <div className="bg-white rounded-xl shadow-sm p-12 text-center mb-8">
                                 <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <span className="text-4xl">🏦</span>
                                 </div>
@@ -332,21 +320,28 @@ const DcLedgerPage = () => {
                                 </p>
                                 <button
                                     onClick={() => setShowAccountForm(true)}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+                                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
                                 >
                                     <FiPlus className="w-5 h-5" />
                                     Create Your First Account
                                 </button>
                             </div>
                         )}
-                    </>
-                )}
 
-                {/* Entries Tab */}
-                {activeTab === 'entries' && !isLoading && (
-                    <>
-                        {/* Filters */}
                         <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-800">Ledger Entries</h3>
+                                    <p className="text-sm text-gray-600 mt-1">Every credit and debit against your accounts</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowEntryForm(true)}
+                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                >
+                                    <FiPlus className="w-4 h-4" />
+                                    Add Entry
+                                </button>
+                            </div>
                             <div className="flex flex-wrap gap-4">
                                 <select
                                     value={filters.account_id}
@@ -391,76 +386,101 @@ const DcLedgerPage = () => {
                             </div>
                         </div>
 
-                        {/* Entries Table */}
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                            <div className="px-6 py-4 border-b border-gray-200">
-                                <h3 className="text-lg font-semibold text-gray-800">Ledger Entries</h3>
-                            </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Payment Date</th>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Account</th>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Description</th>
-                                            <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Amount</th>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Created Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                        {entries.map((entry) => (
-                                            <tr key={entry.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4">
-                                                    <span className="text-sm text-gray-600">
-                                                        {entry.payment_date ? formatDate(entry.payment_date) : formatDate(entry.created_at)}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {entry.account?.account_name || 'N/A'}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-600">
-                                                        {entry.category}
-                                                        {entry.subcategory && (
-                                                            <span className="text-xs text-gray-500 ml-1">
-                                                                ({entry.subcategory})
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-600">
-                                                        {entry.description || '-'}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <span className={`text-sm font-semibold ${parseFloat(entry.amount) >= 0
-                                                        ? 'text-green-600'
-                                                        : 'text-red-600'
-                                                        }`}>
-                                                        {formatCurrency(entry.amount)}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="text-sm text-gray-500">
-                                                        {formatDate(entry.created_at)}
-                                                    </span>
-                                                </td>
+                        {entries.length > 0 ? (
+                            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Account</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
+                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">CR Amount</th>
+                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">DB Amount</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Description</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {entries.map((entry) => {
+                                                const amount = Math.abs(parseFloat(entry.amount || 0));
+                                                const credit = isCreditEntry(entry);
+                                                return (
+                                                    <tr key={entry.id} className="hover:bg-gray-50">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className="text-sm text-gray-600">
+                                                                {entry.payment_date ? formatDate(entry.payment_date) : formatDate(entry.created_at)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm font-medium text-gray-900">
+                                                                {entry.account?.account_name || 'N/A'}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm text-gray-600">
+                                                                {entry.category}
+                                                                {entry.subcategory && (
+                                                                    <span className="text-xs text-gray-500 ml-1">
+                                                                        ({entry.subcategory})
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="text-sm font-semibold text-green-600">
+                                                                {credit ? formatCurrency(amount) : '—'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right">
+                                                            <span className="text-sm font-semibold text-red-600">
+                                                                {!credit ? formatCurrency(amount) : '—'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm text-gray-600 max-w-xs truncate">
+                                                                {entry.description || '-'}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                        <tfoot className="bg-gray-50">
+                                            <tr>
+                                                <td colSpan="3" className="px-6 py-3 text-sm font-semibold text-gray-800">
+                                                    Total ({entries.length} entries)
+                                                </td>
+                                                <td className="px-6 py-3 text-right text-sm font-bold text-green-700">
+                                                    {formatCurrency(totalCredit)}
+                                                </td>
+                                                <td className="px-6 py-3 text-right text-sm font-bold text-red-700">
+                                                    {formatCurrency(totalDebit)}
+                                                </td>
+                                                <td />
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <span className="text-4xl">📝</span>
+                                </div>
+                                <h3 className="text-xl font-semibold text-gray-800 mb-2">No Ledger Entries</h3>
+                                <p className="text-gray-600 mb-6">
+                                    Record a credit or debit, or collect a payment, to see entries here
+                                </p>
+                                <button
+                                    onClick={() => setShowEntryForm(true)}
+                                    className="bg-green-500 hover:bg-green-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors inline-flex items-center gap-2"
+                                >
+                                    <FiPlus className="w-5 h-5" />
+                                    Add Entry
+                                </button>
+                            </div>
+                        )}
                     </>
-                )}
-
-                {/* Day Book Tab */}
-                {activeTab === 'daybook' && (
-                    <DayBookTab dayBook={dayBook} fetchDayBook={fetchDayBook} />
                 )}
 
                 {/* Add Account Modal */}

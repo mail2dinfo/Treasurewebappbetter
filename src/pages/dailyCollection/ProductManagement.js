@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDailyCollectionContext } from '../../context/dailyCollection/DailyCollectionContext';
 import ProductForm from '../../components/dailyCollection/ProductForm';
-import { FiPlus, FiEdit2, FiTrash2, FiClock, FiPercent, FiX } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiClock, FiPercent, FiX, FiGrid, FiList } from 'react-icons/fi';
 import Loading from '../../components/Loading';
 
 const ProductManagement = () => {
@@ -10,6 +10,7 @@ const ProductManagement = () => {
     const [editingProduct, setEditingProduct] = useState(null);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [formLoading, setFormLoading] = useState(false);
+    const [viewMode, setViewMode] = useState('rows');
 
     useEffect(() => {
         console.log('ProductManagement: useEffect triggered, calling fetchProducts');
@@ -76,13 +77,41 @@ const ProductManagement = () => {
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Product Management</h1>
                         <p className="text-sm text-gray-600 mt-1">Manage loan products for Daily Collection</p>
                     </div>
-                    <button
-                        onClick={handleCreate}
-                        className="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-md hover:shadow-lg justify-center"
-                    >
-                        <FiPlus className="w-5 h-5" />
-                        Add Product
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                        <div className="inline-flex w-full sm:w-auto rounded-lg border border-gray-300 overflow-hidden bg-white shadow-sm">
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('grid')}
+                                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${viewMode === 'grid'
+                                    ? 'bg-red-500 text-white'
+                                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                                    }`}
+                                title="Grid view"
+                            >
+                                <FiGrid className="w-4 h-4" />
+                                <span>Grid</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setViewMode('rows')}
+                                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-l border-gray-300 ${viewMode === 'rows'
+                                    ? 'bg-red-500 text-white'
+                                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                                    }`}
+                                title="Rows view"
+                            >
+                                <FiList className="w-4 h-4" />
+                                <span>Rows</span>
+                            </button>
+                        </div>
+                        <button
+                            onClick={handleCreate}
+                            className="bg-red-500 hover:bg-red-600 text-white px-6 py-2.5 rounded-lg font-medium transition-colors flex items-center gap-2 shadow-md hover:shadow-lg justify-center"
+                        >
+                            <FiPlus className="w-5 h-5" />
+                            Add Product
+                        </button>
+                    </div>
                 </div>
 
                 {/* Error Alert */}
@@ -126,8 +155,9 @@ const ProductManagement = () => {
                     </div>
                 )}
 
-                {/* Products Grid */}
+                {/* Products */}
                 {!isLoading && products.length > 0 && (
+                    viewMode === 'grid' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {products.map((product) => (
                             <div
@@ -211,6 +241,69 @@ const ProductManagement = () => {
                             </div>
                         ))}
                     </div>
+                    ) : (
+                    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Product</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Frequency</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Duration</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Interest</th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Per cycle (₹10,000)</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {products.map((product) => (
+                                        <tr key={product.id} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3">
+                                                <p className="font-semibold text-gray-800">{product.product_name}</p>
+                                                {parseFloat(product.interest_rate || 0) > 0 && (
+                                                    <p className="text-xs text-green-700 mt-0.5">
+                                                        Cash in hand on ₹10,000: ₹{(10000 - (10000 * parseFloat(product.interest_rate) / 100)).toFixed(2)}
+                                                    </p>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${product.frequency === 'DAILY'
+                                                    ? 'bg-blue-100 text-blue-700'
+                                                    : 'bg-purple-100 text-purple-700'
+                                                    }`}>
+                                                    {product.frequency}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-800">{product.duration} cycles</td>
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-800">{parseFloat(product.interest_rate || 0).toFixed(2)}%</td>
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                                                ₹{(10000 / product.duration).toFixed(2)}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex justify-end gap-1">
+                                                    <button
+                                                        onClick={() => handleEdit(product)}
+                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="Edit"
+                                                    >
+                                                        <FiEdit2 className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeleteConfirm(product)}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <FiTrash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    )
                 )}
 
                 {/* Product Form Modal */}

@@ -280,47 +280,62 @@ const LoanDisbursementForm = ({ products, subscribers, onClose }) => {
             return;
         }
 
+        const duration = Number(selectedProduct.duration) || 0;
+        if (duration <= 0) {
+            setErrors({ general: 'This product has no duration. Check the product setup.' });
+            return;
+        }
+
         const receivables = [];
         let currentBalance = parseFloat(formData.loan_amount);
-        let currentDate = new Date(formData.first_due_date);
+        const [y, m, d] = String(formData.first_due_date).split('-').map(Number);
+        let currentDate = new Date(y, (m || 1) - 1, d || 1);
         let cycleCount = 0;
-        let carryForward = 0; // Track carry-forward amount
+        let carryForward = 0;
+        const frequency = String(selectedProduct.frequency || 'DAILY').toUpperCase();
+        let safety = 0;
+        const maxLoops = duration * 14;
 
-        while (cycleCount < selectedProduct.duration) {
+        while (cycleCount < duration && safety < maxLoops) {
+            safety += 1;
             const dayOfWeek = currentDate.getDay();
 
-            // Skip if this day is excluded
             if (!formData.exclude_days.includes(dayOfWeek)) {
-                // Calculate due amount: regular due + carry forward from previous day
                 const regularDue = parseFloat(perCycleDue);
                 const totalDueAmount = regularDue + carryForward;
-
-                // Calculate closing balance (assuming full payment for preview)
                 const closingBalance = currentBalance - totalDueAmount;
+                const dueDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
 
                 receivables.push({
                     day_no: cycleCount + 1,
-                    due_date: currentDate.toISOString().split('T')[0],
+                    due_date: dueDate,
                     opening_balance: currentBalance.toFixed(2),
                     due_amount: totalDueAmount.toFixed(2),
-                    carry_forward: 0, // Reset carry forward for preview (assuming full payment)
+                    carry_forward: 0,
                     closing_balance: closingBalance.toFixed(2),
-                    regular_due: regularDue.toFixed(2), // Regular due amount
-                    carry_forward_amount: carryForward.toFixed(2), // Show carry forward amount
+                    regular_due: regularDue.toFixed(2),
+                    carry_forward_amount: carryForward.toFixed(2),
                 });
 
-                // Update for next iteration
                 currentBalance = closingBalance;
-                carryForward = 0; // Reset carry forward (assuming full payment in preview)
+                carryForward = 0;
                 cycleCount++;
             }
 
-            // Increment date
-            if (selectedProduct.frequency === 'DAILY') {
+            if (frequency === 'DAILY') {
                 currentDate.setDate(currentDate.getDate() + 1);
+            } else if (frequency === 'MONTHLY') {
+                currentDate.setMonth(currentDate.getMonth() + 1);
             } else {
                 currentDate.setDate(currentDate.getDate() + 7);
             }
+        }
+
+        if (!receivables.length) {
+            setErrors({
+                general: 'Could not build the due schedule. For a weekly product, do not exclude the weekday of the first due date.',
+            });
+            return;
         }
 
         console.log('✅ Generated receivables:', receivables);
@@ -433,16 +448,28 @@ const LoanDisbursementForm = ({ products, subscribers, onClose }) => {
 
             // Check API URL
             const apiUrl = `${API_BASE_URL}/dc/loans/disburse`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 45000);
 
-            // Call existing backend API: POST /dc/loans/disburse
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${user?.results?.token}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(loanPayload)
-            });
+            let response;
+            try {
+                response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${user?.results?.token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(loanPayload),
+                    signal: controller.signal,
+                });
+            } catch (networkError) {
+                clearTimeout(timeoutId);
+                if (networkError.name === 'AbortError') {
+                    throw new Error('Create loan timed out. The API did not respond in 45 seconds. Check that the backend is running.');
+                }
+                throw new Error(networkError.message || 'Network error while creating the loan');
+            }
+            clearTimeout(timeoutId);
 
             console.log('API response status:', response.status);
 
@@ -450,7 +477,11 @@ const LoanDisbursementForm = ({ products, subscribers, onClose }) => {
                 console.error('❌ HTTP Error:', response.status, response.statusText);
                 const errorResult = await response.json();
                 console.error('❌ Error response:', errorResult);
-                throw new Error(errorResult.message || `HTTP ${response.status}: ${response.statusText}`);
+                throw new Error(
+                    (typeof errorResult.errors === 'string' && errorResult.errors)
+                    || errorResult.message
+                    || `HTTP ${response.status}: ${response.statusText}`
+                );
             }
 
             const result = await response.json();

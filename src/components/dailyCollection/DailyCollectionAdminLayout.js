@@ -22,6 +22,7 @@ import SubscribersPage from '../../pages/dailyCollection/SubscribersPage';
 import ProductManagement from '../../pages/dailyCollection/ProductManagement';
 import LoansPage from '../../pages/dailyCollection/LoansPage';
 import DcLedgerPage from '../../pages/dailyCollection/dcLedgerPage';
+import DayBookPage from '../../pages/dailyCollection/DayBookPage';
 import CollectionsPage from '../../pages/dailyCollection/CollectionsPage';
 import DashboardPage from '../../pages/dailyCollection/DashboardPage';
 import ReportsPage from '../../pages/dailyCollection/ReportsPage';
@@ -59,6 +60,7 @@ const DailyCollectionAdminLayout = () => {
                                             <PrivateRoute exact path="/daily-collection/user/products" component={ProductManagement} />
                                             <PrivateRoute exact path="/daily-collection/user/loans" component={LoansPage} />
                                             <PrivateRoute exact path="/daily-collection/user/ledger" component={DcLedgerPage} />
+                                            <PrivateRoute exact path="/daily-collection/user/day-book" component={DayBookPage} />
                                             <PrivateRoute exact path="/daily-collection/user/collections" component={CollectionsPage} />
                                             <PrivateRoute exact path="/daily-collection/user/reports" component={ReportsPage} />
                                             <PrivateRoute exact path="/daily-collection/user/billing" component={MyBillingPage} />
