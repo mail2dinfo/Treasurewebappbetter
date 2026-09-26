@@ -346,7 +346,7 @@ const ReportsPage = () => {
                         <button
                             type="button"
                             onClick={loadReport}
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                            className="flex-1 sm:flex-none bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                         >
                             <FiRefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
                             Refresh
@@ -355,7 +355,7 @@ const ReportsPage = () => {
                             type="button"
                             onClick={handleExportExcel}
                             disabled={rows.length === 0}
-                            className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                         >
                             <FiDownload className="w-4 h-4" />
                             Excel
@@ -370,7 +370,7 @@ const ReportsPage = () => {
                                 {({ loading: pdfLoading }) => (
                                     <button
                                         type="button"
-                                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                                     >
                                         <FiDownload className="w-4 h-4" />
                                         {pdfLoading ? 'Preparing PDF…' : 'PDF'}
@@ -440,7 +440,7 @@ const ReportsPage = () => {
                     {kpis.map((kpi) => (
                         <div key={kpi.label} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
                             <p className="text-xs text-gray-500">{kpi.label}</p>
-                            <p className="mt-1 text-lg font-bold text-gray-900">{kpi.value}</p>
+                            <p className="mt-1 text-base sm:text-lg font-bold text-gray-900 break-words">{kpi.value}</p>
                         </div>
                     ))}
                 </div>
@@ -461,7 +461,61 @@ const ReportsPage = () => {
                     ) : rows.length === 0 ? (
                         <p className="p-10 text-center text-gray-500">No records for this report.</p>
                     ) : (
-                        <div className="overflow-x-auto">
+                        <>
+                        <div className="md:hidden divide-y divide-gray-200">
+                            {reportType === 'loan-summary' && pagination.pageItems.map((loan) => (
+                                <div key={loan.id} className="p-4">
+                                    <div className="flex items-start justify-between gap-3 mb-2">
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-gray-900 break-words">{loan.customerName}</p>
+                                            <p className="text-sm text-gray-600">{loan.productName}</p>
+                                        </div>
+                                        <span className="shrink-0 text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-700">{loan.status}</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                        <div><p className="text-xs text-gray-500">Principal</p><p className="font-semibold">{formatMoney(loan.principalAmount)}</p></div>
+                                        <div><p className="text-xs text-gray-500">Collected</p><p className="font-semibold text-green-700">{formatMoney(loan.collectedAmount)}</p></div>
+                                        <div><p className="text-xs text-gray-500">Outstanding</p><p className="font-semibold text-red-700">{formatMoney(loan.closingBalance)}</p></div>
+                                        <div><p className="text-xs text-gray-500">Disbursed</p><p className="font-medium">{formatDate(loan.disbursementDate)}</p></div>
+                                    </div>
+                                </div>
+                            ))}
+                            {reportType === 'demand-report' && pagination.pageItems.map((row) => (
+                                <div key={row.id} className="p-4">
+                                    <p className="font-semibold text-gray-900 break-words">{row.customerName}</p>
+                                    <p className="text-sm text-gray-600">{row.productName}</p>
+                                    <p className="text-sm text-gray-500">{row.customerPhone || '—'}</p>
+                                    <div className="mt-2 flex items-center justify-between text-sm">
+                                        <span className="text-gray-500">Due {formatDate(row.dueDate)}</span>
+                                        <span className="font-bold text-gray-900">{formatMoney(row.dueAmount)}</span>
+                                    </div>
+                                </div>
+                            ))}
+                            {reportType === 'overdue-report' && pagination.pageItems.map((loan) => (
+                                <div key={loan.id} className="p-4">
+                                    <p className="font-semibold text-gray-900 break-words">{loan.customerName}</p>
+                                    <p className="text-sm text-gray-600">{loan.productName}</p>
+                                    <p className="text-sm text-gray-500">{loan.customerPhone || '—'}</p>
+                                    <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                                        <div><p className="text-xs text-gray-500">Overdue</p><p className="font-semibold text-red-700">{formatMoney(loan.overdueAmount)}</p></div>
+                                        <div><p className="text-xs text-gray-500">Days</p><p className="font-semibold">{loan.overdueDays}</p></div>
+                                        <div><p className="text-xs text-gray-500">Missed</p><p className="font-semibold">{loan.overdueReceivables}</p></div>
+                                    </div>
+                                </div>
+                            ))}
+                            {reportType === 'outstanding-report' && pagination.pageItems.map((customer) => (
+                                <div key={`${customer.customerName}-${customer.customerPhone}`} className="p-4">
+                                    <p className="font-semibold text-gray-900 break-words">{customer.customerName}</p>
+                                    <p className="text-sm text-gray-500">{customer.customerPhone || '—'}</p>
+                                    <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                                        <div><p className="text-xs text-gray-500">Outstanding</p><p className="font-semibold text-red-700">{formatMoney(customer.totalOutstanding)}</p></div>
+                                        <div><p className="text-xs text-gray-500">Future due</p><p className="font-semibold">{formatMoney(customer.totalFutureDue)}</p></div>
+                                        <div><p className="text-xs text-gray-500">Loans</p><p className="font-semibold">{customer.loans?.length || 0}</p></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="hidden md:block overflow-x-auto">
                             {reportType === 'loan-summary' && (
                                 <table className="w-full text-sm">
                                     <thead className="bg-gray-50">
@@ -568,19 +622,20 @@ const ReportsPage = () => {
                                 </table>
                             )}
                         </div>
+                        </>
                     )}
                 </div>
 
                 {rows.length > 0 && (
                     <div className="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-sm text-gray-600">
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                             <span>
                                 Showing {pagination.startIndex + 1} to {pagination.endIndex} of {pagination.totalItems}
                             </span>
                             <select
                                 value={pageSize}
                                 onChange={(e) => setPageSize(Number(e.target.value))}
-                                className="px-2 py-1 border border-gray-300 rounded-lg"
+                                className="px-2 py-2 border border-gray-300 rounded-lg"
                             >
                                 {PAGE_SIZE_OPTIONS.map((size) => (
                                     <option key={size} value={size}>{size} / page</option>
@@ -592,16 +647,16 @@ const ReportsPage = () => {
                                 type="button"
                                 disabled={pagination.safePage <= 1}
                                 onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                                className="px-3 py-2 rounded-lg border border-gray-300 disabled:opacity-40"
+                                className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-gray-300 disabled:opacity-40"
                             >
                                 Previous
                             </button>
-                            <span>Page {pagination.safePage} of {pagination.totalPages}</span>
+                            <span className="whitespace-nowrap">Page {pagination.safePage} of {pagination.totalPages}</span>
                             <button
                                 type="button"
                                 disabled={pagination.safePage >= pagination.totalPages}
                                 onClick={() => setCurrentPage((page) => Math.min(pagination.totalPages, page + 1))}
-                                className="px-3 py-2 rounded-lg border border-gray-300 disabled:opacity-40"
+                                className="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-gray-300 disabled:opacity-40"
                             >
                                 Next
                             </button>

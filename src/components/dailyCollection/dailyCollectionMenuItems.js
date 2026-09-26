@@ -3,11 +3,11 @@ export const DC_BASE_PATH = '/daily-collection/user';
 /** Primary modules shown in the sticky app menu bar below the navbar (Home is prepended separately). */
 export const DC_APP_MENU_IDS = [
     'subscribers',
-    'products',
     'loans',
+    'collections',
+    'products',
     'ledger',
     'daybook',
-    'collections',
     'reports',
 ];
 
@@ -27,18 +27,25 @@ export const getDailyCollectionMenuItems = (basePath = DC_BASE_PATH) => [
         description: 'Customer management',
     },
     {
-        id: 'products',
-        label: 'Products',
-        path: `${basePath}/products`,
-        icon: '📦',
-        description: 'Loan products',
-    },
-    {
         id: 'loans',
         label: 'Loans',
         path: `${basePath}/loans`,
         icon: '💰',
         description: 'Disburse & manage loans',
+    },
+    {
+        id: 'collections',
+        label: 'Collections',
+        path: `${basePath}/collections`,
+        icon: '💳',
+        description: 'Collect receivables',
+    },
+    {
+        id: 'products',
+        label: 'Products',
+        path: `${basePath}/products`,
+        icon: '📦',
+        description: 'Loan products',
     },
     {
         id: 'ledger',
@@ -53,13 +60,6 @@ export const getDailyCollectionMenuItems = (basePath = DC_BASE_PATH) => [
         path: `${basePath}/day-book`,
         icon: '📖',
         description: 'Daily cash book',
-    },
-    {
-        id: 'collections',
-        label: 'Collections',
-        path: `${basePath}/collections`,
-        icon: '💳',
-        description: 'Collect receivables',
     },
     {
         id: 'reports',
@@ -84,8 +84,9 @@ export const getDailyCollectionAppMenuItems = (basePath = DC_BASE_PATH) => {
         path: `${basePath}/dashboard`,
         description: 'Dashboard overview',
     };
-    const moduleItems = getDailyCollectionMenuItems(basePath).filter((item) =>
-        DC_APP_MENU_IDS.includes(item.id)
-    );
+    const allItems = getDailyCollectionMenuItems(basePath);
+    const moduleItems = DC_APP_MENU_IDS
+        .map((id) => allItems.find((item) => item.id === id))
+        .filter(Boolean);
     return [homeItem, ...moduleItems];
 };

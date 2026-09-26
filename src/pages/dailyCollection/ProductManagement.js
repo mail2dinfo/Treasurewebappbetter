@@ -4,6 +4,104 @@ import ProductForm from '../../components/dailyCollection/ProductForm';
 import { FiPlus, FiEdit2, FiTrash2, FiClock, FiPercent, FiX, FiGrid, FiList } from 'react-icons/fi';
 import Loading from '../../components/Loading';
 
+const ProductCard = ({ product, onEdit, onDelete, showActionLabels = false }) => (
+    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-5 border-2 border-gray-200">
+        <div className="flex items-start justify-between gap-3 mb-4">
+            <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-bold text-gray-800 mb-1 break-words">{product.product_name}</h3>
+                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${product.frequency === 'DAILY'
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-purple-100 text-purple-700'
+                    }`}>
+                    {product.frequency}
+                </span>
+            </div>
+            {!showActionLabels && (
+                <div className="flex shrink-0 gap-1">
+                    <button
+                        type="button"
+                        onClick={onEdit}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                        title="Edit"
+                    >
+                        <FiEdit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onDelete}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        title="Delete"
+                    >
+                        <FiTrash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 text-sm">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                    <FiClock className="w-4 h-4 text-green-600" />
+                </div>
+                <div className="min-w-0">
+                    <p className="text-gray-500 text-xs">Duration</p>
+                    <p className="font-semibold text-gray-800">{product.duration} cycles</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+                <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center shrink-0">
+                    <FiPercent className="w-4 h-4 text-orange-600" />
+                </div>
+                <div className="min-w-0">
+                    <p className="text-gray-500 text-xs">Interest Rate</p>
+                    <p className="font-semibold text-gray-800">
+                        {parseFloat(product.interest_rate || 0).toFixed(2)}%
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500 mb-1">Example: ₹10,000 loan</p>
+            <div className="flex justify-between text-xs">
+                <span className="text-gray-600">Per cycle:</span>
+                <span className="font-semibold text-gray-800">
+                    ₹{(10000 / product.duration).toFixed(2)}
+                </span>
+            </div>
+            {parseFloat(product.interest_rate || 0) > 0 && (
+                <div className="flex justify-between text-xs mt-1">
+                    <span className="text-gray-600">Cash in hand:</span>
+                    <span className="font-semibold text-green-700">
+                        ₹{(10000 - (10000 * parseFloat(product.interest_rate) / 100)).toFixed(2)}
+                    </span>
+                </div>
+            )}
+        </div>
+
+        {showActionLabels && (
+            <div className="mt-4 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2">
+                <button
+                    type="button"
+                    onClick={onEdit}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium text-blue-700 bg-blue-50 rounded-lg"
+                >
+                    <FiEdit2 className="w-4 h-4" />
+                    Edit
+                </button>
+                <button
+                    type="button"
+                    onClick={onDelete}
+                    className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg"
+                >
+                    <FiTrash2 className="w-4 h-4" />
+                    Delete
+                </button>
+            </div>
+        )}
+    </div>
+);
+
 const ProductManagement = () => {
     const { products, isLoading, error, fetchProducts, createProduct, updateProduct, deleteProduct, clearError } = useDailyCollectionContext();
     const [showForm, setShowForm] = useState(false);
@@ -78,7 +176,7 @@ const ProductManagement = () => {
                         <p className="text-sm text-gray-600 mt-1">Manage loan products for Daily Collection</p>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                        <div className="inline-flex w-full sm:w-auto rounded-lg border border-gray-300 overflow-hidden bg-white shadow-sm">
+                        <div className="hidden md:inline-flex w-full sm:w-auto rounded-lg border border-gray-300 overflow-hidden bg-white shadow-sm">
                             <button
                                 type="button"
                                 onClick={() => setViewMode('grid')}
@@ -157,92 +255,31 @@ const ProductManagement = () => {
 
                 {/* Products */}
                 {!isLoading && products.length > 0 && (
-                    viewMode === 'grid' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <>
+                    <div className="md:hidden space-y-3">
                         {products.map((product) => (
-                            <div
+                            <ProductCard
                                 key={product.id}
-                                className="bg-white rounded-xl shadow-sm p-5 border-2 border-gray-200 hover:border-red-300 hover:shadow-md transition-all"
-                            >
-                                {/* Product Header */}
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-bold text-gray-800 mb-1">{product.product_name}</h3>
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${product.frequency === 'DAILY'
-                                                ? 'bg-blue-100 text-blue-700'
-                                                : 'bg-purple-100 text-purple-700'
-                                                }`}>
-                                                {product.frequency}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={() => handleEdit(product)}
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="Edit"
-                                        >
-                                            <FiEdit2 className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => setDeleteConfirm(product)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Delete"
-                                        >
-                                            <FiTrash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Product Details */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3 text-sm">
-                                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                                            <FiClock className="w-4 h-4 text-green-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500 text-xs">Duration</p>
-                                            <p className="font-semibold text-gray-800">{product.duration} cycles</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-3 text-sm">
-                                        <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                                            <FiPercent className="w-4 h-4 text-orange-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500 text-xs">Interest Rate</p>
-                                            <p className="font-semibold text-gray-800">
-                                                {parseFloat(product.interest_rate || 0).toFixed(2)}%
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Example Calculation */}
-                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                    <p className="text-xs text-gray-500 mb-1">Example: ₹10,000 loan</p>
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-gray-600">Per cycle:</span>
-                                        <span className="font-semibold text-gray-800">
-                                            ₹{(10000 / product.duration).toFixed(2)}
-                                        </span>
-                                    </div>
-                                    {parseFloat(product.interest_rate || 0) > 0 && (
-                                        <div className="flex justify-between text-xs mt-1">
-                                            <span className="text-gray-600">Cash in hand:</span>
-                                            <span className="font-semibold text-green-700">
-                                                ₹{(10000 - (10000 * parseFloat(product.interest_rate) / 100)).toFixed(2)}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                                product={product}
+                                onEdit={() => handleEdit(product)}
+                                onDelete={() => setDeleteConfirm(product)}
+                                showActionLabels
+                            />
+                        ))}
+                    </div>
+                    {viewMode === 'grid' ? (
+                    <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {products.map((product) => (
+                            <ProductCard
+                                key={product.id}
+                                product={product}
+                                onEdit={() => handleEdit(product)}
+                                onDelete={() => setDeleteConfirm(product)}
+                            />
                         ))}
                     </div>
                     ) : (
-                    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+                    <div className="hidden md:block bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
                         <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
@@ -252,7 +289,7 @@ const ProductManagement = () => {
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Duration</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Interest</th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Per cycle (₹10,000)</th>
-                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                        <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider sticky right-0 bg-gray-50">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
@@ -279,9 +316,10 @@ const ProductManagement = () => {
                                             <td className="px-4 py-3 text-sm font-medium text-gray-800">
                                                 ₹{(10000 / product.duration).toFixed(2)}
                                             </td>
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 sticky right-0 bg-white">
                                                 <div className="flex justify-end gap-1">
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleEdit(product)}
                                                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                         title="Edit"
@@ -289,6 +327,7 @@ const ProductManagement = () => {
                                                         <FiEdit2 className="w-4 h-4" />
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => setDeleteConfirm(product)}
                                                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                         title="Delete"
@@ -303,7 +342,8 @@ const ProductManagement = () => {
                             </table>
                         </div>
                     </div>
-                    )
+                    )}
+                    </>
                 )}
 
                 {/* Product Form Modal */}
