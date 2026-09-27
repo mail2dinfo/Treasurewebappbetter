@@ -219,7 +219,8 @@ const SuperAdminPlanFees = () => {
                     </div>
 
                     <p className="mt-4 text-xs text-slate-500">
-                        New users still onboard on VeryBasic. Changing prices here updates the catalog used for new upgrades and new subscriptions; existing open cycles keep their snapshot amount until renewal/upgrade.
+                        New users copy these catalog prices onto their parent membership at signup.
+                        Change a specific customer under Billing Control. Open cycles keep their snapshot until the next cycle or until you save that customer&apos;s fees.
                     </p>
                 </SuperAdminPanel>
             )}

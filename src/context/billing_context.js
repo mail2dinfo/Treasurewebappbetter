@@ -330,11 +330,15 @@ export const BillingProvider = ({
         dispatch({ type: 'FETCH_START' });
 
         try {
+            const membershipId = getMembershipId();
+            const plansUrl = withAppCodeQuery(
+                `${API_BASE_URL}/billing-subscription/plans/available`,
+                resolvedAppCode
+            );
             const res = await fetch(
-                withAppCodeQuery(
-                    `${API_BASE_URL}/billing-subscription/plans/available`,
-                    resolvedAppCode
-                ),
+                membershipId
+                    ? `${plansUrl}&parent_membership_id=${encodeURIComponent(membershipId)}`
+                    : plansUrl,
                 {
                     headers: authHeaders(),
                 }

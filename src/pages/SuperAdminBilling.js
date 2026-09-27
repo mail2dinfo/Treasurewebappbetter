@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useUserContext } from '../context/user_context';
 import { isSuperAdminUser } from '../utils/superAdminUtils';
-import { fetchSuperAdminApi } from '../utils/superAdminApi';
+import { fetchSuperAdminApi, patchSuperAdminApi } from '../utils/superAdminApi';
 import { API_BASE_URL } from '../utils/apiConfig';
 import SuperAdminShell from '../components/superAdmin/SuperAdminShell';
 import { SuperAdminPanel } from '../components/superAdmin/SuperAdminDashboardCards';
@@ -14,6 +14,10 @@ const STATUS_LABELS = {
     none: 'Not started',
     expired: 'Expired',
 };
+
+const PLAN_ORDER = ['VeryBasic', 'Basic', 'Medium', 'Advance'];
+
+const feeKey = (appCode, planId) => `${appCode}::${planId}`;
 
 const formatMoney = (value) =>
     `₹${Number(value || 0).toLocaleString('en-IN')}`;
@@ -110,11 +114,69 @@ const SuperAdminBilling = () => {
     const [error, setError] = useState(null);
     const [busy, setBusy] = useState(false);
     const [reason, setReason] = useState('Stopped by customer service');
+    const [feeApps, setFeeApps] = useState([]);
+    const [feePlanIds, setFeePlanIds] = useState(PLAN_ORDER);
+    const [feeDraft, setFeeDraft] = useState({});
+    const [feeSnapshot, setFeeSnapshot] = useState({});
+    const [isSavingFees, setIsSavingFees] = useState(false);
 
     if (!isSuperAdminUser(user)) {
         history.push('/login');
         return null;
     }
+
+    const applyFeePayload = (data) => {
+        const nextDraft = {};
+        (data?.fees || []).forEach((fee) => {
+            nextDraft[feeKey(fee.app_code, fee.plan_id)] = String(
+                Number(fee.monthly_amount ?? 0)
+            );
+        });
+        setFeeApps(data?.apps || []);
+        setFeePlanIds(data?.plan_ids?.length ? data.plan_ids : PLAN_ORDER);
+        setFeeDraft(nextDraft);
+        setFeeSnapshot(nextDraft);
+    };
+
+    const loadPlanFees = async (membershipId) => {
+        const data = await fetchSuperAdminApi(
+            `/super-admin/billing/${membershipId}/plan-fees`,
+            token
+        );
+        applyFeePayload(data.data);
+    };
+
+    const handleSavePlanFees = async () => {
+        if (!selected) return;
+        const fees = Object.entries(feeDraft).map(([key, value]) => {
+            const [app_code, plan_id] = key.split('::');
+            return {
+                app_code,
+                plan_id,
+                monthly_amount: Number(value),
+            };
+        });
+        const invalid = fees.find((fee) => !Number.isFinite(fee.monthly_amount) || fee.monthly_amount < 0);
+        if (invalid) {
+            setError(`Invalid amount for ${invalid.app_code} / ${invalid.plan_id}`);
+            return;
+        }
+        setIsSavingFees(true);
+        setError(null);
+        try {
+            const data = await patchSuperAdminApi(
+                `/super-admin/billing/${selected.membership_id}/plan-fees`,
+                token,
+                { fees }
+            );
+            applyFeePayload(data.data);
+            await loadOverview(selected.membership_id);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setIsSavingFees(false);
+        }
+    };
 
     const loadOverview = async (membershipId) => {
         const data = await fetchSuperAdminApi(`/super-admin/billing/${membershipId}`, token);
@@ -127,9 +189,12 @@ const SuperAdminBilling = () => {
         setBusy(true);
         try {
             await loadOverview(row.membership_id);
+            await loadPlanFees(row.membership_id);
         } catch (err) {
             setError(err.message);
             setOverview(null);
+            setFeeDraft({});
+            setFeeSnapshot({});
         } finally {
             setBusy(false);
         }
@@ -141,6 +206,8 @@ const SuperAdminBilling = () => {
         setBusy(true);
         setOverview(null);
         setSelected(null);
+        setFeeDraft({});
+        setFeeSnapshot({});
         try {
             const data = await fetchSuperAdminApi(
                 `/super-admin/billing/search?q=${encodeURIComponent(query.trim())}`,
@@ -227,7 +294,7 @@ const SuperAdminBilling = () => {
         <SuperAdminShell
             activeId="billing"
             title="Billing Control"
-            subtitle="Customer calls in → search phone → start/stop per-app billing"
+            subtitle="Customer calls in → search phone → set per-user plan prices or start/stop billing"
             toolbar={(
                 <div className="w-full text-left">
                     <label className="mb-1.5 block text-sm font-semibold text-slate-900">
@@ -302,6 +369,65 @@ const SuperAdminBilling = () => {
                         )}
                     >
                         <div className="space-y-4">
+                            {Object.keys(feeDraft).length > 0 && (
+                                <div className="rounded-xl border border-slate-200 p-4">
+                                    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                        <div>
+                                            <p className="font-semibold text-slate-900">Plan fees for this customer</p>
+                                            <p className="text-xs text-slate-500">
+                                                These amounts are what this parent membership sees. Catalog on Plan Fees is only the template for new signups.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            disabled={busy || isSavingFees || JSON.stringify(feeDraft) === JSON.stringify(feeSnapshot)}
+                                            onClick={handleSavePlanFees}
+                                            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-40"
+                                        >
+                                            {isSavingFees ? 'Saving…' : 'Save prices'}
+                                        </button>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full text-xs">
+                                            <thead>
+                                                <tr className="text-left text-slate-500">
+                                                    <th className="px-2 py-2">App</th>
+                                                    {feePlanIds.map((planId) => (
+                                                        <th key={planId} className="px-2 py-2">{planId}</th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {feeApps.map((app) => (
+                                                    <tr key={app.app_code} className="border-t border-slate-100">
+                                                        <td className="px-2 py-2 font-medium text-slate-800">
+                                                            {app.display_name || getBillingAppLabel(app.app_code)}
+                                                        </td>
+                                                        {feePlanIds.map((planId) => {
+                                                            const key = feeKey(app.app_code, planId);
+                                                            return (
+                                                                <td key={key} className="px-2 py-2">
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        step="1"
+                                                                        value={feeDraft[key] ?? ''}
+                                                                        onChange={(e) => setFeeDraft((prev) => ({
+                                                                            ...prev,
+                                                                            [key]: e.target.value,
+                                                                        }))}
+                                                                        className="w-24 rounded border border-slate-300 px-2 py-1"
+                                                                    />
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
                             {(overview.apps || []).length === 0 && (
                                 <p className="text-sm text-slate-500">
                                     This customer has no app subscriptions with billing cycles yet.

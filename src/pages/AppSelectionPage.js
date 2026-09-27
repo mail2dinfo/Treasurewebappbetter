@@ -967,7 +967,7 @@ const AppSelectionPage = () => {
 
         try {
             const res = await fetch(
-                `${API_BASE_URL}/billing-subscription/plans/available?app_code=${encodeURIComponent(appCode)}`,
+                `${API_BASE_URL}/billing-subscription/plans/available?app_code=${encodeURIComponent(appCode)}&parent_membership_id=${encodeURIComponent(billingMembershipId)}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             const data = await res.json().catch(() => ({}));
