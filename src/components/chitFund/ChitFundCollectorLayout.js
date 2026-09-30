@@ -10,7 +10,7 @@ import CollectorReceivables from '../../pages/collector/CollectorReceivables';
 import CollectorDashboard from '../../pages/collector/CollectorDashboard';
 import CollectorAdvanceHistory from '../../pages/collector/CollectorAdvanceHistory';
 import 'react-toastify/dist/ReactToastify.css';
-import { usePlatformAccess } from '../../context/platformAccess_context';
+import { usePlatformAccess, staffHasAppRole } from '../../context/platformAccess_context';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requiredFeature }) => {
@@ -28,6 +28,9 @@ const ProtectedRoute = ({ children, requiredFeature }) => {
         return <Redirect to="/login" />;
     }
     const isPlatformEmployee = platform?.isAvailable && !platform.isOwner;
+    if (isPlatformEmployee && platform.hasLoaded && !staffHasAppRole(platform, 'CHIT_FUND', 'COLLECTOR')) {
+        return <Redirect to="/app-selection" />;
+    }
     // Only bounce when a different app context is already selected (null context is OK after direct collector login).
     if (
         isPlatformEmployee

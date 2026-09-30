@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useBilling } from '../context/billing_context';
 import { useUserContext } from '../context/user_context';
 import { MANUAL_CRON_ENABLED } from '../utils/apiConfig';
@@ -37,8 +38,13 @@ const MyBillingPage = () => {
     } = useBilling();
 
     const appLabel = getBillingAppLabel(appCode);
+    const location = useLocation();
 
-    const [activeTab, setActiveTab] = useState('billing');
+    const [activeTab, setActiveTab] = useState(
+        new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('tab') === 'plans'
+            ? 'plans'
+            : 'billing'
+    );
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [showUpgradeForm, setShowUpgradeForm] = useState(false);
     const [showPaymentHistoryDebug, setShowPaymentHistoryDebug] = useState(false);
@@ -58,6 +64,11 @@ const MyBillingPage = () => {
         fetchPaymentHistory();
         fetchAvailablePlans();
     }, [user]);
+
+    useEffect(() => {
+        const tab = new URLSearchParams(location.search || '').get('tab');
+        if (tab === 'plans') setActiveTab('plans');
+    }, [location.search]);
 
     // Debug billing cycles when data is loaded
     useEffect(() => {

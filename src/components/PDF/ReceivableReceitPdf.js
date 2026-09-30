@@ -43,6 +43,37 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         justifyContent: 'space-between',
     },
+    lineTable: {
+        marginTop: 8,
+        marginBottom: 16,
+        width: '100%',
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+    },
+    lineRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+    },
+    lineRowLast: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        backgroundColor: '#f3f4f6',
+    },
+    lineLabel: {
+        fontSize: 10,
+        color: '#111',
+    },
+    lineAmount: {
+        fontSize: 10,
+        color: '#111',
+        fontWeight: 'bold',
+    },
     fieldBox: {
         width: '48%',
         marginBottom: 12,
@@ -80,7 +111,7 @@ const Field = ({ label, value }) => {
 };
 
 const formatCurrency = (amount) => {
-    if (!amount) return '-';
+    if (amount === undefined || amount === null || amount === '') return '-';
     return `Rs. ${Number(amount).toLocaleString('en-IN')}`;
 };
 
@@ -116,20 +147,36 @@ const ReceivableReceitPdf = ({ receivableData = {}, companyData = {} }) => {
                     <Field label="Payment Type" value={receivableData.paymentType} />
                     <Field label="Payment Method" value={receivableData.paymentMethod} />
                     <Field label="Group Name" value={receivableData.groupName} />
-                    {receivableData.dueNo && receivableData.dueNo !== '—' ? (
+                    {receivableData.dueNo && receivableData.dueNo !== '—' && !receivableData.lineItems?.length ? (
                         <Field label="Due no." value={receivableData.dueNo} />
                     ) : null}
                     <Field label="Auction Date" value={receivableData.auctionDate} />
                     <Field label="Transacted Date" value={receivableData.transactedDate || receivableData.transacted_date || '-'} />
                     <Field label="Created At" value={receivableData.createdAt || receivableData.created_at || '-'} />
+                    {!receivableData.lineItems?.length ? (
                     <Field
                         label="Total Bill"
                         value={formatCurrency(receivableData.paymentAmount)}
                     />
-
-
-
+                    ) : null}
                 </View>
+
+                {Array.isArray(receivableData.lineItems) && receivableData.lineItems.length > 0 ? (
+                    <View style={styles.lineTable}>
+                        {receivableData.lineItems.map((line) => (
+                            <View key={line.key || line.label} style={styles.lineRow}>
+                                <Text style={styles.lineLabel}>{line.label}</Text>
+                                <Text style={styles.lineAmount}>{formatCurrency(line.amount)}</Text>
+                            </View>
+                        ))}
+                        <View style={styles.lineRowLast}>
+                            <Text style={styles.lineLabel}>Total</Text>
+                            <Text style={styles.lineAmount}>
+                                {formatCurrency(receivableData.lineTotal ?? receivableData.paymentAmount)}
+                            </Text>
+                        </View>
+                    </View>
+                ) : null}
 
                 {/* Footer Note */}
                 <Text style={styles.footer}>Thank you for your payment!</Text>

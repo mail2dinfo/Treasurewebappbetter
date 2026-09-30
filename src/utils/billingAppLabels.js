@@ -10,6 +10,7 @@ export const BILLING_APP_LABELS = Object.freeze({
   HOSPITAL_MANAGEMENT: 'Hospital Management',
   DOCUMENTS: 'Documents',
   VEHICLE_PARKING: 'Vehicle Parking',
+  DEEPAVALI_CHITS: 'Deepavali Chits',
 });
 
 export const getBillingAppLabel = (appCode) =>

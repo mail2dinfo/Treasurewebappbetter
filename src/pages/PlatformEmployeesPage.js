@@ -434,6 +434,32 @@ const MANAGER_SCOPE_PERMISSIONS = {
             'hh_settings',
         ],
     },
+    DEEPAVALI_CHITS: {
+        appLabel: 'Deepavali Chits',
+        accessAny: [
+            'dp_employee_manage',
+            'dp_company_manage',
+        ],
+        manageAll: 'dp_employee_manage',
+        employeeAdd: 'dp_employee_manage',
+        collectorView: ['dp_employee_manage', 'dp_collections'],
+        collectorAdd: 'dp_employee_manage',
+        collectorEdit: 'dp_employee_manage',
+        collectorDelete: 'dp_employee_manage',
+        collectorOffer: null,
+        managerView: 'dp_employee_manage',
+        accountantAdd: 'dp_employee_manage',
+        accountantEdit: 'dp_employee_manage',
+        accountantDelete: 'dp_employee_manage',
+        accountantOffer: null,
+        accountantViewKeys: ['dp_employee_manage', 'dp_ledger'],
+        managerCreatableRoles: ['COLLECTOR', 'ACCOUNTANT'],
+        ownerCreatableRoles: ['MANAGER', 'COLLECTOR', 'ACCOUNTANT'],
+        blockedDelegation: [
+            'people_access_manage',
+            'dp_employee_manage',
+        ],
+    },
 };
 
 const emptyProfile = {
@@ -461,6 +487,7 @@ const APP_DISPLAY_ORDER = [
     'DOCUMENTS',
     'VEHICLE_PARKING',
     'DAILY_COLLECTION',
+    'DEEPAVALI_CHITS',
     'PERSONAL_LOAN',
     'TWO_WHEELER_FINANCE',
     'UNASSIGNED',
@@ -476,6 +503,7 @@ const defaultAppLabel = (appCode) => {
         DOCUMENTS: 'Documents',
         VEHICLE_PARKING: 'Vehicle Parking',
         DAILY_COLLECTION: 'Daily Collection',
+        DEEPAVALI_CHITS: 'Deepavali Chits',
         PERSONAL_LOAN: 'Personal Loan',
         TWO_WHEELER_FINANCE: 'Two Wheeler Finance',
         UNASSIGNED: 'Unassigned',
@@ -614,6 +642,23 @@ const FALLBACK_APP_CATALOG = [
             fallbackFeature('vp_expenses', 'Record Expenses', 'Accounts', ['USER', 'MANAGER', 'ACCOUNTANT']),
         ],
     },
+    {
+        appCode: 'DEEPAVALI_CHITS',
+        displayName: 'Deepavali Chits',
+        description: 'Deepavali chit groups, collections, receipts and ledger',
+        features: [
+            fallbackFeature('dp_dashboard', 'View Dashboard', 'Overview', ['USER', 'MANAGER', 'COLLECTOR', 'ACCOUNTANT']),
+            fallbackFeature('dp_company_manage', 'Manage Company', 'Administration', ['USER']),
+            fallbackFeature('dp_employee_manage', 'Manage Employees', 'Administration', ['USER', 'MANAGER']),
+            fallbackFeature('dp_groups', 'Groups', 'Operations', ['USER', 'MANAGER']),
+            fallbackFeature('dp_subscribers', 'Subscribers', 'Operations', ['USER', 'MANAGER', 'COLLECTOR']),
+            fallbackFeature('dp_collections', 'Collections', 'Operations', ['USER', 'MANAGER', 'COLLECTOR', 'ACCOUNTANT']),
+            fallbackFeature('dp_payables', 'Prize Payables', 'Operations', ['USER', 'MANAGER', 'ACCOUNTANT']),
+            fallbackFeature('dp_ledger', 'Ledger', 'Accounting', ['USER', 'ACCOUNTANT']),
+            fallbackFeature('dp_reports', 'Reports', 'Reports', ['USER', 'MANAGER', 'ACCOUNTANT']),
+            fallbackFeature('people_access_manage', 'People & Access', 'Administration', ['USER']),
+        ],
+    },
 ];
 
 const CHIT_FEATURE_ORDER = CHIT_MANAGER_DEFAULT_FEATURES;
@@ -731,7 +776,12 @@ const getRoles = (app) => {
         const employeeRoles = configuredRoles.filter((role) => EMPLOYEE_ROLES.includes(getRoleCode(role)));
         if (employeeRoles.length) return employeeRoles;
     }
-    return EMPLOYEE_ROLES.map((roleCode) => ({ roleCode }));
+    const appCode = getAppCode(app);
+    const scopedRoles = MANAGER_SCOPE_PERMISSIONS[appCode]?.ownerCreatableRoles;
+    const fallback = (scopedRoles && scopedRoles.length)
+        ? scopedRoles
+        : ['MANAGER', 'COLLECTOR', 'ACCOUNTANT'];
+    return fallback.map((roleCode) => ({ roleCode, displayName: ROLE_DISPLAY_NAME[roleCode] || roleCode }));
 };
 // Owner hub is gated by account ownership — not shown as a Step 3 checkbox.
 const STEP3_HIDDEN_FEATURE_KEYS = new Set(['people_access_manage']);
@@ -893,6 +943,7 @@ const PlatformEmployeesPage = ({
     const scopedAppLabel = scopeConfig.appLabel;
     const isVfScoped = appScope === 'VEHICLE_FINANCE';
     const isChitScoped = appScope === 'CHIT_FUND';
+    const isDpScoped = appScope === 'DEEPAVALI_CHITS';
     const isHmScoped = appScope === 'HOSTEL_MANAGEMENT';
     const isMsScoped = appScope === 'MUTTON_STALL';
     const isHhScoped = appScope === 'HOSPITAL_MANAGEMENT';
@@ -907,7 +958,7 @@ const PlatformEmployeesPage = ({
         if (role === 'KITCHEN_STAFF') return appCode === 'HOSTEL_MANAGEMENT' || appCode === 'HOSPITAL_MANAGEMENT';
         if (HH_STAFF_ROLES.includes(role)) return appCode === 'HOSPITAL_MANAGEMENT';
         if (role === 'SALESMAN') return appCode === 'MUTTON_STALL';
-        return appCode === 'VEHICLE_FINANCE' || appCode === 'CHIT_FUND';
+        return appCode === 'VEHICLE_FINANCE' || appCode === 'CHIT_FUND' || appCode === 'DEEPAVALI_CHITS';
     };
     const isScopedManager = Boolean(
         managerMode
@@ -1107,11 +1158,13 @@ const PlatformEmployeesPage = ({
         if (
             isVfScoped
             || isChitScoped
+            || isDpScoped
             || isHmScoped
             || isMsScoped
             || isHhScoped
             || appCode === 'VEHICLE_FINANCE'
             || appCode === 'CHIT_FUND'
+            || appCode === 'DEEPAVALI_CHITS'
             || appCode === 'HOSTEL_MANAGEMENT'
             || appCode === 'MUTTON_STALL'
             || appCode === 'HOSPITAL_MANAGEMENT'
@@ -1198,16 +1251,22 @@ const PlatformEmployeesPage = ({
     const showCollectorAccountantPackageHint = !managerMode && (
         isVfScoped
         || isChitScoped
+        || isDpScoped
         || selectedAppCodes.includes('VEHICLE_FINANCE')
         || selectedAppCodes.includes('CHIT_FUND')
+        || selectedAppCodes.includes('DEEPAVALI_CHITS')
     );
     const packageHintAppLabel = (
-        isChitScoped || (selectedAppCodes.includes('CHIT_FUND') && !selectedAppCodes.includes('VEHICLE_FINANCE'))
+        isDpScoped || (selectedAppCodes.includes('DEEPAVALI_CHITS') && !selectedAppCodes.includes('CHIT_FUND') && !selectedAppCodes.includes('VEHICLE_FINANCE'))
     )
-        ? 'Chit Fund'
-        : (isVfScoped || selectedAppCodes.includes('VEHICLE_FINANCE'))
-            ? 'Vehicle Finance'
-            : 'Chit Fund / Vehicle Finance';
+        ? 'Deepavali Chits'
+        : (
+            isChitScoped || (selectedAppCodes.includes('CHIT_FUND') && !selectedAppCodes.includes('VEHICLE_FINANCE'))
+        )
+            ? 'Chit Fund'
+            : (isVfScoped || selectedAppCodes.includes('VEHICLE_FINANCE'))
+                ? 'Vehicle Finance'
+                : 'Chit Fund / Vehicle Finance';
     const [isSaving, setIsSaving] = useState(false);
     const [dashboardCollector, setDashboardCollector] = useState(null);
     const [collectorModalTab, setCollectorModalTab] = useState('assign');
@@ -2747,7 +2806,7 @@ const PlatformEmployeesPage = ({
                                                 : (isHmScoped
                                                     ? 'Receptionist / Kitchen Staff'
                                                     : (isMsScoped ? 'Salesman' : 'Collector / Accountant')))
-                                            : ((isVfScoped || isChitScoped)
+                                            : ((isVfScoped || isChitScoped || isDpScoped)
                                                 ? 'Manager · Collector / Accountant'
                                                 : (isHhScoped
                                                     ? 'Manager · Clinical staff roles'
@@ -2758,7 +2817,7 @@ const PlatformEmployeesPage = ({
                                             ? (isHhScoped
                                                 ? 'Choose a role (Receptionist, Pharmacist, Doctor, Nurse, Compounder), then tick responsibilities for that role. A role is enabled only if you have its Add permission.'
                                                 : 'Choose subordinate role(s). A role is enabled only if you have its Add permission (from People & Access).')
-                                            : (isVfScoped || isChitScoped || selectedAppCodes.includes('CHIT_FUND') || selectedAppCodes.includes('VEHICLE_FINANCE'))
+                                            : (isVfScoped || isChitScoped || isDpScoped || selectedAppCodes.includes('CHIT_FUND') || selectedAppCodes.includes('VEHICLE_FINANCE') || selectedAppCodes.includes('DEEPAVALI_CHITS'))
                                                 ? 'Assign Manager (duties & Administration), and/or Collector / Accountant with the same feature packages as on the Manager employees page.'
                                                 : (isHhScoped
                                                     ? 'Select Manager or a clinical staff role, then tick responsibilities (feature checkboxes) for that role.'

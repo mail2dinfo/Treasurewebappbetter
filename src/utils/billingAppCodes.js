@@ -10,6 +10,7 @@ export const BILLING_APP_CODES = Object.freeze({
   HOSPITAL_MANAGEMENT: 'HOSPITAL_MANAGEMENT',
   DOCUMENTS: 'DOCUMENTS',
   VEHICLE_PARKING: 'VEHICLE_PARKING',
+  DEEPAVALI_CHITS: 'DEEPAVALI_CHITS',
 });
 
 export const DEFAULT_BILLING_APP_CODE = BILLING_APP_CODES.CHIT_FUND;
@@ -26,6 +27,7 @@ export const BILLING_PATHS = Object.freeze({
   HOSPITAL_MANAGEMENT: '/hospital-management/user/billing',
   DOCUMENTS: '/documents-box/user/billing',
   VEHICLE_PARKING: '/vehicle-parking/user/billing',
+  DEEPAVALI_CHITS: '/deepavali-chits/user/billing',
 });
 
 export const getBillingPathForApp = (appCode) =>

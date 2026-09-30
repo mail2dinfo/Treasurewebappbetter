@@ -30,6 +30,7 @@ import PersonalFinanceLayout from './components/personalFinance/PersonalFinanceL
 import DocumentsLayout from './components/documents/DocumentsLayout';
 import VehicleParkingLayout from './components/vehicleParking/VehicleParkingLayout';
 import VehicleParkingCustomerLayout from './components/vehicleParking/VehicleParkingCustomerLayout';
+import DeepavaliAdminLayout, { DeepavaliCollectorLayout } from './components/deepavaliChits/DeepavaliAdminLayout';
 import VehicleFinanceAdminLayout from './components/vehicleFinance/VehicleFinanceAdminLayout';
 import VehicleFinanceManagerLayout from './components/vehicleFinance/VehicleFinanceManagerLayout';
 import VehicleFinanceCollectorLayout from './components/vehicleFinance/VehicleFinanceCollectorLayout';
@@ -131,6 +132,8 @@ function App() {
                         <Route path="/personal-finance" component={PersonalFinanceLayout} />
                         <Route path="/vehicle-parking/customer" component={VehicleParkingCustomerLayout} />
                         <Route path="/vehicle-parking" component={VehicleParkingLayout} />
+                        <Route path="/deepavali-chits/collector" component={DeepavaliCollectorLayout} />
+                        <Route path="/deepavali-chits/user" component={DeepavaliAdminLayout} />
                         <Route path="/documents-box" component={DocumentsLayout} />
                         <Route
                             path="/documents"

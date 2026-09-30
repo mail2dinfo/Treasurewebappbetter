@@ -68,6 +68,22 @@ const roleHasPermissionMatrix = (role) => (
     Array.isArray(role?.permissionDetails) && role.permissionDetails.length > 0
 );
 
+export const staffHasAppRole = (platform, appCode, roleCode) => {
+    const code = String(appCode || '').toUpperCase();
+    const wantedRole = String(roleCode || '').toUpperCase();
+    const orgs = platform?.organizations || platform?.session?.organizations || [];
+    return orgs.some((org) => (
+        (org.apps || []).some((app) => (
+            String(app.appCode || app.app_code || '').toUpperCase() === code
+            && (app.roles || []).some((role) => (
+                String(role.roleCode || role.role_code || '').toUpperCase() === wantedRole
+            ))
+        ))
+    ));
+};
+
+const DP_COLLECTOR_DEFAULT_FEATURES = ['dp_dashboard', 'dp_subscribers', 'dp_collections'];
+
 const normalizeSession = (data) => {
     if (Array.isArray(data.organizations)) {
         return {
@@ -217,9 +233,15 @@ export const PlatformAccessProvider = ({ children }) => {
                 localStorage.setItem('vf_collector_user', JSON.stringify(sharedUser));
                 localStorage.setItem('vf_collector_membership_id', String(parentMembershipId || ''));
             }
+            if (nextContext.appCode === 'DEEPAVALI_CHITS') {
+                localStorage.setItem('dp_parent_membership_id', String(parentMembershipId || ''));
+            }
         }
         if (nextContext.appCode === 'VEHICLE_PARKING' && parentMembershipId) {
             localStorage.setItem('vp_parent_membership_id', String(parentMembershipId));
+        }
+        if (nextContext.appCode === 'DEEPAVALI_CHITS' && parentMembershipId) {
+            localStorage.setItem('dp_parent_membership_id', String(parentMembershipId));
         }
         return nextContext;
     }, [user]);
@@ -337,6 +359,14 @@ export const PlatformAccessProvider = ({ children }) => {
             } else if (activeContext.roleCode === 'ACCOUNTANT') {
                 effectivePermissions = VP_ACCOUNTANT_DEFAULT_FEATURES;
             }
+        }
+        if (
+            !assignedPermissions.length
+            && !matrixConfigured
+            && activeContext.appCode === 'DEEPAVALI_CHITS'
+            && activeContext.roleCode === 'COLLECTOR'
+        ) {
+            effectivePermissions = DP_COLLECTOR_DEFAULT_FEATURES;
         }
 
         return effectivePermissions.some((permission) => (

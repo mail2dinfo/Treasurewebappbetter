@@ -113,6 +113,15 @@ const APP_THEMES = {
         bar: 'bg-slate-700',
         ring: 'ring-slate-100',
     },
+    DEEPAVALI_CHITS: {
+        shortName: 'Deepavali Chits',
+        accent: '#C2410C',
+        iconBg: 'bg-orange-700',
+        softBg: 'bg-orange-50',
+        border: 'border-orange-200 hover:border-orange-500',
+        bar: 'bg-orange-700',
+        ring: 'ring-orange-100',
+    },
     PEOPLE_ACCESS: {
         shortName: 'Employee & Access',
         accent: '#44403C',
@@ -240,6 +249,12 @@ const APP_ROUTES = {
         MANAGER: '/vehicle-parking/user/dashboard',
         COLLECTOR: '/vehicle-parking/user/check-in',
         ACCOUNTANT: '/vehicle-parking/user/accounts',
+    },
+    DEEPAVALI_CHITS: {
+        USER: '/deepavali-chits/user/dashboard',
+        MANAGER: '/deepavali-chits/user/dashboard',
+        COLLECTOR: '/deepavali-chits/collector/receivables',
+        ACCOUNTANT: '/deepavali-chits/user/ledger',
     },
 };
 
@@ -645,6 +660,19 @@ const AppSelectionPage = () => {
             ),
             path: '/vehicle-parking/user/dashboard',
             isActive: true
+        },
+        {
+            id: 12,
+            appCode: 'DEEPAVALI_CHITS',
+            name: 'Deepavali Chits',
+            description: 'Deepavali chit groups, collections, prize payables and ledger',
+            icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM8.547 14.28a.75.75 0 00-1.06 1.06l2.47 2.47a.75.75 0 001.06 0l4.97-4.97a.75.75 0 10-1.06-1.06L10.5 16.19l-1.953-1.91z" />
+                </svg>
+            ),
+            path: '/deepavali-chits/user/dashboard',
+            isActive: true
         }
     ], []);
 
@@ -1028,6 +1056,24 @@ const AppSelectionPage = () => {
             );
             setPlanPicker(null);
             await loadBillingAppsSummary();
+
+            const billingPath = getBillingPathForApp(appCode);
+            const userChoice = {
+                roleCode: 'USER',
+                accountName: roleCodeToAccountName('USER', membershipAccounts),
+                membershipId: billingMembershipId,
+                parentMembershipId: billingMembershipId,
+                enrollmentId: null,
+                permissions: ['*'],
+                permissionDetails: [],
+            };
+            platform.selectAppRole(
+                billingMembershipId,
+                { ...app, path: billingPath, isUnused: false, isActive: true },
+                userChoice
+            );
+            updateUserRole(formatAccountLabel(userChoice.accountName));
+            history.push(`${billingPath}?tab=plans`);
         } catch (err) {
             toast.error(err.message || 'Failed to enable app');
         } finally {
