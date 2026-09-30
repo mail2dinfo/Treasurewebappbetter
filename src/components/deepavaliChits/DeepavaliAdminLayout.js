@@ -58,6 +58,7 @@ const DeepavaliChrome = ({ basePath, menuIds, showBilling }) => {
                     )}
                     {allow('ledger') && <PrivateRoute exact path={`${basePath}/ledger`} component={DeepavaliLedgerPage} />}
                     {allow('groups') && <PrivateRoute exact path={`${basePath}/groups`} component={DeepavaliGroupsPage} />}
+                    {allow('groups') && <PrivateRoute exact path={`${basePath}/groups/:groupId/subscribers/:subscriberId`} component={DeepavaliGroupDetailPage} />}
                     {allow('groups') && <PrivateRoute exact path={`${basePath}/groups/:groupId`} component={DeepavaliGroupDetailPage} />}
                     {allow('payables') && <PrivateRoute exact path={`${basePath}/payables`} component={DeepavaliPayablesPage} />}
                     {allow('reports') && <PrivateRoute exact path={`${basePath}/reports`} component={DeepavaliReportsPage} />}

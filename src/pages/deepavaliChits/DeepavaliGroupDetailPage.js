@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { FiArrowLeft, FiCalendar, FiDownload, FiEye, FiUserPlus, FiUsers, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiCalendar, FiDownload, FiEye, FiPhone, FiUserPlus, FiUsers, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { useDeepavali } from '../../context/deepavali/DeepavaliContext';
 import { useUserContext } from '../../context/user_context';
@@ -131,7 +131,7 @@ const statusBadge = (status) => {
 };
 
 const DeepavaliGroupDetailPage = () => {
-    const { groupId } = useParams();
+    const { groupId, subscriberId } = useParams();
     const history = useHistory();
     const location = useLocation();
     const { user } = useUserContext();
@@ -150,23 +150,7 @@ const DeepavaliGroupDetailPage = () => {
     const [addMemberId, setAddMemberId] = useState('');
     const [joinDate, setJoinDate] = useState(today());
     const [addSlotCount, setAddSlotCount] = useState('1');
-    const [viewMember, setViewMember] = useState(null);
     const [unsubSlot, setUnsubSlot] = useState(null);
-
-    useEffect(() => {
-        if (!viewMember?.subscriberId) return;
-        const currentGroup = (groups || []).find((row) => String(row.id) === String(groupId));
-        if (!currentGroup) return;
-        const related = (currentGroup.slots || [])
-            .filter((slot) => String(slot.subscriber_id || slot.subscriber?.id || '') === String(viewMember.subscriberId))
-            .sort((a, b) => Number(a.slot_number || 0) - Number(b.slot_number || 0));
-        const schedule = buildMemberSchedule(currentGroup, receivables, viewMember.subscriberId, related, receipts);
-        setViewMember((prev) => (
-            prev && String(prev.subscriberId) === String(viewMember.subscriberId)
-                ? { ...prev, slots: related.length ? related : prev.slots, schedule }
-                : prev
-        ));
-    }, [groups, receivables, receipts, groupId, viewMember?.subscriberId]);
 
     const pdfCompany = useMemo(() => {
         if (company?.company_name) {
@@ -195,34 +179,6 @@ const DeepavaliGroupDetailPage = () => {
         { title: 'Fine note', value: 'fineNote' },
         { title: 'Payment status', value: 'status' },
     ]), []);
-
-    const duesPdfRows = useMemo(() => {
-        const schedule = viewMember?.schedule || [];
-        if (!schedule.length) return [];
-        const rows = schedule.map((row) => ({
-            date: row.date,
-            period: row.slots > 1 ? `${row.period} (${row.slots} slots)` : row.period,
-            paymentDate: row.paymentDate || '—',
-            total: money(row.total),
-            paidDue: money(row.paidDue),
-            paidFine: money(row.paidFine),
-            outstanding: money(row.outstanding),
-            fineNote: row.fineNote || '—',
-            status: row.status?.label || '',
-        }));
-        rows.push({
-            date: 'TOTAL',
-            period: '',
-            paymentDate: '',
-            total: money(schedule.reduce((sum, row) => sum + Number(row.total || 0), 0)),
-            paidDue: money(schedule.reduce((sum, row) => sum + Number(row.paidDue || 0), 0)),
-            paidFine: money(schedule.reduce((sum, row) => sum + Number(row.paidFine || 0), 0)),
-            outstanding: money(schedule.reduce((sum, row) => sum + Number(row.outstanding || 0), 0)),
-            fineNote: '',
-            status: '',
-        });
-        return rows;
-    }, [viewMember]);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search || '');
@@ -294,7 +250,7 @@ const DeepavaliGroupDetailPage = () => {
     };
 
     const goBack = () => {
-        if (history.length > 1) history.goBack();
+        if (subscriberId) history.push(`${groupsPath}/${groupId}`);
         else history.push(groupsPath);
     };
 
@@ -388,25 +344,280 @@ const DeepavaliGroupDetailPage = () => {
         return Array.from(seen.values());
     })();
 
-    const memberSchedule = (subscriberId) => {
-        const related = memberSlots(subscriberId);
-        return buildMemberSchedule(group, receivables, subscriberId, related, receipts);
+    const memberSchedule = (id) => {
+        const related = memberSlots(id);
+        return buildMemberSchedule(group, receivables, id, related, receipts);
     };
 
-    const openView = (memberOrSlot) => {
-        const subscriberId = memberOrSlot.subscriberId || subscriberIdOf(memberOrSlot);
-        const related = (memberOrSlot.slots || memberSlots(subscriberId))
+    const viewMember = subscriberId ? (() => {
+        const related = memberSlots(subscriberId)
             .slice()
             .sort((a, b) => Number(a.slot_number || 0) - Number(b.slot_number || 0));
-        const first = related[0] || memberOrSlot;
-        setViewMember({
+        const first = related[0];
+        if (!first) return null;
+        return {
             subscriberId,
             name: first.subscriber?.subscriber_name || 'Member',
             phone: first.subscriber?.phone || '',
             slots: related,
             schedule: memberSchedule(subscriberId),
+        };
+    })() : null;
+
+    const duesPdfRows = (() => {
+        const schedule = viewMember?.schedule || [];
+        if (!schedule.length) return [];
+        const rows = schedule.map((row) => ({
+            date: row.date,
+            period: row.slots > 1 ? `${row.period} (${row.slots} slots)` : row.period,
+            paymentDate: row.paymentDate || '—',
+            total: money(row.total),
+            paidDue: money(row.paidDue),
+            paidFine: money(row.paidFine),
+            outstanding: money(row.outstanding),
+            fineNote: row.fineNote || '—',
+            status: row.status?.label || '',
+        }));
+        rows.push({
+            date: 'TOTAL',
+            period: '',
+            paymentDate: '',
+            total: money(schedule.reduce((sum, row) => sum + Number(row.total || 0), 0)),
+            paidDue: money(schedule.reduce((sum, row) => sum + Number(row.paidDue || 0), 0)),
+            paidFine: money(schedule.reduce((sum, row) => sum + Number(row.paidFine || 0), 0)),
+            outstanding: money(schedule.reduce((sum, row) => sum + Number(row.outstanding || 0), 0)),
+            fineNote: '',
+            status: '',
         });
+        return rows;
+    })();
+
+    const openView = (memberOrSlot) => {
+        const id = memberOrSlot.subscriberId || subscriberIdOf(memberOrSlot);
+        history.push(`${groupsPath}/${groupId}/subscribers/${id}`);
     };
+
+    if (subscriberId && !viewMember) {
+        return (
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="max-w-5xl mx-auto">
+                    <BackButton />
+                    <div className="bg-white rounded-2xl border border-gray-200 p-10 text-center mt-6">
+                        <p className="text-gray-800 font-semibold">Subscriber not found in this group</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (viewMember) {
+        const schedule = viewMember.schedule || [];
+        const dueTotal = schedule.reduce((sum, row) => sum + Number(row.total || 0), 0);
+        const duePaid = schedule.reduce((sum, row) => sum + Number(row.paidDue || 0), 0);
+        const finePaid = schedule.reduce((sum, row) => sum + Number(row.paidFine || 0), 0);
+        const dueOutstanding = schedule.reduce((sum, row) => sum + Number(row.outstanding || 0), 0);
+        const firstSub = viewMember.slots[0]?.subscriber;
+        const photo = firstSub?.photo;
+        const initial = String(viewMember.name || 'M').charAt(0).toUpperCase();
+        return (
+            <div className="p-4 sm:p-6 lg:p-8">
+                <div className="max-w-5xl mx-auto space-y-5">
+                    <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                        <div className="px-5 sm:px-6 pt-5 pb-4">
+                            <div className="flex items-center justify-between gap-3">
+                                <button
+                                    type="button"
+                                    onClick={goBack}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold"
+                                >
+                                    <FiArrowLeft className="w-4 h-4" />
+                                    Back
+                                </button>
+                                <PDFDownloadLink
+                                    document={(
+                                        <DeepavaliSubscriberDuesPDF
+                                            companyData={pdfCompany}
+                                            subscriberName={viewMember.name}
+                                            subscriberPhone={viewMember.phone}
+                                            groupName={group.group_name}
+                                            slotCount={viewMember.slots.length}
+                                            tableHeaders={duesPdfHeaders}
+                                            tableData={duesPdfRows}
+                                        />
+                                    )}
+                                    fileName={`Deepavali_${String(viewMember.name || 'subscriber').replace(/[^\w.-]+/g, '_')}_dues.pdf`}
+                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-sm font-semibold border border-gray-200 bg-white text-gray-800 rounded-xl hover:bg-gray-50 shrink-0 self-start"
+                                >
+                                    {({ loading: pdfLoading }) => (
+                                        <>
+                                            <FiDownload className="w-4 h-4" />
+                                            {pdfLoading ? 'Preparing PDF…' : 'Download PDF'}
+                                        </>
+                                    )}
+                                </PDFDownloadLink>
+                            </div>
+                            <div className="mt-4 flex items-center gap-3 sm:gap-4 min-w-0">
+                                <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center font-bold text-lg overflow-hidden shrink-0 ring-1 ring-red-100">
+                                    {photo
+                                        ? <img src={photo} alt="" className="w-full h-full object-cover" />
+                                        : initial}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                                        {group.group_name}
+                                    </p>
+                                    <h1 className="text-2xl font-bold text-gray-900 leading-tight truncate">{viewMember.name}</h1>
+                                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500">
+                                        {viewMember.phone ? (
+                                            <span className="inline-flex items-center gap-1.5">
+                                                <FiPhone className="w-3.5 h-3.5" />
+                                                {viewMember.phone}
+                                            </span>
+                                        ) : null}
+                                        <span className="inline-flex items-center rounded-full bg-gray-100 text-gray-700 px-2.5 py-0.5 text-[11px] font-semibold">
+                                            {viewMember.slots.length} slot{viewMember.slots.length === 1 ? '' : 's'}
+                                            {viewMember.slots.length > 1 ? ' combined' : ''}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="mt-4 flex flex-wrap gap-2">
+                                {(viewMember.slots || []).map((slot) => {
+                                    const stopped = slot.status === 'WITHDRAWN';
+                                    return (
+                                        <div
+                                            key={slot.id}
+                                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5"
+                                        >
+                                            <span className="text-sm font-semibold text-gray-900">Slot {slot.slot_number}</span>
+                                            <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${stopped ? 'bg-white text-gray-500' : 'bg-emerald-50 text-emerald-700'}`}>
+                                                {stopped ? 'Stopped' : 'Active'}
+                                            </span>
+                                            {!stopped && group.status !== 'CLOSED' && (
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-xs font-semibold"
+                                                    onClick={() => setUnsubSlot(slot)}
+                                                >
+                                                    Unsubscribe
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-gray-100 border-t border-gray-100">
+                            <div className="bg-white px-5 py-4">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Total</p>
+                                <p className="mt-1 text-xl font-bold text-gray-900">{money(dueTotal)}</p>
+                            </div>
+                            <div className="bg-white px-5 py-4">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Due paid</p>
+                                <p className="mt-1 text-xl font-bold text-emerald-800">{money(duePaid)}</p>
+                            </div>
+                            <div className="bg-white px-5 py-4">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">Fine paid</p>
+                                <p className="mt-1 text-xl font-bold text-orange-800">{money(finePaid)}</p>
+                            </div>
+                            <div className="bg-white px-5 py-4">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-red-600">Outstanding</p>
+                                <p className="mt-1 text-xl font-bold text-red-700">{money(dueOutstanding)}</p>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto border-t border-gray-100">
+                            {!viewMember.schedule.length ? (
+                                <p className="px-6 py-10 text-sm text-gray-500 text-center">No receivables for this subscriber yet.</p>
+                            ) : (
+                                <table className="w-full min-w-[640px]">
+                                    <thead className="bg-gray-50 border-b border-gray-200">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Period</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Paid on</th>
+                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Total</th>
+                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Due paid</th>
+                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Fine paid</th>
+                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Outstanding</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Fine details</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Payment status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {viewMember.schedule.map((row) => (
+                                            <tr key={row.date} className="hover:bg-gray-50">
+                                                <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{row.date}</td>
+                                                <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                    {row.period}
+                                                    {row.slots > 1 ? <span className="ml-1 text-xs font-normal text-gray-500">({row.slots} slots)</span> : null}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{row.paymentDate || '—'}</td>
+                                                <td className="px-4 py-3 text-sm text-right text-gray-900 whitespace-nowrap">{money(row.total)}</td>
+                                                <td className="px-4 py-3 text-sm text-right text-emerald-700 whitespace-nowrap">{money(row.paidDue)}</td>
+                                                <td className="px-4 py-3 text-sm text-right text-teal-700 whitespace-nowrap">{money(row.paidFine)}</td>
+                                                <td className="px-4 py-3 text-sm text-right font-semibold text-red-600 whitespace-nowrap">{money(row.outstanding)}</td>
+                                                <td className="px-4 py-3 text-xs text-gray-700">{row.fineNote || '—'}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.status.className}`}>
+                                                        {row.status.label}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-gray-50 border-t border-gray-200">
+                                        <tr>
+                                            <td className="px-4 py-3 text-sm font-semibold text-gray-800" colSpan={3}>Total</td>
+                                            <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">{money(viewMember.schedule.reduce((sum, row) => sum + row.total, 0))}</td>
+                                            <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-700">{money(viewMember.schedule.reduce((sum, row) => sum + Number(row.paidDue || 0), 0))}</td>
+                                            <td className="px-4 py-3 text-sm text-right font-semibold text-teal-700">{money(viewMember.schedule.reduce((sum, row) => sum + Number(row.paidFine || 0), 0))}</td>
+                                            <td className="px-4 py-3 text-sm text-right font-semibold text-red-600">{money(viewMember.schedule.reduce((sum, row) => sum + row.outstanding, 0))}</td>
+                                            <td />
+                                            <td />
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            )}
+                        </div>
+                    </section>
+                </div>
+                {unsubSlot && createPortal(
+                    <div
+                        className="fixed inset-0 z-[210] bg-black/50 flex items-center justify-center p-4"
+                        onClick={() => {
+                            if (!saving) setUnsubSlot(null);
+                        }}
+                    >
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="text-lg font-bold text-gray-900 text-center">Confirm unsubscribe</h3>
+                            <p className="text-sm text-gray-600 text-center mt-2">
+                                Stop <strong>Slot {unsubSlot.slot_number}</strong> for this subscriber? Paid dues stay as they are. Pending and future unpaid dues for this slot will be removed.
+                            </p>
+                            <div className="flex gap-3 mt-5">
+                                <button
+                                    type="button"
+                                    onClick={() => setUnsubSlot(null)}
+                                    disabled={saving}
+                                    className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={confirmUnsubscribe}
+                                    disabled={saving}
+                                    className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold disabled:opacity-50"
+                                >
+                                    {saving ? 'Updating…' : 'Confirm'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>,
+                    document.body
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 sm:p-6 lg:p-8">
@@ -603,157 +814,6 @@ const DeepavaliGroupDetailPage = () => {
                     )}
                 </section>
             </div>
-
-            {viewMember && (
-                <div className="fixed inset-0 z-[80] bg-black/50 flex items-center justify-center p-4" onClick={() => setViewMember(null)}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
-                        <div className="px-5 sm:px-6 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
-                            <div>
-                                <h2 className="text-lg font-bold text-gray-900">{viewMember.name}</h2>
-                                <p className="text-sm text-gray-500 mt-0.5">
-                                    {viewMember.phone ? `${viewMember.phone} · ` : ''}
-                                    {viewMember.slots.length} slot{viewMember.slots.length === 1 ? '' : 's'}
-                                    {viewMember.slots.length > 1 ? ' combined' : ''}
-                                </p>
-                                <div className="mt-3 flex flex-col gap-2">
-                                    {(viewMember.slots || []).map((slot) => {
-                                        const stopped = slot.status === 'WITHDRAWN';
-                                        return (
-                                            <div key={slot.id} className="flex flex-wrap items-center gap-2 text-sm">
-                                                <span className="font-semibold text-gray-900">Slot {slot.slot_number}</span>
-                                                <span className="text-gray-400">-</span>
-                                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${stopped ? 'bg-gray-100 text-gray-600' : 'bg-emerald-50 text-emerald-700'}`}>
-                                                    {stopped ? 'Stopped' : 'Active'}
-                                                </span>
-                                                {!stopped && group.status !== 'CLOSED' && (
-                                                    <>
-                                                        <span className="text-gray-400">-</span>
-                                                        <button
-                                                            type="button"
-                                                            className="text-sm font-semibold text-red-600 hover:bg-red-50 px-2 py-1 rounded-lg"
-                                                            onClick={() => setUnsubSlot(slot)}
-                                                        >
-                                                            Unsubscribe
-                                                        </button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                {(() => {
-                                    const schedule = viewMember.schedule || [];
-                                    const total = schedule.reduce((sum, row) => sum + Number(row.total || 0), 0);
-                                    const paidDue = schedule.reduce((sum, row) => sum + Number(row.paidDue || 0), 0);
-                                    const paidFine = schedule.reduce((sum, row) => sum + Number(row.paidFine || 0), 0);
-                                    const outstanding = schedule.reduce((sum, row) => sum + Number(row.outstanding || 0), 0);
-                                    return (
-                                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                            <div className="rounded-lg bg-gray-50 px-3 py-2">
-                                                <p className="text-[10px] uppercase font-semibold text-gray-500">Total</p>
-                                                <p className="text-sm font-bold text-gray-900">{money(total)}</p>
-                                            </div>
-                                            <div className="rounded-lg bg-emerald-50 px-3 py-2">
-                                                <p className="text-[10px] uppercase font-semibold text-emerald-700">Due paid</p>
-                                                <p className="text-sm font-bold text-emerald-800">{money(paidDue)}</p>
-                                            </div>
-                                            <div className="rounded-lg bg-orange-50 px-3 py-2">
-                                                <p className="text-[10px] uppercase font-semibold text-orange-700">Fine paid</p>
-                                                <p className="text-sm font-bold text-orange-800">{money(paidFine)}</p>
-                                            </div>
-                                            <div className="rounded-lg bg-red-50 px-3 py-2">
-                                                <p className="text-[10px] uppercase font-semibold text-red-600">Outstanding</p>
-                                                <p className="text-sm font-bold text-red-700">{money(outstanding)}</p>
-                                            </div>
-                                        </div>
-                                    );
-                                })()}
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                                <PDFDownloadLink
-                                    document={(
-                                        <DeepavaliSubscriberDuesPDF
-                                            companyData={pdfCompany}
-                                            subscriberName={viewMember.name}
-                                            subscriberPhone={viewMember.phone}
-                                            groupName={group.group_name}
-                                            slotCount={viewMember.slots.length}
-                                            tableHeaders={duesPdfHeaders}
-                                            tableData={duesPdfRows}
-                                        />
-                                    )}
-                                    fileName={`Deepavali_${String(viewMember.name || 'subscriber').replace(/[^\w.-]+/g, '_')}_dues.pdf`}
-                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border border-gray-300 bg-white text-gray-800 rounded-lg hover:bg-gray-50"
-                                >
-                                    {({ loading: pdfLoading }) => (
-                                        <>
-                                            <FiDownload className="w-4 h-4" />
-                                            {pdfLoading ? 'Preparing PDF…' : 'Download PDF'}
-                                        </>
-                                    )}
-                                </PDFDownloadLink>
-                                <button type="button" className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg" onClick={() => setViewMember(null)} aria-label="Close">
-                                    <FiX className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                        <div className="overflow-auto">
-                            {!viewMember.schedule.length ? (
-                                <p className="px-6 py-10 text-sm text-gray-500 text-center">No receivables for this subscriber yet.</p>
-                            ) : (
-                                <table className="w-full min-w-[640px]">
-                                    <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Period</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Paid on</th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Total</th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Due paid</th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Fine paid</th>
-                                            <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Outstanding</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Fine details</th>
-                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Payment status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {viewMember.schedule.map((row) => (
-                                            <tr key={row.date} className="hover:bg-gray-50">
-                                                <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{row.date}</td>
-                                                <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
-                                                    {row.period}
-                                                    {row.slots > 1 ? <span className="ml-1 text-xs font-normal text-gray-500">({row.slots} slots)</span> : null}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-gray-800 whitespace-nowrap">{row.paymentDate || '—'}</td>
-                                                <td className="px-4 py-3 text-sm text-right text-gray-900 whitespace-nowrap">{money(row.total)}</td>
-                                                <td className="px-4 py-3 text-sm text-right text-emerald-700 whitespace-nowrap">{money(row.paidDue)}</td>
-                                                <td className="px-4 py-3 text-sm text-right text-teal-700 whitespace-nowrap">{money(row.paidFine)}</td>
-                                                <td className="px-4 py-3 text-sm text-right font-semibold text-red-600 whitespace-nowrap">{money(row.outstanding)}</td>
-                                                <td className="px-4 py-3 text-xs text-gray-700">{row.fineNote || '—'}</td>
-                                                <td className="px-4 py-3">
-                                                    <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${row.status.className}`}>
-                                                        {row.status.label}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                    <tfoot className="bg-gray-50 border-t border-gray-200">
-                                        <tr>
-                                            <td className="px-4 py-3 text-sm font-semibold text-gray-800" colSpan={3}>Total</td>
-                                            <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900">{money(viewMember.schedule.reduce((sum, row) => sum + row.total, 0))}</td>
-                                            <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-700">{money(viewMember.schedule.reduce((sum, row) => sum + Number(row.paidDue || 0), 0))}</td>
-                                            <td className="px-4 py-3 text-sm text-right font-semibold text-teal-700">{money(viewMember.schedule.reduce((sum, row) => sum + Number(row.paidFine || 0), 0))}</td>
-                                            <td className="px-4 py-3 text-sm text-right font-semibold text-red-600">{money(viewMember.schedule.reduce((sum, row) => sum + row.outstanding, 0))}</td>
-                                            <td />
-                                            <td />
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {showEnrol && (
                 <div className="fixed inset-0 z-[80] bg-black/50 flex items-center justify-center p-4" onClick={() => !saving && setShowEnrol(false)}>
