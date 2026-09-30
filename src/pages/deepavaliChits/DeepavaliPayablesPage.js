@@ -31,13 +31,12 @@ const DeepavaliPayablesPage = () => {
     const [settleBundle, setSettleBundle] = useState(null);
     const [payAccount, setPayAccount] = useState('');
 
-    const rows = payables || [];
+    const rows = (payables || []).filter((row) => !row.is_paid);
 
     const counts = useMemo(() => ({
         ALL: rows.length,
         RUNNING: rows.filter((row) => ['RUNNING', 'CLOSED'].includes(scenarioOf(row))).length,
-        READY: rows.filter((row) => row.can_settle && !row.is_paid).length,
-        SETTLED: rows.filter((row) => row.is_paid).length,
+        READY: rows.filter((row) => row.can_settle).length,
     }), [rows]);
 
     const grouped = useMemo(() => {
@@ -58,25 +57,28 @@ const DeepavaliPayablesPage = () => {
         return Object.values(map).map((bundle) => {
             const slots = bundle.slots.slice().sort((a, b) => Number(a.slot?.slot_number || 0) - Number(b.slot?.slot_number || 0));
             const unpaid = slots.filter((slot) => !slot.is_paid);
-            const canSettleAll = unpaid.length > 0 && unpaid.every((slot) => slot.can_settle);
+            if (!unpaid.length) return null;
+            const canSettleAll = unpaid.every((slot) => slot.can_settle);
             const dueNow = canSettleAll ? unpaid.reduce((sum, slot) => sum + netOf(slot), 0) : 0;
-            const agreed = slots.reduce((sum, slot) => sum + Number(slot.agreed_amount || 0), 0);
-            const collected = slots.reduce((sum, slot) => sum + Number(slot.collected_amount || 0), 0);
+            const agreed = unpaid.reduce((sum, slot) => sum + Number(slot.agreed_amount || 0), 0);
+            const collected = unpaid.reduce((sum, slot) => sum + Number(slot.collected_amount || 0), 0);
             const penalty = unpaid.reduce((sum, slot) => sum + Number(slot.penalty_amount || 0), 0);
             const lastDue = unpaid.reduce((max, slot) => {
                 const date = String(slot.last_due_date || '').slice(0, 10);
                 if (!date) return max;
                 return !max || date > max ? date : max;
             }, null);
-            return { ...bundle, slots, unpaid, canSettleAll, dueNow, agreed, collected, penalty, lastDue };
-        }).filter((bundle) => {
+            return { ...bundle, slots: unpaid, unpaid, canSettleAll, dueNow, agreed, collected, penalty, lastDue };
+        }).filter(Boolean).filter((bundle) => {
             if (statusTab === 'RUNNING' && !bundle.slots.some((slot) => ['RUNNING', 'CLOSED'].includes(scenarioOf(slot)))) return false;
             if (statusTab === 'READY' && !bundle.canSettleAll) return false;
-            if (statusTab === 'SETTLED' && !bundle.slots.every((slot) => slot.is_paid)) return false;
             if (!q) return true;
             const blob = `${bundle.subscriber?.subscriber_name || ''} ${bundle.subscriber?.phone || ''} ${bundle.group?.group_name || ''}`.toLowerCase();
             return blob.includes(q);
-        }).sort((a, b) => Number(b.dueNow) - Number(a.dueNow));
+        }).sort((a, b) => {
+            if (a.canSettleAll !== b.canSettleAll) return a.canSettleAll ? -1 : 1;
+            return Number(b.dueNow) - Number(a.dueNow);
+        });
     }, [rows, search, statusTab]);
 
     const payNow = useMemo(
@@ -133,7 +135,6 @@ const DeepavaliPayablesPage = () => {
         { id: 'ALL', label: 'All', count: counts.ALL },
         { id: 'READY', label: 'To pay', count: counts.READY },
         { id: 'RUNNING', label: 'Running', count: counts.RUNNING },
-        { id: 'SETTLED', label: 'Settled', count: counts.SETTLED },
     ];
 
     return (
@@ -177,7 +178,7 @@ const DeepavaliPayablesPage = () => {
                         <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
                             <FiUser className="w-8 h-8 text-red-500" />
                         </div>
-                        <p className="font-semibold text-gray-800">No payables yet</p>
+                        <p className="font-semibold text-gray-800">No pending payables</p>
                     </div>
                 )}
 
@@ -250,7 +251,6 @@ const DeepavaliPayablesPage = () => {
                                                         {running && (
                                                             <button type="button" onClick={() => setCloseSlot(row)} className="px-3 py-1.5 text-sm font-semibold rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50">Close</button>
                                                         )}
-                                                        {row.is_paid && <span className="text-xs text-gray-500 self-center">{row.bill_label || 'Paid'}</span>}
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-4 gap-2 text-center">
@@ -268,7 +268,7 @@ const DeepavaliPayablesPage = () => {
                                                     </div>
                                                     <div className="rounded-lg bg-gray-900 py-2">
                                                         <p className="text-[10px] uppercase tracking-wide text-gray-300">Pay</p>
-                                                        <p className="text-xs sm:text-sm font-semibold tabular-nums text-white">{money(row.is_paid || !row.can_settle ? 0 : netOf(row))}</p>
+                                                        <p className="text-xs sm:text-sm font-semibold tabular-nums text-white">{money(row.can_settle ? netOf(row) : 0)}</p>
                                                     </div>
                                                 </div>
                                             </div>

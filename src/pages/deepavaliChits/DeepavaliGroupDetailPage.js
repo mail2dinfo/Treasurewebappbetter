@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { PDFDownloadLink, pdf } from '@react-pdf/renderer';
 import { FiArrowLeft, FiCalendar, FiDownload, FiEye, FiPhone, FiUserPlus, FiUsers, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { useDeepavali } from '../../context/deepavali/DeepavaliContext';
 import { useUserContext } from '../../context/user_context';
 import { DP_BASE_PATH, DP_COLLECTOR_PATH } from '../../components/deepavaliChits/deepavaliMenuItems';
 import DeepavaliSubscriberDuesPDF from '../../components/deepavaliChits/DeepavaliSubscriberDuesPDF';
+import ReceivableReceitPdf from '../../components/PDF/ReceivableReceitPdf';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
@@ -37,6 +38,22 @@ const paymentDay = (row) => String(row.payment_date || row.created_at || '').sli
 const latestPaymentDate = (receiptList) => {
     const dates = (receiptList || []).map(paymentDay).filter(Boolean).sort();
     return dates.length ? dates[dates.length - 1] : '';
+};
+
+const formatBillLabel = (rec) => {
+    if (!rec) return '';
+    if (rec.bill_label) return rec.bill_label;
+    if (rec.bill_number == null || rec.bill_number === '') return '';
+    return `DP-${String(rec.bill_number).padStart(4, '0')}`;
+};
+
+const pickLatestReceipt = (list) => {
+    if (!list?.length) return null;
+    return list.slice().sort((a, b) => {
+        const byBill = Number(b.bill_number || 0) - Number(a.bill_number || 0);
+        if (byBill) return byBill;
+        return String(b.payment_date || b.created_at || '').localeCompare(String(a.payment_date || a.created_at || ''));
+    })[0];
 };
 
 const buildMemberSchedule = (group, receivables, subscriberId, slotList, receipts = []) => {
@@ -96,10 +113,12 @@ const buildMemberSchedule = (group, receivables, subscriberId, slotList, receipt
             const slotSet = new Set((row.itemIds || []).map((id) => String(recvById[id]?.slot_id || recvById[id]?.slot?.id || '')));
             const paidOnThis = Number(row.paidDue || 0) > 0 || Number(row.paidFine || 0) > 0;
             let paymentDate = '';
+            let receipt = null;
             if (paidOnThis) {
                 const direct = (receipts || []).filter((rec) => idSet.has(String(rec.receivable_id)));
                 paymentDate = latestPaymentDate(direct);
-                if (!paymentDate) {
+                receipt = pickLatestReceipt(direct);
+                if (!paymentDate || !receipt) {
                     const inherited = (receipts || []).filter((rec) => {
                         const linked = recvById[String(rec.receivable_id)];
                         if (!linked) return false;
@@ -107,7 +126,8 @@ const buildMemberSchedule = (group, receivables, subscriberId, slotList, receipt
                         if (slotKey && slotSet.size && !slotSet.has(slotKey)) return false;
                         return dueDay(linked) >= row.date;
                     });
-                    paymentDate = latestPaymentDate(inherited);
+                    if (!paymentDate) paymentDate = latestPaymentDate(inherited);
+                    if (!receipt) receipt = pickLatestReceipt(inherited);
                 }
             }
             return {
@@ -116,6 +136,8 @@ const buildMemberSchedule = (group, receivables, subscriberId, slotList, receipt
                 dueLabel,
                 fineNote,
                 paymentDate: paymentDate || '',
+                receipt,
+                billLabel: formatBillLabel(receipt),
                 status: paymentStatusMeta(row),
             };
         });
@@ -135,7 +157,7 @@ const DeepavaliGroupDetailPage = () => {
     const history = useHistory();
     const location = useLocation();
     const { user } = useUserContext();
-    const { groups, subscribers, receivables, receipts, company, enrolSlot, loading } = useDeepavali();
+    const { groups, subscribers, receivables, receipts, payables, paymentMethods, company, enrolSlot, loading } = useDeepavali();
     const collector = (location.pathname || '').includes('/collector');
     const groupsPath = collector ? `${DP_COLLECTOR_PATH}/groups` : `${DP_BASE_PATH}/groups`;
     const subscribersPath = collector ? `${DP_COLLECTOR_PATH}/subscribers` : `${DP_BASE_PATH}/subscribers`;
@@ -146,6 +168,7 @@ const DeepavaliGroupDetailPage = () => {
     );
 
     const [saving, setSaving] = useState(false);
+    const [downloadingBill, setDownloadingBill] = useState('');
     const [showEnrol, setShowEnrol] = useState(false);
     const [addMemberId, setAddMemberId] = useState('');
     const [joinDate, setJoinDate] = useState(today());
@@ -178,6 +201,7 @@ const DeepavaliGroupDetailPage = () => {
         { title: 'Outstanding', value: 'outstanding', align: 'right' },
         { title: 'Fine note', value: 'fineNote' },
         { title: 'Payment status', value: 'status' },
+        { title: 'Bill', value: 'bill' },
     ]), []);
 
     useEffect(() => {
@@ -377,6 +401,7 @@ const DeepavaliGroupDetailPage = () => {
             outstanding: money(row.outstanding),
             fineNote: row.fineNote || '—',
             status: row.status?.label || '',
+            bill: row.billLabel || '—',
         }));
         rows.push({
             date: 'TOTAL',
@@ -388,6 +413,7 @@ const DeepavaliGroupDetailPage = () => {
             outstanding: money(schedule.reduce((sum, row) => sum + Number(row.outstanding || 0), 0)),
             fineNote: '',
             status: '',
+            bill: '',
         });
         return rows;
     })();
@@ -395,6 +421,148 @@ const DeepavaliGroupDetailPage = () => {
     const openView = (memberOrSlot) => {
         const id = memberOrSlot.subscriberId || subscriberIdOf(memberOrSlot);
         history.push(`${groupsPath}/${groupId}/subscribers/${id}`);
+    };
+
+    const downloadScheduleBill = async (memberInfo, row) => {
+        const receipt = row?.receipt;
+        const billLabel = row?.billLabel || formatBillLabel(receipt);
+        const schedule = memberInfo?.schedule || [];
+        const name = memberInfo?.name || '—';
+        if (!receipt || !billLabel) return;
+        if (downloadingBill) return;
+        setDownloadingBill(billLabel);
+        try {
+            const covered = schedule.filter((item) => String(item.receipt?.id || '') === String(receipt.id));
+            const source = covered.length ? covered : [row];
+            const lineItems = source.flatMap((item) => {
+                const lines = [];
+                if (Number(item.paidDue || 0) > 0) {
+                    lines.push({ label: item.period, amount: item.paidDue });
+                }
+                if (Number(item.paidFine || 0) > 0) {
+                    lines.push({ label: `${item.period} fine`, amount: item.paidFine, isFine: true });
+                }
+                return lines;
+            });
+            const paidAmount = Number(receipt.paid_amount || source.reduce((sum, item) => sum + Number(item.paidDue || 0) + Number(item.paidFine || 0), 0));
+            const blob = await pdf(
+                <ReceivableReceitPdf
+                    companyData={pdfCompany}
+                    receivableData={{
+                        subscriberName: name,
+                        paymentType: Number(row.outstanding) > 0 ? 'Partial' : 'Full',
+                        paymentMethod: receipt.payment_method_name || receipt.payment_method || '—',
+                        groupName: group.group_name || '—',
+                        auctionDate: row.date,
+                        transactedDate: receipt.payment_date || row.paymentDate,
+                        createdAt: receipt.payment_date || row.paymentDate,
+                        paymentAmount: paidAmount,
+                        billNumber: billLabel,
+                        lineItems,
+                        lineTotal: paidAmount,
+                    }}
+                />
+            ).toBlob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${billLabel}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            toast.error(err.message || 'Could not download bill');
+        } finally {
+            setDownloadingBill('');
+        }
+    };
+
+    const downloadDueBill = (row) => downloadScheduleBill(viewMember, row);
+
+    const memberPayables = (id) => (payables || []).filter((row) => (
+        String(row.subscriber_id || row.subscriber?.id || '') === String(id)
+        && String(row.group_id || row.group?.id || '') === String(group.id)
+    ));
+
+    const memberPaymentBills = (id) => {
+        const seen = new Map();
+        memberPayables(id).forEach((row) => {
+            if (!row.is_paid || !row.bill_label) return;
+            if (!seen.has(row.bill_label)) seen.set(row.bill_label, row);
+        });
+        return Array.from(seen.values());
+    };
+
+    const downloadPaymentBill = async (billRow, subscriberName) => {
+        const billLabel = billRow?.bill_label;
+        if (!billLabel) return;
+        if (downloadingBill) return;
+        setDownloadingBill(billLabel);
+        try {
+            const covered = memberPayables(billRow.subscriber_id || billRow.subscriber?.id)
+                .filter((row) => row.is_paid && row.bill_label === billLabel);
+            const source = covered.length ? covered : [billRow];
+            const lineItems = source.map((slot) => ({
+                key: slot.id,
+                label: `Slot ${slot.slot?.slot_number || '—'} settlement`,
+                amount: Number(slot.net_amount ?? slot.paid_amount ?? slot.amount ?? 0),
+            }));
+            const paidAmount = Number(lineItems.reduce((sum, line) => sum + Number(line.amount || 0), 0).toFixed(2));
+            const payDate = String(billRow.payment_date || today()).slice(0, 10);
+            const methodName = paymentMethods.find((acc) => String(acc.id) === String(billRow.payment_method_id))?.account_name || '—';
+            const blob = await pdf(
+                <ReceivableReceitPdf
+                    companyData={pdfCompany}
+                    receivableData={{
+                        subscriberName: subscriberName || billRow.subscriber?.subscriber_name || '—',
+                        paymentType: 'Settlement',
+                        paymentMethod: methodName,
+                        groupName: group.group_name || '—',
+                        auctionDate: payDate,
+                        transactedDate: payDate,
+                        createdAt: payDate,
+                        paymentAmount: paidAmount,
+                        billNumber: billLabel,
+                        lineItems,
+                        lineTotal: paidAmount,
+                    }}
+                />
+            ).toBlob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${billLabel}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch (err) {
+            toast.error(err.message || 'Could not download bill');
+        } finally {
+            setDownloadingBill('');
+        }
+    };
+
+    const PaymentBillLinks = ({ subscriberId, subscriberName }) => {
+        const bills = memberPaymentBills(subscriberId);
+        if (!bills.length) return <span className="text-sm text-gray-400">—</span>;
+        return (
+            <div className="flex flex-col items-start gap-1">
+                {bills.map((row) => (
+                    <button
+                        key={row.bill_label}
+                        type="button"
+                        onClick={() => downloadPaymentBill(row, subscriberName)}
+                        disabled={Boolean(downloadingBill)}
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
+                    >
+                        {row.bill_label}
+                        <FiDownload className="w-3.5 h-3.5" />
+                    </button>
+                ))}
+            </div>
+        );
     };
 
     if (subscriberId && !viewMember) {
@@ -541,6 +709,7 @@ const DeepavaliGroupDetailPage = () => {
                                             <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Outstanding</th>
                                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Fine details</th>
                                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Payment status</th>
+                                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Bill</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
@@ -562,6 +731,19 @@ const DeepavaliGroupDetailPage = () => {
                                                         {row.status.label}
                                                     </span>
                                                 </td>
+                                                <td className="px-4 py-3 text-sm whitespace-nowrap">
+                                                    {row.billLabel ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => downloadDueBill(row)}
+                                                            disabled={Boolean(downloadingBill)}
+                                                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
+                                                        >
+                                                            {row.billLabel}
+                                                            <FiDownload className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    ) : '—'}
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -572,6 +754,7 @@ const DeepavaliGroupDetailPage = () => {
                                             <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-700">{money(viewMember.schedule.reduce((sum, row) => sum + Number(row.paidDue || 0), 0))}</td>
                                             <td className="px-4 py-3 text-sm text-right font-semibold text-teal-700">{money(viewMember.schedule.reduce((sum, row) => sum + Number(row.paidFine || 0), 0))}</td>
                                             <td className="px-4 py-3 text-sm text-right font-semibold text-red-600">{money(viewMember.schedule.reduce((sum, row) => sum + row.outstanding, 0))}</td>
+                                            <td />
                                             <td />
                                             <td />
                                         </tr>
@@ -700,6 +883,7 @@ const DeepavaliGroupDetailPage = () => {
                                             <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Paid</th>
                                             <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Outstanding</th>
                                             <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Bill</th>
                                             <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Actions</th>
                                         </tr>
                                     </thead>
@@ -739,6 +923,9 @@ const DeepavaliGroupDetailPage = () => {
                                                         <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${stopped ? 'bg-gray-100 text-gray-600' : 'bg-emerald-50 text-emerald-700'}`}>
                                                             {stopped ? 'Stopped' : 'Active'}
                                                         </span>
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <PaymentBillLinks subscriberId={member.subscriberId} subscriberName={name} />
                                                     </td>
                                                     <td className="px-6 py-3 text-right whitespace-nowrap">
                                                         <button
@@ -795,6 +982,9 @@ const DeepavaliGroupDetailPage = () => {
                                                     <p className="text-[10px] uppercase font-semibold text-red-600">Outstanding</p>
                                                     <p className="text-sm font-semibold text-red-700">{money(amounts.due)}</p>
                                                 </div>
+                                            </div>
+                                            <div className="mt-3 flex items-center justify-between gap-2">
+                                                <PaymentBillLinks subscriberId={member.subscriberId} subscriberName={name} />
                                             </div>
                                             <div className="mt-3">
                                                 <button

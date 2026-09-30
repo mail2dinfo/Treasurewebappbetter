@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { FiEdit2, FiTrash2, FiArrowUp, FiArrowDown, FiDownload, FiPlus } from 'react-icons/fi';
 import { GoArrowBoth } from 'react-icons/go';
@@ -33,6 +34,7 @@ const DeepavaliLedgerPage = () => {
     const [openingBalance, setOpeningBalance] = useState('');
     const [filterAccountId, setFilterAccountId] = useState('');
     const [saving, setSaving] = useState(false);
+    const [narrationTip, setNarrationTip] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
     const [filters, setFilters] = useState({
@@ -171,6 +173,25 @@ const DeepavaliLedgerPage = () => {
         }
     };
 
+    const hideNarrationTip = () => setNarrationTip(null);
+
+    const showNarrationTip = (event, text) => {
+        const narration = String(text || '').trim();
+        if (!narration) return;
+        const rect = event.currentTarget.getBoundingClientRect();
+        const width = Math.min(380, window.innerWidth - 24);
+        const left = Math.max(12, Math.min(rect.right - width, window.innerWidth - width - 12));
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const placeAbove = spaceBelow < 200;
+        setNarrationTip({
+            text: narration,
+            left,
+            width,
+            top: placeAbove ? undefined : rect.bottom + 6,
+            bottom: placeAbove ? window.innerHeight - rect.top + 6 : undefined,
+        });
+    };
+
     const statusFor = (opening, current) => {
         const open = Number(opening) || 0;
         const curr = Number(current) || 0;
@@ -241,6 +262,8 @@ const DeepavaliLedgerPage = () => {
 
     const totalOpening = accounts.reduce((sum, acc) => sum + Number(acc.opening_balance || 0), 0);
     const totalCurrent = accounts.reduce((sum, acc) => sum + Number(acc.current_balance || 0), 0);
+    const totalDebit = (entries || []).reduce((sum, entry) => sum + Number(entry.debit_amount || 0), 0);
+    const totalCredit = (entries || []).reduce((sum, entry) => sum + Number(entry.credit_amount || 0), 0);
 
     return (
         <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
@@ -446,7 +469,7 @@ const DeepavaliLedgerPage = () => {
 
             {accounts.length > 0 && (
                 <div className="rounded-2xl border border-orange-100 bg-white overflow-hidden shadow-sm">
-                    <div className="hidden sm:grid grid-cols-6 gap-2 px-4 py-2 text-xs font-medium text-gray-500 bg-orange-50">
+                    <div className="hidden sm:grid grid-cols-6 gap-2 px-4 py-2 text-xs font-semibold text-white bg-red-500">
                         <span>Account name</span>
                         <span>Opening</span>
                         <span>Current</span>
@@ -537,7 +560,7 @@ const DeepavaliLedgerPage = () => {
             </div>
 
             <div className="rounded-2xl border border-orange-100 bg-white overflow-hidden shadow-sm">
-                <div className="hidden sm:grid grid-cols-6 gap-2 px-4 py-2 text-xs font-medium text-gray-500 bg-orange-50">
+                <div className="hidden sm:grid grid-cols-6 gap-2 px-4 py-2 text-xs font-semibold text-white bg-red-500">
                     <span>Date</span>
                     <span>Account</span>
                     <span>Category</span>
@@ -546,17 +569,34 @@ const DeepavaliLedgerPage = () => {
                     <span>Narration</span>
                 </div>
                 {pagination.pageItems.map((row) => (
-                    <div key={row.id} className="grid grid-cols-1 sm:grid-cols-6 gap-1 sm:gap-2 px-4 py-3 border-t border-gray-100 text-sm">
-                        <span>{String(row.transaction_date || '').slice(0, 10)}</span>
-                        <span className="font-medium text-gray-900">{accountNameOf(row)}</span>
-                        <span className="text-gray-600">{categoryNameOf(row) || '—'}</span>
-                        <span>{Number(row.debit_amount) ? money(row.debit_amount) : '—'}</span>
-                        <span>{Number(row.credit_amount) ? money(row.credit_amount) : '—'}</span>
-                        <span className="text-gray-600 text-xs sm:text-sm sm:col-span-1 break-words">{row.narration || '—'}</span>
+                    <div key={row.id} className="grid grid-cols-1 sm:grid-cols-6 gap-1 sm:gap-2 px-4 py-3 border-t border-gray-100 text-sm items-center">
+                        <span className="whitespace-nowrap">{String(row.transaction_date || '').slice(0, 10)}</span>
+                        <span className="font-medium text-gray-900 truncate">{accountNameOf(row)}</span>
+                        <span className="text-gray-600 truncate">{categoryNameOf(row) || '—'}</span>
+                        <span className="whitespace-nowrap">{Number(row.debit_amount) ? money(row.debit_amount) : '—'}</span>
+                        <span className="whitespace-nowrap">{Number(row.credit_amount) ? money(row.credit_amount) : '—'}</span>
+                        <span
+                            className="text-gray-600 text-xs sm:text-sm min-w-0 truncate whitespace-nowrap cursor-help"
+                            onMouseEnter={(event) => showNarrationTip(event, row.narration)}
+                            onMouseLeave={hideNarrationTip}
+                        >
+                            {row.narration || '—'}
+                        </span>
                     </div>
                 ))}
                 {!pagination.totalItems && (
                     <p className="px-4 py-6 text-sm text-gray-500">No ledger entries for this filter. Add an entry or collect a due.</p>
+                )}
+                {pagination.totalItems > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 px-4 py-3 border-t border-red-100 text-sm font-semibold bg-red-50 items-center">
+                        <span>Total</span>
+                        <span className="sm:hidden text-right text-gray-500 font-medium">{pagination.totalItems} entries</span>
+                        <span className="hidden sm:block" />
+                        <span className="hidden sm:block text-gray-500 font-medium">{pagination.totalItems} entries</span>
+                        <span className="whitespace-nowrap">{money(totalDebit)}</span>
+                        <span className="whitespace-nowrap">{money(totalCredit)}</span>
+                        <span className="hidden sm:block" />
+                    </div>
                 )}
             </div>
 
@@ -605,6 +645,20 @@ const DeepavaliLedgerPage = () => {
                         </div>
                     </div>
                 </div>
+            )}
+            {narrationTip && createPortal(
+                <div
+                    className="fixed z-[220] max-h-64 overflow-y-auto rounded-xl bg-gray-900 text-white text-sm px-3.5 py-3 shadow-2xl leading-relaxed whitespace-pre-wrap break-words pointer-events-none"
+                    style={{
+                        top: narrationTip.top,
+                        bottom: narrationTip.bottom,
+                        left: narrationTip.left,
+                        width: narrationTip.width,
+                    }}
+                >
+                    {narrationTip.text}
+                </div>,
+                document.body
             )}
         </div>
     );
