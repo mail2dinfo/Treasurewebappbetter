@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { useUserContext } from '../user_context';
+import { useDcLiveEvents } from './dcLiveEvents_context';
 
 const DailyCollectionContext = createContext();
 
@@ -498,13 +499,13 @@ export function DailyCollectionProvider({ children }) {
     };
 
     // Fetch all loans
-    const fetchLoans = useCallback(async (status = null) => {
+    const fetchLoans = useCallback(async (status = null, { silent = false } = {}) => {
         console.log('=== FETCH LOANS START ===');
         console.log('Status parameter:', status);
         console.log('User token:', user?.results?.token ? 'Present' : 'Missing');
 
         try {
-            dispatch({ type: 'SET_LOADING', payload: true });
+            if (!silent) dispatch({ type: 'SET_LOADING', payload: true });
             const token = user?.results?.token;
             if (!token) {
                 console.log('❌ No token found');
@@ -709,6 +710,10 @@ export function DailyCollectionProvider({ children }) {
     const clearError = () => {
         dispatch({ type: 'CLEAR_ERROR' });
     };
+
+    useDcLiveEvents(() => {
+        fetchLoans(null, { silent: true });
+    });
 
     const value = {
         companies: state.companies,

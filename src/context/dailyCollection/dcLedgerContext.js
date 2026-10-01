@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { useUserContext } from '../user_context';
+import { useDcLiveEvents } from './dcLiveEvents_context';
 
 const DcLedgerContext = createContext();
 
@@ -9,6 +10,7 @@ const initialState = {
     entries: [],
     summary: null,
     dayBook: null,
+    ledgerCategories: [],
     isLoading: false,
     error: null,
 };
@@ -35,6 +37,14 @@ function dcLedgerReducer(state, action) {
             return { ...state, summary: action.payload, isLoading: false };
         case 'SET_DAY_BOOK':
             return { ...state, dayBook: action.payload, isLoading: false };
+        case 'SET_LEDGER_CATEGORIES':
+            return { ...state, ledgerCategories: action.payload, isLoading: false };
+        case 'ADD_LEDGER_CATEGORY':
+            return {
+                ...state,
+                ledgerCategories: [action.payload, ...(state.ledgerCategories || [])],
+                isLoading: false,
+            };
         case 'SET_LOADING':
             return { ...state, isLoading: action.payload };
         case 'SET_ERROR':
@@ -51,7 +61,7 @@ export function DcLedgerProvider({ children }) {
     const { user } = useUserContext();
 
     // Fetch all ledger accounts
-    const fetchAccounts = useCallback(async () => {
+    const fetchAccounts = useCallback(async ({ silent = false } = {}) => {
         console.log('=== FETCH DC LEDGER ACCOUNTS START ===');
         console.log('User token:', user?.results?.token ? 'Present' : 'Missing');
 
@@ -68,7 +78,7 @@ export function DcLedgerProvider({ children }) {
             return { success: false, error: 'Membership ID not found' };
         }
 
-        dispatch({ type: 'SET_LOADING', payload: true });
+        if (!silent) dispatch({ type: 'SET_LOADING', payload: true });
 
         try {
             const url = `${API_BASE_URL}/dc/ledger/accounts?parent_membership_id=${membershipId}`;
@@ -350,11 +360,92 @@ export function DcLedgerProvider({ children }) {
         }
     }, [user]);
 
+    const fetchLedgerCategories = useCallback(async () => {
+        if (!user?.results?.token) {
+            return { success: false, error: 'User not authenticated' };
+        }
+        const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+        if (!membershipId) {
+            return { success: false, error: 'Membership ID not found' };
+        }
+        dispatch({ type: 'SET_LOADING', payload: true });
+        try {
+            const res = await fetch(`${API_BASE_URL}/dc/ledger/categories?parent_membership_id=${membershipId}`, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${user.results.token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Failed to fetch ledger categories');
+            }
+            const data = await res.json();
+            dispatch({ type: 'SET_LEDGER_CATEGORIES', payload: data.results || [] });
+            dispatch({ type: 'CLEAR_ERROR' });
+            return { success: true };
+        } catch (error) {
+            const errorMessage = error.message || 'Unknown error occurred';
+            dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            return { success: false, error: errorMessage };
+        }
+    }, [user]);
+
+    const createLedgerCategory = async (categoryData) => {
+        try {
+            const token = user?.results?.token;
+            if (!token) throw new Error('Authentication token not found');
+            const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+            if (!membershipId) throw new Error('Membership ID not found');
+            const name = (categoryData.category_name || categoryData.categoryName || '').trim();
+            if (!name) throw new Error('Category name is required');
+
+            const res = await fetch(`${API_BASE_URL}/dc/ledger/categories`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ category_name: name, membershipId }),
+            });
+            const result = await res.json();
+            if (!res.ok) {
+                throw new Error(result.message || 'Failed to add category');
+            }
+            dispatch({ type: 'ADD_LEDGER_CATEGORY', payload: result.results });
+            await fetchLedgerCategories();
+            return { success: true, message: result.message, data: result.results };
+        } catch (error) {
+            return { success: false, error: error.message, message: error.message };
+        }
+    };
+
+    const deleteLedgerCategory = async (categoryId) => {
+        try {
+            const token = user?.results?.token;
+            if (!token) throw new Error('Authentication token not found');
+            const res = await fetch(`${API_BASE_URL}/dc/ledger/categories/${categoryId}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const result = await res.json();
+            if (!res.ok) {
+                throw new Error(result.message || 'Failed to delete category');
+            }
+            await fetchLedgerCategories();
+            return { success: true, message: result.message };
+        } catch (error) {
+            return { success: false, error: error.message, message: error.message };
+        }
+    };
+
     const value = {
         accounts: state.accounts,
         entries: state.entries,
         summary: state.summary,
         dayBook: state.dayBook,
+        ledgerCategories: state.ledgerCategories,
         isLoading: state.isLoading,
         error: state.error,
         fetchAccounts,
@@ -363,8 +454,15 @@ export function DcLedgerProvider({ children }) {
         createEntry,
         fetchSummary,
         fetchDayBook,
+        fetchLedgerCategories,
+        createLedgerCategory,
+        deleteLedgerCategory,
         clearError,
     };
+
+    useDcLiveEvents(() => {
+        fetchAccounts({ silent: true });
+    });
 
     return (
         <DcLedgerContext.Provider value={value}>

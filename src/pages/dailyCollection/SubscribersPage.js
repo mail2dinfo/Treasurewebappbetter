@@ -213,6 +213,9 @@ const SubscribersPage = () => {
                                             Subscriber
                                         </th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                                            Area
+                                        </th>
+                                        <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                             DOB / Age
                                         </th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -256,6 +259,11 @@ const SubscribersPage = () => {
                                                         </p>
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="text-sm text-gray-800 capitalize">
+                                                    {subscriber.area_name || subscriber.area?.aob || '—'}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="text-sm text-gray-600">
@@ -362,6 +370,11 @@ const SubscribersPage = () => {
                                             <p className="text-xs text-gray-500">
                                                     ID: {subscriber.dc_cust_id?.substring(0, 12)}...
                                                 </p>
+                                                {(subscriber.area_name || subscriber.area?.aob) && (
+                                                    <p className="text-xs text-red-700 mt-0.5 capitalize">
+                                                        {subscriber.area_name || subscriber.area?.aob}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2">

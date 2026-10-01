@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiX, FiSave, FiUpload, FiTrash2 } from 'react-icons/fi';
 import { uploadImage } from '../../utils/uploadImage';
+import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import FixedMapPicker from '../FixedMapPicker';
 import SimpleLocationPicker from '../SimpleLocationPicker';
 
 const SubscriberForm = ({ subscriber, onSave, onCancel, isLoading }) => {
+    const { user } = useUserContext();
     const [formData, setFormData] = useState({
         dc_cust_name: '',
         dc_cust_dob: '',
@@ -19,6 +21,7 @@ const SubscriberForm = ({ subscriber, onSave, onCancel, isLoading }) => {
         dc_cust_aadhaar_backside: '',
         dc_nominee_name: '',
         dc_nominee_phone: '',
+        dc_aob_id: '',
     });
 
     const [errors, setErrors] = useState({});
@@ -35,6 +38,29 @@ const SubscriberForm = ({ subscriber, onSave, onCancel, isLoading }) => {
     const [isMapOpen, setIsMapOpen] = useState(false);
     const [useSimplePicker, setUseSimplePicker] = useState(false);
     const [isGeocodingLoading, setIsGeocodingLoading] = useState(false);
+    const [areas, setAreas] = useState([]);
+
+    useEffect(() => {
+        const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id
+            || user?.results?.userAccounts?.[0]?.membershipId;
+        const token = user?.results?.token;
+        if (!token || !membershipId) return undefined;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/dc/aob?parent_membership_id=${membershipId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                const data = await res.json();
+                if (!cancelled && res.ok) {
+                    setAreas(data.results || []);
+                }
+            } catch (err) {
+                console.error('Failed to load areas', err);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [user]);
 
     useEffect(() => {
         if (subscriber) {
@@ -51,6 +77,7 @@ const SubscriberForm = ({ subscriber, onSave, onCancel, isLoading }) => {
                 dc_cust_aadhaar_backside: subscriber.dc_cust_aadhaar_backside || '',
                 dc_nominee_name: subscriber.dc_nominee_name || '',
                 dc_nominee_phone: subscriber.dc_nominee_phone || '',
+                dc_aob_id: subscriber.dc_aob_id || subscriber.area?.id || '',
             });
 
             // Set preview URLs from existing subscriber (using _s3_image suffix for display)
@@ -85,6 +112,10 @@ const SubscriberForm = ({ subscriber, onSave, onCancel, isLoading }) => {
             newErrors.dc_cust_phone = 'Subscriber mobile is required';
         } else if (!/^[0-9]{10}$/.test(formData.dc_cust_phone.replace(/\s/g, ''))) {
             newErrors.dc_cust_phone = 'Subscriber mobile must be 10 digits';
+        }
+
+        if (!formData.dc_aob_id) {
+            newErrors.dc_aob_id = 'Area of business is required';
         }
 
         if (formData.dc_cust_age && (isNaN(formData.dc_cust_age) || formData.dc_cust_age < 0)) {
@@ -363,6 +394,33 @@ const SubscriberForm = ({ subscriber, onSave, onCancel, isLoading }) => {
                                     <p className="text-red-500 text-xs mt-1">{errors.dc_cust_phone}</p>
                                 )}
                                 <p className="text-xs text-gray-500 mt-1">Subscriber's own mobile number</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Area of Business <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    name="dc_aob_id"
+                                    value={formData.dc_aob_id}
+                                    onChange={handleChange}
+                                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent ${errors.dc_aob_id ? 'border-red-500' : 'border-gray-300'}`}
+                                >
+                                    <option value="">Select area</option>
+                                    {areas.map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                            {item.aob}
+                                        </option>
+                                    ))}
+                                </select>
+                                {errors.dc_aob_id && (
+                                    <p className="text-red-500 text-xs mt-1">{errors.dc_aob_id}</p>
+                                )}
+                                {!areas.length && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        No areas yet. Add them in Admin Settings → Area of Business.
+                                    </p>
+                                )}
                             </div>
                         </div>
 

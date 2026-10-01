@@ -9,6 +9,7 @@ export const DC_APP_MENU_IDS = [
     'ledger',
     'daybook',
     'reports',
+    'adminsettings',
 ];
 
 export const getDailyCollectionMenuItems = (basePath = DC_BASE_PATH) => [
@@ -67,6 +68,13 @@ export const getDailyCollectionMenuItems = (basePath = DC_BASE_PATH) => [
         path: `${basePath}/reports`,
         icon: '📈',
         description: 'Business reports',
+    },
+    {
+        id: 'adminsettings',
+        label: 'Admin Settings',
+        path: `${basePath}/adminsettings`,
+        icon: '⚙️',
+        description: 'Areas, employees and categories',
     },
     {
         id: 'billing',

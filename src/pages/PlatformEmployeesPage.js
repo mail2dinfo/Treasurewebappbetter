@@ -54,6 +54,8 @@ import CollectorDashboardModal from '../components/CollectorDashboardModal';
 import ChitFundOfferLetterPDF from '../components/chitFund/PDF/ChitFundOfferLetterPDF';
 import VehicleFinanceOfferLetterPDF from '../components/vehicleFinance/PDF/VehicleFinanceOfferLetterPDF';
 import VehicleFinanceCollectorAssignmentModal from '../components/vehicleFinance/VehicleFinanceCollectorAssignmentModal';
+import DailyCollectionCollectorAssignmentModal from '../components/dailyCollection/DailyCollectionCollectorAssignmentModal';
+import DailyCollectionCollectorDashboardModal from '../components/dailyCollection/DailyCollectionCollectorDashboardModal';
 
 const MANAGER_SCOPE_PERMISSIONS = {
     CHIT_FUND: {
@@ -434,6 +436,34 @@ const MANAGER_SCOPE_PERMISSIONS = {
             'hh_settings',
         ],
     },
+    DAILY_COLLECTION: {
+        appLabel: 'Daily Collection',
+        accessAny: [
+            'dc_employee_manage',
+            'dc_settings',
+        ],
+        manageAll: 'dc_employee_manage',
+        employeeAdd: 'dc_employee_manage',
+        collectorView: ['dc_employee_manage', 'dc_collections'],
+        collectorAdd: 'dc_employee_manage',
+        collectorEdit: 'dc_employee_manage',
+        collectorDelete: 'dc_employee_manage',
+        collectorAssignArea: 'dc_employee_manage',
+        collectorOffer: null,
+        managerView: 'dc_employee_manage',
+        accountantAdd: 'dc_employee_manage',
+        accountantEdit: 'dc_employee_manage',
+        accountantDelete: 'dc_employee_manage',
+        accountantOffer: null,
+        accountantViewKeys: ['dc_employee_manage', 'dc_ledger'],
+        managerCreatableRoles: ['COLLECTOR', 'ACCOUNTANT'],
+        ownerCreatableRoles: ['MANAGER', 'COLLECTOR', 'ACCOUNTANT'],
+        blockedDelegation: [
+            'people_access_manage',
+            'dc_employee_manage',
+            'dc_settings',
+        ],
+    },
     DEEPAVALI_CHITS: {
         appLabel: 'Deepavali Chits',
         accessAny: [
@@ -599,6 +629,8 @@ const FALLBACK_APP_CATALOG = [
             fallbackFeature('dc_collections', 'Collections', 'Collections', ['MANAGER', 'COLLECTOR']),
             fallbackFeature('dc_ledger', 'Ledger', 'Accounting', ['ACCOUNTANT']),
             fallbackFeature('dc_reports', 'Reports', 'Reports', ['MANAGER', 'ACCOUNTANT']),
+            fallbackFeature('dc_employee_manage', 'Manage Employees', 'Employee', ['MANAGER']),
+            fallbackFeature('dc_settings', 'Admin Settings', 'Settings', ['MANAGER']),
         ],
     },
     {
@@ -944,6 +976,7 @@ const PlatformEmployeesPage = ({
     const isVfScoped = appScope === 'VEHICLE_FINANCE';
     const isChitScoped = appScope === 'CHIT_FUND';
     const isDpScoped = appScope === 'DEEPAVALI_CHITS';
+    const isDcScoped = appScope === 'DAILY_COLLECTION';
     const isHmScoped = appScope === 'HOSTEL_MANAGEMENT';
     const isMsScoped = appScope === 'MUTTON_STALL';
     const isHhScoped = appScope === 'HOSPITAL_MANAGEMENT';
@@ -958,7 +991,7 @@ const PlatformEmployeesPage = ({
         if (role === 'KITCHEN_STAFF') return appCode === 'HOSTEL_MANAGEMENT' || appCode === 'HOSPITAL_MANAGEMENT';
         if (HH_STAFF_ROLES.includes(role)) return appCode === 'HOSPITAL_MANAGEMENT';
         if (role === 'SALESMAN') return appCode === 'MUTTON_STALL';
-        return appCode === 'VEHICLE_FINANCE' || appCode === 'CHIT_FUND' || appCode === 'DEEPAVALI_CHITS';
+        return appCode === 'VEHICLE_FINANCE' || appCode === 'CHIT_FUND' || appCode === 'DEEPAVALI_CHITS' || appCode === 'DAILY_COLLECTION';
     };
     const isScopedManager = Boolean(
         managerMode
@@ -1159,12 +1192,14 @@ const PlatformEmployeesPage = ({
             isVfScoped
             || isChitScoped
             || isDpScoped
+            || isDcScoped
             || isHmScoped
             || isMsScoped
             || isHhScoped
             || appCode === 'VEHICLE_FINANCE'
             || appCode === 'CHIT_FUND'
             || appCode === 'DEEPAVALI_CHITS'
+            || appCode === 'DAILY_COLLECTION'
             || appCode === 'HOSTEL_MANAGEMENT'
             || appCode === 'MUTTON_STALL'
             || appCode === 'HOSPITAL_MANAGEMENT'
@@ -1252,11 +1287,17 @@ const PlatformEmployeesPage = ({
         isVfScoped
         || isChitScoped
         || isDpScoped
+        || isDcScoped
         || selectedAppCodes.includes('VEHICLE_FINANCE')
         || selectedAppCodes.includes('CHIT_FUND')
         || selectedAppCodes.includes('DEEPAVALI_CHITS')
+        || selectedAppCodes.includes('DAILY_COLLECTION')
     );
     const packageHintAppLabel = (
+        isDcScoped || (selectedAppCodes.includes('DAILY_COLLECTION') && !selectedAppCodes.includes('CHIT_FUND') && !selectedAppCodes.includes('VEHICLE_FINANCE') && !selectedAppCodes.includes('DEEPAVALI_CHITS'))
+    )
+        ? 'Daily Collection'
+        : (
         isDpScoped || (selectedAppCodes.includes('DEEPAVALI_CHITS') && !selectedAppCodes.includes('CHIT_FUND') && !selectedAppCodes.includes('VEHICLE_FINANCE'))
     )
         ? 'Deepavali Chits'
@@ -1271,6 +1312,8 @@ const PlatformEmployeesPage = ({
     const [dashboardCollector, setDashboardCollector] = useState(null);
     const [collectorModalTab, setCollectorModalTab] = useState('assign');
     const [vfAreaEmployee, setVfAreaEmployee] = useState(null);
+    const [dcAreaEmployee, setDcAreaEmployee] = useState(null);
+    const [dcDashboardEmployee, setDcDashboardEmployee] = useState(null);
     const [viewEmployee, setViewEmployee] = useState(null);
     const [offerLetterData, setOfferLetterData] = useState(null);
     const [offerLetterLoading, setOfferLetterLoading] = useState(false);
@@ -2446,6 +2489,18 @@ const PlatformEmployeesPage = ({
                                                                             <span className={textTitle}>IFSC: </span>
                                                                             {employeeUser.bankIfsc || employeeUser.bank_ifsc || '—'}
                                                                         </p>
+                                                                        {isCollectorEmployee && appCode === 'DAILY_COLLECTION' && (() => {
+                                                                            const dcAreas = (employee.dcCollectorAreas || [])
+                                                                                .map((area) => area?.aob || area?.area?.aob)
+                                                                                .map((value) => String(value || '').trim())
+                                                                                .filter(Boolean);
+                                                                            return (
+                                                                                <p className={`break-words ${textBody}`}>
+                                                                                    <span className={textTitle}>Areas: </span>
+                                                                                    {dcAreas.length ? dcAreas.join(', ') : '—'}
+                                                                                </p>
+                                                                            );
+                                                                        })()}
                                                                         {isCollectorEmployee && appCode === 'VEHICLE_FINANCE' && (() => {
                                                                             const regions = [...new Set(
                                                                                 (employee.catchmentAreas || employee.areas || [])
@@ -2484,6 +2539,41 @@ const PlatformEmployeesPage = ({
                                                                             className={btnSecondary}
                                                                         >
                                                                             <FiEye /> View
+                                                                        </button>
+                                                                    )}
+                                                                    {isCollectorEmployee && appCode === 'DAILY_COLLECTION' && (isOwner || canViewCollectors) && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setDcDashboardEmployee({
+                                                                                id: employeeProfile.id || employee.id,
+                                                                                parent_membership_id:
+                                                                                    employeeProfile.parentMembershipId
+                                                                                    || employeeProfile.parent_membership_id
+                                                                                    || ownerMembershipId,
+                                                                                name: employeeUser.name || employeeProfile.employee_name || 'Collector',
+                                                                            })}
+                                                                            className={btnPrimary.replace('px-4 py-2.5', 'px-3 py-2')}
+                                                                            title="See how much this collector has to collect"
+                                                                        >
+                                                                            <FiBarChart2 /> Dashboard
+                                                                        </button>
+                                                                    )}
+                                                                    {isCollectorEmployee && appCode === 'DAILY_COLLECTION' && canAssignCollectorArea && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setDcAreaEmployee({
+                                                                                id: employeeProfile.id || employee.id,
+                                                                                parent_membership_id:
+                                                                                    employeeProfile.parentMembershipId
+                                                                                    || employeeProfile.parent_membership_id
+                                                                                    || ownerMembershipId,
+                                                                                name: employeeUser.name || employeeProfile.employee_name || 'Collector',
+                                                                                dcCollectorAreas: employee.dcCollectorAreas || [],
+                                                                            })}
+                                                                            className={btnAccent}
+                                                                            title="Assign Daily Collection areas"
+                                                                        >
+                                                                            <FiMapPin /> Add Area
                                                                         </button>
                                                                     )}
                                                                     {isCollectorEmployee && appCode === 'VEHICLE_FINANCE' && canAssignCollectorArea && (
@@ -2806,7 +2896,7 @@ const PlatformEmployeesPage = ({
                                                 : (isHmScoped
                                                     ? 'Receptionist / Kitchen Staff'
                                                     : (isMsScoped ? 'Salesman' : 'Collector / Accountant')))
-                                            : ((isVfScoped || isChitScoped || isDpScoped)
+                                            : ((isVfScoped || isChitScoped || isDpScoped || isDcScoped)
                                                 ? 'Manager · Collector / Accountant'
                                                 : (isHhScoped
                                                     ? 'Manager · Clinical staff roles'
@@ -2817,7 +2907,7 @@ const PlatformEmployeesPage = ({
                                             ? (isHhScoped
                                                 ? 'Choose a role (Receptionist, Pharmacist, Doctor, Nurse, Compounder), then tick responsibilities for that role. A role is enabled only if you have its Add permission.'
                                                 : 'Choose subordinate role(s). A role is enabled only if you have its Add permission (from People & Access).')
-                                            : (isVfScoped || isChitScoped || isDpScoped || selectedAppCodes.includes('CHIT_FUND') || selectedAppCodes.includes('VEHICLE_FINANCE') || selectedAppCodes.includes('DEEPAVALI_CHITS'))
+                                            : (isVfScoped || isChitScoped || isDpScoped || isDcScoped || selectedAppCodes.includes('CHIT_FUND') || selectedAppCodes.includes('VEHICLE_FINANCE') || selectedAppCodes.includes('DEEPAVALI_CHITS') || selectedAppCodes.includes('DAILY_COLLECTION'))
                                                 ? 'Assign Manager (duties & Administration), and/or Collector / Accountant with the same feature packages as on the Manager employees page.'
                                                 : (isHhScoped
                                                     ? 'Select Manager or a clinical staff role, then tick responsibilities (feature checkboxes) for that role.'
@@ -3250,6 +3340,26 @@ const PlatformEmployeesPage = ({
                 />
             )}
 
+            {dcDashboardEmployee && (
+                <DailyCollectionCollectorDashboardModal
+                    employee={dcDashboardEmployee}
+                    membershipId={ownerMembershipId}
+                    token={token}
+                    onClose={() => setDcDashboardEmployee(null)}
+                />
+            )}
+            {dcAreaEmployee && (
+                <DailyCollectionCollectorAssignmentModal
+                    employee={dcAreaEmployee}
+                    membershipId={ownerMembershipId}
+                    token={token}
+                    onClose={() => setDcAreaEmployee(null)}
+                    onAssigned={() => {
+                        setDcAreaEmployee(null);
+                        loadData();
+                    }}
+                />
+            )}
             {vfAreaEmployee && (
                 <VehicleFinanceCollectorAssignmentModal
                     employee={vfAreaEmployee}

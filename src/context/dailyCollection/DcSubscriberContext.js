@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { useUserContext } from '../user_context';
+import { useDcLiveEvents } from './dcLiveEvents_context';
 
 const DcSubscriberContext = createContext();
 
@@ -54,12 +55,12 @@ export function DcSubscriberProvider({ children }) {
     const { user } = useUserContext();
 
     // Fetch all subscribers by membership
-    const fetchSubscribers = useCallback(async () => {
+    const fetchSubscribers = useCallback(async ({ silent = false } = {}) => {
         console.log('=== FETCH DC SUBSCRIBERS START ===');
         console.log('User token:', user?.results?.token ? 'Present' : 'Missing');
         console.log('API Base URL:', API_BASE_URL);
 
-        dispatch({ type: 'SET_LOADING', payload: true });
+        if (!silent) dispatch({ type: 'SET_LOADING', payload: true });
 
         if (!user?.results?.token) {
             console.log('❌ User not authenticated');
@@ -139,6 +140,7 @@ export function DcSubscriberProvider({ children }) {
                 dc_cust_aadhaar_backside: subscriberData.dc_cust_aadhaar_backside || '',
                 dc_nominee_name: subscriberData.dc_nominee_name || '',
                 dc_nominee_phone: subscriberData.dc_nominee_phone || '',
+                dc_aob_id: subscriberData.dc_aob_id || '',
                 membershipId: membershipId,
             };
 
@@ -196,6 +198,7 @@ export function DcSubscriberProvider({ children }) {
                 dc_cust_aadhaar_backside: subscriberData.dc_cust_aadhaar_backside || '',
                 dc_nominee_name: subscriberData.dc_nominee_name || '',
                 dc_nominee_phone: subscriberData.dc_nominee_phone || '',
+                dc_aob_id: subscriberData.dc_aob_id || null,
             };
 
             const res = await fetch(`${API_BASE_URL}/dc/subscribers/${subscriberId}`, {
@@ -260,6 +263,10 @@ export function DcSubscriberProvider({ children }) {
     const clearError = () => {
         dispatch({ type: 'CLEAR_ERROR' });
     };
+
+    useDcLiveEvents(() => {
+        fetchSubscribers({ silent: true });
+    });
 
     const value = {
         subscribers: state.subscribers,

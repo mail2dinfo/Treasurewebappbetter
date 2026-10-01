@@ -9,6 +9,7 @@ import {
     FiBook,
     FiCreditCard,
     FiBarChart2,
+    FiSettings,
 } from 'react-icons/fi';
 import {
     DC_BASE_PATH,
@@ -24,6 +25,7 @@ const MENU_ICONS = {
     daybook: FiBook,
     collections: FiCreditCard,
     reports: FiBarChart2,
+    adminsettings: FiSettings,
 };
 
 const DailyCollectionAppMenuBar = ({ basePath = DC_BASE_PATH }) => {

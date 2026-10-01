@@ -15,6 +15,8 @@ const DcLedgerPage = () => {
         fetchEntries,
         createEntry,
         fetchSummary,
+        fetchLedgerCategories,
+        ledgerCategories,
         clearError
     } = useDcLedgerContext();
 
@@ -45,7 +47,8 @@ const DcLedgerPage = () => {
         fetchAccounts();
         fetchSummary();
         fetchEntries(filters);
-    }, [fetchAccounts, fetchSummary]);
+        fetchLedgerCategories();
+    }, [fetchAccounts, fetchSummary, fetchLedgerCategories]);
 
     // Listen for loan deletion events and refresh accounts (to update balances)
     useEffect(() => {
@@ -659,11 +662,17 @@ const DcLedgerPage = () => {
                                         required
                                     >
                                         <option value="">Select Category</option>
-                                        <option value="Loan Disbursement">Loan Disbursement</option>
-                                        <option value="Collection">Collection</option>
-                                        <option value="Expense">Expense</option>
-                                        <option value="Income">Income</option>
+                                        {(ledgerCategories || []).map((item) => (
+                                            <option key={item.id} value={item.category_name}>
+                                                {item.category_name}
+                                            </option>
+                                        ))}
                                     </select>
+                                    {!(ledgerCategories || []).length && (
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            No categories yet. Add them under Admin Settings → Categories.
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="mb-4">
                                     <label className="block text-sm font-medium text-gray-700 mb-2">

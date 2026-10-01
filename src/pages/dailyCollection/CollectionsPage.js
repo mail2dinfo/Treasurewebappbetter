@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { useDcLiveEvents } from '../../context/dailyCollection/dcLiveEvents_context';
 import { FiFilter, FiMapPin, FiUser, FiSearch, FiRefreshCw, FiAlertCircle, FiDownload, FiCheck, FiX } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import RouteMapModal from '../../components/RouteMapModal';
@@ -22,7 +23,7 @@ const downloadPdfBlob = async (documentNode, fileName) => {
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
-const CollectionsPage = () => {
+const CollectionsPage = ({ collectorScoped = false }) => {
     const { user } = useUserContext();
     const [receivables, setReceivables] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -59,16 +60,19 @@ const CollectionsPage = () => {
     });
 
     // Fetch receivables
-    const fetchReceivables = async () => {
+    const fetchReceivables = useCallback(async ({ silent = false } = {}) => {
         if (!user?.results?.token) return;
 
-        setIsLoading(true);
-        setError(null);
+        if (!silent) {
+            setIsLoading(true);
+            setError(null);
+        }
 
         try {
             const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
             const queryParams = new URLSearchParams({
                 parent_membership_id: membershipId,
+                ...(collectorScoped ? { collector_scope: '1' } : {}),
                 ...(filters.status ? { status: filters.status } : {}), // Send status including 'all'
                 ...(filters.startDate ? { start_date: filters.startDate } : {}),
                 ...(filters.endDate ? { end_date: filters.endDate } : {}),
@@ -76,9 +80,6 @@ const CollectionsPage = () => {
                 ...(filters.amount ? { amount: filters.amount } : {}),
                 ...(filters.disbursementDate ? { disbursement_date: filters.disbursementDate } : {}),
             });
-
-            console.log("🔍 Frontend filters:", filters);
-            console.log("🔍 Query params:", queryParams.toString());
 
             const url = `${API_BASE_URL}/dc/receivables?${queryParams.toString()}`;
             const res = await fetch(url, {
@@ -91,24 +92,29 @@ const CollectionsPage = () => {
 
             if (res.ok) {
                 const data = await res.json();
-                console.log("✅ API Response:", data);
-                // Handle different response structures
                 const receivablesData = data.results || data.data || data || [];
-                console.log("📊 Receivables data:", receivablesData);
-                console.log("📊 Receivables count:", Array.isArray(receivablesData) ? receivablesData.length : 0);
-                setReceivables(Array.isArray(receivablesData) ? receivablesData : []);
+                const list = Array.isArray(receivablesData) ? receivablesData : [];
+                setReceivables(list);
+                setSelectedReceivable((current) => {
+                    if (!current) return current;
+                    const updated = list.find((item) => item.id === current.id);
+                    if (!updated || updated.is_paid) {
+                        setShowPaymentModal(false);
+                        return null;
+                    }
+                    return { ...current, ...updated };
+                });
             } else {
                 const errorData = await res.json().catch(() => ({ message: 'Failed to fetch receivables' }));
-                console.error("❌ API Error:", errorData);
                 throw new Error(errorData.message || 'Failed to fetch receivables');
             }
         } catch (error) {
             console.error('Error fetching receivables:', error);
-            setError(error.message);
+            if (!silent) setError(error.message);
         } finally {
-            setIsLoading(false);
+            if (!silent) setIsLoading(false);
         }
-    };
+    }, [user, filters, collectorScoped]);
 
     // Fetch ledger accounts for payment methods
     const fetchLedgerAccounts = useCallback(async () => {
@@ -162,7 +168,22 @@ const CollectionsPage = () => {
         fetchReceivables();
         fetchLedgerAccounts();
         fetchCompanies();
-    }, [user, filters, fetchCompanies]);
+    }, [user, filters, fetchCompanies, fetchReceivables, fetchLedgerAccounts]);
+
+    useDcLiveEvents(() => {
+        fetchReceivables({ silent: true });
+        fetchLedgerAccounts();
+    });
+
+    useEffect(() => {
+        const poll = () => {
+            if (document.visibilityState !== 'visible') return;
+            fetchReceivables({ silent: true });
+            fetchLedgerAccounts();
+        };
+        const timer = setInterval(poll, 4000);
+        return () => clearInterval(timer);
+    }, [fetchReceivables, fetchLedgerAccounts]);
 
     // Listen for loan deletion events and refresh ledger accounts (to update balances)
     useEffect(() => {
@@ -515,8 +536,14 @@ const CollectionsPage = () => {
                 {/* Header */}
                 <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Collections</h1>
-                        <p className="text-sm text-gray-600 mt-1">Manage loan collections and payments</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+                            {collectorScoped ? 'My Collections' : 'Collections'}
+                        </h1>
+                        <p className="text-sm text-gray-600 mt-1">
+                            {collectorScoped
+                                ? 'Collect receivables only in your assigned areas'
+                                : 'Manage loan collections and payments'}
+                        </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {filteredReceivables.length > 0 && companies.length > 0 && (
@@ -728,6 +755,11 @@ const CollectionsPage = () => {
                                                                 {receivable.subscriber?.phone ||
                                                                     receivable.subscriber?.dc_cust_phone ||
                                                                     ''}
+                                                                {(receivable.subscriber?.area_name || receivable.area_name) ? (
+                                                                    <span className="block text-xs text-gray-400">
+                                                                        {receivable.subscriber?.area_name || receivable.area_name}
+                                                                    </span>
+                                                                ) : null}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -822,7 +854,11 @@ const CollectionsPage = () => {
                             <p className="text-center text-red-500 py-8">Error: {error}</p>
                         )}
                         {!isLoading && !error && filteredReceivables.length === 0 && (
-                            <p className="text-center text-gray-500 py-8">No receivables found</p>
+                            <p className="text-center text-gray-500 py-8">
+                                {collectorScoped
+                                    ? 'No receivables in your assigned areas'
+                                    : 'No receivables found'}
+                            </p>
                         )}
                         {!isLoading && !error && pagination.pageItems.map((receivable) => {
                             const status = getStatusBadge(receivable);
@@ -836,6 +872,11 @@ const CollectionsPage = () => {
                                         <div className="min-w-0">
                                             <p className="font-semibold text-gray-900 truncate">{name}</p>
                                             <p className="text-xs text-gray-500">{phone}</p>
+                                            {(receivable.subscriber?.area_name || receivable.area_name) ? (
+                                                <p className="text-xs text-gray-400">
+                                                    {receivable.subscriber?.area_name || receivable.area_name}
+                                                </p>
+                                            ) : null}
                                         </div>
                                         <span className={`shrink-0 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${status.color}`}>
                                             {status.text}

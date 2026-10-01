@@ -9,6 +9,7 @@ import { DcLedgerProvider } from '../../context/dailyCollection/dcLedgerContext'
 import { AnalyticsProvider } from '../../context/dailyCollection/AnalyticsContext';
 import { CompanySubscriberProvider } from '../../context/companysubscriber_context';
 import { DcSubscriberProvider } from '../../context/dailyCollection/DcSubscriberContext';
+import { DcLiveEventsProvider } from '../../context/dailyCollection/dcLiveEvents_context';
 import { BillingProvider } from '../../context/billing_context';
 
 // Daily Collection Admin Components
@@ -26,13 +27,15 @@ import DayBookPage from '../../pages/dailyCollection/DayBookPage';
 import CollectionsPage from '../../pages/dailyCollection/CollectionsPage';
 import DashboardPage from '../../pages/dailyCollection/DashboardPage';
 import ReportsPage from '../../pages/dailyCollection/ReportsPage';
+import DailyCollectionAdminSettingsPage from '../../pages/dailyCollection/DailyCollectionAdminSettingsPage';
 import MyBillingPage from '../../pages/MyBillingPage';
 import BillingAppGuards from '../BillingAppGuards';
 import PrivateRoute from '../../pages/PrivateRoute';
 
 const DailyCollectionAdminLayout = () => {
     return (
-        <CompanySubscriberProvider>
+                                <CompanySubscriberProvider>
+            <DcLiveEventsProvider>
             <DcSubscriberProvider>
                 <DailyCollectionProvider>
                     <DcLedgerProvider>
@@ -63,6 +66,7 @@ const DailyCollectionAdminLayout = () => {
                                             <PrivateRoute exact path="/daily-collection/user/day-book" component={DayBookPage} />
                                             <PrivateRoute exact path="/daily-collection/user/collections" component={CollectionsPage} />
                                             <PrivateRoute exact path="/daily-collection/user/reports" component={ReportsPage} />
+                                            <PrivateRoute exact path="/daily-collection/user/adminsettings" component={DailyCollectionAdminSettingsPage} />
                                             <PrivateRoute exact path="/daily-collection/user/billing" component={MyBillingPage} />
 
                                             {/* Default redirect to dashboard */}
@@ -99,6 +103,7 @@ const DailyCollectionAdminLayout = () => {
                     </DcLedgerProvider>
                 </DailyCollectionProvider>
             </DcSubscriberProvider>
+            </DcLiveEventsProvider>
         </CompanySubscriberProvider>
     );
 };
