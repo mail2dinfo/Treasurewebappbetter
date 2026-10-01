@@ -23,9 +23,22 @@ const SubscribersPage = () => {
     const [formLoading, setFormLoading] = useState(false);
     const [imagePreview, setImagePreview] = useState(null);
     const [previewImageUrl, setPreviewImageUrl] = useState(null);
+    const [pageLoading, setPageLoading] = useState(true);
 
     useEffect(() => {
-        fetchSubscribers();
+        let cancelled = false;
+        const loadSubscribers = async () => {
+            setPageLoading(true);
+            try {
+                await fetchSubscribers();
+            } finally {
+                if (!cancelled) setPageLoading(false);
+            }
+        };
+        loadSubscribers();
+        return () => {
+            cancelled = true;
+        };
     }, [fetchSubscribers]);
 
     const handleAddClick = () => {
@@ -109,6 +122,8 @@ const SubscribersPage = () => {
         }
     };
 
+    const showInitialLoader = (pageLoading || isLoading) && subscribers.length === 0;
+
     return (
         <div className="p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
@@ -147,17 +162,14 @@ const SubscribersPage = () => {
                 )}
 
                 {/* Loading State */}
-                {isLoading && subscribers.length === 0 && (
-                    <div className="flex justify-center items-center py-20">
-                        <div className="text-center">
-                            <Loading />
-                            <p className="text-gray-600">Loading subscribers...</p>
-                        </div>
+                {showInitialLoader && (
+                    <div className="py-10">
+                        <Loading />
                     </div>
                 )}
 
                 {/* Empty State */}
-                {!isLoading && subscribers.length === 0 && (
+                {!showInitialLoader && subscribers.length === 0 && (
                     <div className="bg-white rounded-xl shadow-sm p-12 text-center">
                         <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <FiUser className="w-10 h-10 text-gray-400" />
@@ -177,7 +189,7 @@ const SubscribersPage = () => {
                 )}
 
                 {/* Subscribers Grid */}
-                {!isLoading && subscribers.length > 0 && (
+                {subscribers.length > 0 && (
                     <>
                         {/* Stats Summary */}
                         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6">

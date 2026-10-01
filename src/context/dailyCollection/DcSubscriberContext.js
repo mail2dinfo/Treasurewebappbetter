@@ -59,6 +59,8 @@ export function DcSubscriberProvider({ children }) {
         console.log('User token:', user?.results?.token ? 'Present' : 'Missing');
         console.log('API Base URL:', API_BASE_URL);
 
+        dispatch({ type: 'SET_LOADING', payload: true });
+
         if (!user?.results?.token) {
             console.log('❌ User not authenticated');
             return { success: false, error: "User not authenticated" };
@@ -70,10 +72,9 @@ export function DcSubscriberProvider({ children }) {
 
         if (!membershipId) {
             console.log('❌ No membership ID found');
+            dispatch({ type: 'SET_ERROR', payload: 'Membership ID not found' });
             return { success: false, error: 'Membership ID not found' };
         }
-
-        dispatch({ type: 'SET_LOADING', payload: true });
 
         try {
             const url = `${API_BASE_URL}/dc/subscribers?parent_membership_id=${membershipId}`;
