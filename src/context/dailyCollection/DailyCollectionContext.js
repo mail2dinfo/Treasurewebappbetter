@@ -50,6 +50,9 @@ function dailyCollectionReducer(state, action) {
                 isLoading: false
             };
         case 'UPDATE_PRODUCT':
+            if (!action.payload?.id) {
+                return { ...state, isLoading: false };
+            }
             return {
                 ...state,
                 products: state.products.map(product =>
@@ -406,12 +409,18 @@ export function DailyCollectionProvider({ children }) {
 
             if (!token) throw new Error('Authentication token not found');
 
+            const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id ||
+                user?.results?.userAccounts?.[0]?.membershipId ||
+                user?.results?.membershipId ||
+                user?.membershipId;
+
             const payload = {
                 productId: productId,
                 productName: productData.product_name,
                 frequency: productData.frequency,
-                duration: parseInt(productData.duration),
+                duration: parseInt(productData.duration, 10),
                 interestRate: parseFloat(productData.interest_rate || 0),
+                membershipId,
             };
 
             const res = await fetch(`${API_BASE_URL}/dc/products`, {
@@ -423,13 +432,19 @@ export function DailyCollectionProvider({ children }) {
                 body: JSON.stringify(payload),
             });
 
-            const response = { data: await res.json() };
+            const data = await res.json();
 
-            dispatch({ type: 'UPDATE_PRODUCT', payload: response.data.results });
-            return { success: true, data: response.data.results };
+            if (!res.ok) {
+                throw new Error(data.message || "Failed to update product");
+            }
+
+            dispatch({ type: 'UPDATE_PRODUCT', payload: data.results });
+            dispatch({ type: 'CLEAR_ERROR' });
+            return { success: true, data: data.results };
         } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message;
+            const errorMessage = error.message || "Unknown error occurred";
             dispatch({ type: 'SET_ERROR', payload: errorMessage });
+            dispatch({ type: 'SET_LOADING', payload: false });
             console.error('Error updating product:', error);
             return { success: false, error: errorMessage };
         }

@@ -254,7 +254,7 @@ const ProductManagement = () => {
                 )}
 
                 {/* Products */}
-                {!isLoading && products.length > 0 && (
+                {products.length > 0 && (
                     <>
                     <div className="md:hidden space-y-3">
                         {products.map((product) => (
