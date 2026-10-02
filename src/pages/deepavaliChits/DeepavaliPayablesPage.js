@@ -22,27 +22,41 @@ const scenarioMeta = (scenario) => {
 const netOf = (row) => Number(row.net_amount ?? row.closing_balance ?? 0);
 const scenarioOf = (row) => String(row.scenario || 'RUNNING').toUpperCase();
 
+const isClosedScenario = (row) => {
+    const scenario = scenarioOf(row);
+    return scenario === 'CLOSED' || scenario === 'SETTLED' || Boolean(row.is_paid);
+};
+
+const isReadyScenario = (row) => Boolean(row.can_settle) && !isClosedScenario(row);
+
+const isRunningScenario = (row) => scenarioOf(row) === 'RUNNING' && !isClosedScenario(row);
+
 const DeepavaliPayablesPage = () => {
     const { payables, paymentMethods, settleSubscriber, enrolSlot, loading } = useDeepavali();
-    const [statusTab, setStatusTab] = useState('ALL');
+    const [statusTab, setStatusTab] = useState('READY');
     const [search, setSearch] = useState('');
     const [saving, setSaving] = useState(false);
     const [closeSlot, setCloseSlot] = useState(null);
     const [settleBundle, setSettleBundle] = useState(null);
     const [payAccount, setPayAccount] = useState('');
 
-    const rows = (payables || []).filter((row) => !row.is_paid);
+    const openRows = useMemo(
+        () => (payables || []).filter((row) => !isClosedScenario(row)),
+        [payables]
+    );
 
     const counts = useMemo(() => ({
-        ALL: rows.length,
-        RUNNING: rows.filter((row) => ['RUNNING', 'CLOSED'].includes(scenarioOf(row))).length,
-        READY: rows.filter((row) => row.can_settle).length,
-    }), [rows]);
+        READY: openRows.filter(isReadyScenario).length,
+        RUNNING: openRows.filter(isRunningScenario).length,
+    }), [openRows]);
 
     const grouped = useMemo(() => {
         const q = search.trim().toLowerCase();
+        const visible = openRows.filter((row) => (
+            statusTab === 'RUNNING' ? isRunningScenario(row) : isReadyScenario(row)
+        ));
         const map = {};
-        rows.forEach((row) => {
+        visible.forEach((row) => {
             const key = `${row.subscriber_id}::${row.group_id}`;
             if (!map[key]) {
                 map[key] = {
@@ -56,22 +70,19 @@ const DeepavaliPayablesPage = () => {
         });
         return Object.values(map).map((bundle) => {
             const slots = bundle.slots.slice().sort((a, b) => Number(a.slot?.slot_number || 0) - Number(b.slot?.slot_number || 0));
-            const unpaid = slots.filter((slot) => !slot.is_paid);
-            if (!unpaid.length) return null;
-            const canSettleAll = unpaid.every((slot) => slot.can_settle);
-            const dueNow = canSettleAll ? unpaid.reduce((sum, slot) => sum + netOf(slot), 0) : 0;
-            const agreed = unpaid.reduce((sum, slot) => sum + Number(slot.agreed_amount || 0), 0);
-            const collected = unpaid.reduce((sum, slot) => sum + Number(slot.collected_amount || 0), 0);
-            const penalty = unpaid.reduce((sum, slot) => sum + Number(slot.penalty_amount || 0), 0);
-            const lastDue = unpaid.reduce((max, slot) => {
+            if (!slots.length) return null;
+            const canSettleAll = slots.every((slot) => slot.can_settle);
+            const dueNow = canSettleAll ? slots.reduce((sum, slot) => sum + netOf(slot), 0) : 0;
+            const agreed = slots.reduce((sum, slot) => sum + Number(slot.agreed_amount || 0), 0);
+            const collected = slots.reduce((sum, slot) => sum + Number(slot.collected_amount || 0), 0);
+            const penalty = slots.reduce((sum, slot) => sum + Number(slot.penalty_amount || 0), 0);
+            const lastDue = slots.reduce((max, slot) => {
                 const date = String(slot.last_due_date || '').slice(0, 10);
                 if (!date) return max;
                 return !max || date > max ? date : max;
             }, null);
-            return { ...bundle, slots: unpaid, unpaid, canSettleAll, dueNow, agreed, collected, penalty, lastDue };
+            return { ...bundle, slots, unpaid: slots, canSettleAll, dueNow, agreed, collected, penalty, lastDue };
         }).filter(Boolean).filter((bundle) => {
-            if (statusTab === 'RUNNING' && !bundle.slots.some((slot) => ['RUNNING', 'CLOSED'].includes(scenarioOf(slot)))) return false;
-            if (statusTab === 'READY' && !bundle.canSettleAll) return false;
             if (!q) return true;
             const blob = `${bundle.subscriber?.subscriber_name || ''} ${bundle.subscriber?.phone || ''} ${bundle.group?.group_name || ''}`.toLowerCase();
             return blob.includes(q);
@@ -79,7 +90,7 @@ const DeepavaliPayablesPage = () => {
             if (a.canSettleAll !== b.canSettleAll) return a.canSettleAll ? -1 : 1;
             return Number(b.dueNow) - Number(a.dueNow);
         });
-    }, [rows, search, statusTab]);
+    }, [openRows, search, statusTab]);
 
     const payNow = useMemo(
         () => grouped.filter((bundle) => bundle.canSettleAll).reduce((sum, bundle) => sum + bundle.dueNow, 0),
@@ -132,8 +143,7 @@ const DeepavaliPayablesPage = () => {
     };
 
     const tabs = [
-        { id: 'ALL', label: 'All', count: counts.ALL },
-        { id: 'READY', label: 'To pay', count: counts.READY },
+        { id: 'READY', label: 'Ready for payment', count: counts.READY },
         { id: 'RUNNING', label: 'Running', count: counts.RUNNING },
     ];
 
@@ -143,8 +153,10 @@ const DeepavaliPayablesPage = () => {
                 <div className="rounded-2xl bg-white border border-gray-200 shadow-sm p-4 sm:p-5">
                     <div className="flex flex-col md:flex-row md:items-center gap-4">
                         <div className="flex-1">
-                            <h1 className="text-2xl font-bold text-gray-900">Payables</h1>
-                            <p className="text-sm text-gray-500 mt-0.5">{counts.READY} slot{counts.READY === 1 ? '' : 's'} ready after last due</p>
+                            <h1 className="text-2xl font-bold text-gray-900">Payables ({statusTab === 'RUNNING' ? counts.RUNNING : counts.READY})</h1>
+                            <p className="text-sm text-gray-500 mt-0.5">
+                                {statusTab === 'RUNNING' ? 'Slots still in tenure' : 'Slots ready after last due'}
+                            </p>
                         </div>
                         <div className="md:text-right rounded-xl bg-red-50 px-4 py-3 min-w-[160px]">
                             <p className="text-[11px] font-semibold uppercase tracking-wide text-red-500">Pay now</p>
@@ -156,24 +168,31 @@ const DeepavaliPayablesPage = () => {
                             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search subscriber, phone or group" className={`pl-9 ${fieldClass}`} />
                         </div>
-                        <div className="flex rounded-xl bg-gray-100 p-1 overflow-x-auto">
-                            {tabs.map((tab) => (
-                                <button
-                                    key={tab.id}
-                                    type="button"
-                                    onClick={() => setStatusTab(tab.id)}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-semibold whitespace-nowrap ${statusTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
-                                >
-                                    {tab.label} {tab.count}
-                                </button>
-                            ))}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {tabs.map((tab) => {
+                                const active = statusTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        onClick={() => setStatusTab(tab.id)}
+                                        className={`px-3 py-1.5 rounded-full border text-sm font-semibold whitespace-nowrap ${
+                                            active
+                                                ? 'bg-red-500 text-white border-red-500'
+                                                : 'bg-white text-gray-700 border-gray-200 hover:border-red-200 hover:text-red-700'
+                                        }`}
+                                    >
+                                        {tab.label} ({tab.count})
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
 
-                {loading && !rows.length && <p className="text-sm text-gray-500 text-center py-10">Loading payables…</p>}
+                {loading && !openRows.length && <p className="text-sm text-gray-500 text-center py-10">Loading payables…</p>}
 
-                {!rows.length && !loading && (
+                {!openRows.length && !loading && (
                     <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
                         <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-3">
                             <FiUser className="w-8 h-8 text-red-500" />
@@ -182,8 +201,10 @@ const DeepavaliPayablesPage = () => {
                     </div>
                 )}
 
-                {Boolean(rows.length) && !grouped.length && (
-                    <p className="text-sm text-gray-500 text-center py-8">No records in this view.</p>
+                {Boolean(openRows.length) && !grouped.length && (
+                    <p className="text-sm text-gray-500 text-center py-8">
+                        {statusTab === 'RUNNING' ? 'No running payables.' : 'No slots ready for payment.'}
+                    </p>
                 )}
 
                 <div className="space-y-4">
