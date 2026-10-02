@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiPhone, FiMapPin, FiUser, FiFilter } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { useDeepavali } from '../../context/deepavali/DeepavaliContext';
+import { useDpPermission } from '../../components/deepavaliChits/useDpPermission';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -14,6 +15,11 @@ const emptyForm = {
 
 const DeepavaliSubscribersPage = () => {
     const { subscribers, saveSubscriber, deleteSubscriber, loading } = useDeepavali();
+    const { canAccess } = useDpPermission();
+    const canAddSubscriber = canAccess('dp_subscriber_add');
+    const canEditSubscriber = canAccess('dp_subscriber_edit');
+    const canDeleteSubscriber = canAccess('dp_subscriber_delete');
+    const showActions = canEditSubscriber || canDeleteSubscriber;
     const [showForm, setShowForm] = useState(false);
     const [editing, setEditing] = useState(null);
     const [form, setForm] = useState(emptyForm);
@@ -52,12 +58,20 @@ const DeepavaliSubscribersPage = () => {
     const fieldClass = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent';
 
     const openAdd = () => {
+        if (!canAddSubscriber) {
+            toast.error('Add subscriber permission is required');
+            return;
+        }
         setEditing(null);
         setForm(emptyForm);
         setShowForm(true);
     };
 
     const openEdit = (row) => {
+        if (!canEditSubscriber) {
+            toast.error('Edit subscriber permission is required');
+            return;
+        }
         setEditing(row);
         setForm({
             id: row.id,
@@ -88,6 +102,10 @@ const DeepavaliSubscribersPage = () => {
 
     const onSubmit = async (e) => {
         e.preventDefault();
+        if (editing ? !canEditSubscriber : !canAddSubscriber) {
+            toast.error(editing ? 'Edit subscriber permission is required' : 'Add subscriber permission is required');
+            return;
+        }
         if (!form.subscriber_name.trim()) {
             toast.error('Subscriber name is required');
             return;
@@ -111,7 +129,7 @@ const DeepavaliSubscribersPage = () => {
     };
 
     const confirmDelete = async () => {
-        if (!deleteConfirm) return;
+        if (!deleteConfirm || !canDeleteSubscriber) return;
         setSaving(true);
         try {
             await deleteSubscriber(deleteConfirm);
@@ -132,6 +150,7 @@ const DeepavaliSubscribersPage = () => {
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Subscribers ({pagination.totalItems})</h1>
                         <p className="text-sm text-gray-600 mt-1">Manage subscribers for Deepavali Chits</p>
                     </div>
+                    {canAddSubscriber && (
                     <button
                         type="button"
                         onClick={openAdd}
@@ -140,6 +159,7 @@ const DeepavaliSubscribersPage = () => {
                         <FiPlus className="w-5 h-5" />
                         Add Subscriber
                     </button>
+                    )}
                 </div>
 
                 {subscribers.length > 0 && (
@@ -168,7 +188,10 @@ const DeepavaliSubscribersPage = () => {
                             <FiUser className="w-8 h-8 text-red-500" />
                         </div>
                         <h3 className="text-xl font-semibold text-gray-800 mb-2">No Subscribers Yet</h3>
-                        <p className="text-gray-600 mb-6">Get started by adding your first subscriber</p>
+                        <p className="text-gray-600 mb-6">
+                            {canAddSubscriber ? 'Get started by adding your first subscriber' : 'No subscribers are available yet'}
+                        </p>
+                        {canAddSubscriber && (
                         <button
                             type="button"
                             onClick={openAdd}
@@ -177,6 +200,7 @@ const DeepavaliSubscribersPage = () => {
                             <FiPlus className="w-5 h-5" />
                             Add Your First Subscriber
                         </button>
+                        )}
                     </div>
                 )}
 
@@ -189,7 +213,9 @@ const DeepavaliSubscribersPage = () => {
                                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Subscriber</th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Contact</th>
                                         <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
+                                        {showActions && (
                                         <th className="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                        )}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
@@ -219,16 +245,22 @@ const DeepavaliSubscribersPage = () => {
                                                     <span className="line-clamp-2">{row.address || 'N/A'}</span>
                                                 </div>
                                             </td>
+                                            {showActions && (
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-end gap-2">
+                                                    {canEditSubscriber && (
                                                     <button type="button" onClick={() => openEdit(row)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
                                                         <FiEdit2 className="w-4 h-4" />
                                                     </button>
+                                                    )}
+                                                    {canDeleteSubscriber && (
                                                     <button type="button" onClick={() => setDeleteConfirm(row)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
                                                         <FiTrash2 className="w-4 h-4" />
                                                     </button>
+                                                    )}
                                                 </div>
                                             </td>
+                                            )}
                                         </tr>
                                     ))}
                                 </tbody>
@@ -250,12 +282,16 @@ const DeepavaliSubscribersPage = () => {
                                             <h3 className="font-semibold text-gray-900 truncate">{row.subscriber_name}</h3>
                                         </div>
                                         <div className="flex gap-1 ml-2">
+                                            {canEditSubscriber && (
                                             <button type="button" onClick={() => openEdit(row)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
                                                 <FiEdit2 className="w-4 h-4" />
                                             </button>
+                                            )}
+                                            {canDeleteSubscriber && (
                                             <button type="button" onClick={() => setDeleteConfirm(row)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
                                                 <FiTrash2 className="w-4 h-4" />
                                             </button>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="space-y-2">

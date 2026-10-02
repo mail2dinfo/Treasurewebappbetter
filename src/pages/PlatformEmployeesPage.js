@@ -58,6 +58,7 @@ import DailyCollectionCollectorAssignmentModal from '../components/dailyCollecti
 import DailyCollectionCollectorDashboardModal from '../components/dailyCollection/DailyCollectionCollectorDashboardModal';
 import DeepavaliCollectorGroupAssignmentModal from '../components/deepavaliChits/DeepavaliCollectorGroupAssignmentModal';
 import DeepavaliCollectorDashboardModal from '../components/deepavaliChits/DeepavaliCollectorDashboardModal';
+import { DP_COLLECTOR_OPT_IN_FEATURES } from '../components/deepavaliChits/deepavaliMenuItems';
 
 const MANAGER_SCOPE_PERMISSIONS = {
     CHIT_FUND: {
@@ -571,6 +572,14 @@ const getFeatureLabel = (feature) => (
     typeof feature === 'string' ? feature : feature.displayName || feature.display_name || feature.name || getFeatureKey(feature)
 );
 
+const defaultRolePermissions = (appCode, roleCode, featureKeys) => {
+    if (String(appCode || '').toUpperCase() === 'DEEPAVALI_CHITS'
+        && String(roleCode || '').toUpperCase() === 'COLLECTOR') {
+        return (featureKeys || []).filter((key) => !DP_COLLECTOR_OPT_IN_FEATURES.includes(key));
+    }
+    return featureKeys || [];
+};
+
 const EMPLOYEE_ROLES = ['MANAGER', 'COLLECTOR', 'ACCOUNTANT', 'RECEPTIONIST', 'KITCHEN_STAFF', 'SALESMAN', 'PHARMACIST', 'DOCTOR', 'NURSE', 'COMPOUNDER'];
 const ROLE_DISPLAY_NAME = {
     MANAGER: 'Manager',
@@ -686,7 +695,10 @@ const FALLBACK_APP_CATALOG = [
             fallbackFeature('dp_company_manage', 'Manage Company', 'Administration', ['USER']),
             fallbackFeature('dp_employee_manage', 'Manage Employees', 'Administration', ['USER', 'MANAGER']),
             fallbackFeature('dp_groups', 'Groups', 'Operations', ['USER', 'MANAGER']),
-            fallbackFeature('dp_subscribers', 'Subscribers', 'Operations', ['USER', 'MANAGER', 'COLLECTOR']),
+            fallbackFeature('dp_subscribers', 'View', 'Subscribers', ['USER', 'MANAGER', 'COLLECTOR']),
+            fallbackFeature('dp_subscriber_add', 'Add', 'Subscribers', ['USER', 'MANAGER', 'COLLECTOR']),
+            fallbackFeature('dp_subscriber_edit', 'Edit', 'Subscribers', ['USER', 'MANAGER', 'COLLECTOR']),
+            fallbackFeature('dp_subscriber_delete', 'Delete', 'Subscribers', ['USER', 'MANAGER', 'COLLECTOR']),
             fallbackFeature('dp_collections', 'Collections', 'Operations', ['USER', 'MANAGER', 'COLLECTOR', 'ACCOUNTANT']),
             fallbackFeature('dp_payables', 'Prize Payables', 'Operations', ['USER', 'MANAGER', 'ACCOUNTANT']),
             fallbackFeature('dp_ledger', 'Ledger', 'Accounting', ['USER', 'ACCOUNTANT']),
@@ -1725,7 +1737,11 @@ const PlatformEmployeesPage = ({
                 appCode,
                 roleCode,
                 permissions: usesCollectorAccountantPackage(roleCode, appCode)
-                    ? getFeaturesForRoleAssignment(getStep3Features(app), roleCode, appCode).map(getFeatureKey).filter(Boolean)
+                    ? defaultRolePermissions(
+                        appCode,
+                        roleCode,
+                        getFeaturesForRoleAssignment(getStep3Features(app), roleCode, appCode).map(getFeatureKey).filter(Boolean)
+                    )
                     : getDefaultPermissions(role, app),
             }]
         );
@@ -1836,7 +1852,11 @@ const PlatformEmployeesPage = ({
                     appCode
                 );
                 const defaultPermissions = usesCollectorAccountantPackage(defaultRoleCode, appCode)
-                    ? roleFeatures.map(getFeatureKey).filter(Boolean)
+                    ? defaultRolePermissions(
+                        appCode,
+                        defaultRoleCode,
+                        roleFeatures.map(getFeatureKey).filter(Boolean)
+                    )
                     : getDefaultPermissions({ roleCode: defaultRoleCode }, app);
                 next.push({
                     appCode,
@@ -1907,7 +1927,11 @@ const PlatformEmployeesPage = ({
                         return [{
                             appCode: scopedAppCode,
                             roleCode: onlyRole,
-                            permissions: roleFeatures.map(getFeatureKey).filter(Boolean),
+                            permissions: defaultRolePermissions(
+                                scopedAppCode,
+                                onlyRole,
+                                roleFeatures.map(getFeatureKey).filter(Boolean)
+                            ),
                         }];
                     });
                 }

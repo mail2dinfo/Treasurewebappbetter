@@ -11,7 +11,7 @@ import { formatDeepavaliPeriodLabel } from '../../utils/deepavaliPeriodLabel';
 const today = () => new Date().toISOString().slice(0, 10);
 const dueDay = (row) => String(row.due_date || '').slice(0, 10);
 const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
-const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 1000, 2000];
 const emptyFilters = { name: '', groupName: '', phone: '', date: '', period: '' };
 
 const periodLabelOf = (row) => row?.period_label || formatDeepavaliPeriodLabel(row?.group, dueDay(row));
