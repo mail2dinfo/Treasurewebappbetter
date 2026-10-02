@@ -57,6 +57,7 @@ import VehicleFinanceCollectorAssignmentModal from '../components/vehicleFinance
 import DailyCollectionCollectorAssignmentModal from '../components/dailyCollection/DailyCollectionCollectorAssignmentModal';
 import DailyCollectionCollectorDashboardModal from '../components/dailyCollection/DailyCollectionCollectorDashboardModal';
 import DeepavaliCollectorGroupAssignmentModal from '../components/deepavaliChits/DeepavaliCollectorGroupAssignmentModal';
+import DeepavaliCollectorDashboardModal from '../components/deepavaliChits/DeepavaliCollectorDashboardModal';
 
 const MANAGER_SCOPE_PERMISSIONS = {
     CHIT_FUND: {
@@ -1316,6 +1317,7 @@ const PlatformEmployeesPage = ({
     const [vfAreaEmployee, setVfAreaEmployee] = useState(null);
     const [dcAreaEmployee, setDcAreaEmployee] = useState(null);
     const [dpGroupEmployee, setDpGroupEmployee] = useState(null);
+    const [dpDashboardEmployee, setDpDashboardEmployee] = useState(null);
     const [dcDashboardEmployee, setDcDashboardEmployee] = useState(null);
     const [viewEmployee, setViewEmployee] = useState(null);
     const [offerLetterData, setOfferLetterData] = useState(null);
@@ -2556,6 +2558,23 @@ const PlatformEmployeesPage = ({
                                                                             <FiEye /> View
                                                                         </button>
                                                                     )}
+                                                                    {isCollectorEmployee && appCode === 'DEEPAVALI_CHITS' && (isOwner || canViewCollectors) && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setDpDashboardEmployee({
+                                                                                id: employeeProfile.id || employee.id,
+                                                                                parent_membership_id:
+                                                                                    employeeProfile.parentMembershipId
+                                                                                    || employeeProfile.parent_membership_id
+                                                                                    || ownerMembershipId,
+                                                                                name: employeeUser.name || employeeProfile.employee_name || 'Collector',
+                                                                            })}
+                                                                            className={btnPrimary.replace('px-4 py-2.5', 'px-3 py-2')}
+                                                                            title="See how much this collector collected and what is pending"
+                                                                        >
+                                                                            <FiBarChart2 /> Dashboard
+                                                                        </button>
+                                                                    )}
                                                                     {isCollectorEmployee && appCode === 'DEEPAVALI_CHITS' && canAssignCollectorArea && (
                                                                         <button
                                                                             type="button"
@@ -3415,6 +3434,14 @@ const PlatformEmployeesPage = ({
                         setDpGroupEmployee(null);
                         loadData();
                     }}
+                />
+            )}
+            {dpDashboardEmployee && (
+                <DeepavaliCollectorDashboardModal
+                    employee={dpDashboardEmployee}
+                    membershipId={ownerMembershipId}
+                    token={token}
+                    onClose={() => setDpDashboardEmployee(null)}
                 />
             )}
         </div>
