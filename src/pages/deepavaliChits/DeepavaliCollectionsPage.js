@@ -585,7 +585,7 @@ const DeepavaliCollectionsPage = () => {
             <div className="max-w-7xl mx-auto space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Receivables</h1>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Receivables ({pagination.totalItems})</h1>
                         <p className="text-sm text-gray-600 mt-1">All dues for this company. Filter, page, and download.</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
