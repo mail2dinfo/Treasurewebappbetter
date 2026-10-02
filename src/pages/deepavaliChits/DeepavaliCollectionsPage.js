@@ -6,6 +6,7 @@ import { useDeepavali } from '../../context/deepavali/DeepavaliContext';
 import { useUserContext } from '../../context/user_context';
 import Mypdf from '../../components/PDF/Mypdf';
 import ReceivableReceitPdf from '../../components/PDF/ReceivableReceitPdf';
+import { formatDeepavaliPeriodLabel } from '../../utils/deepavaliPeriodLabel';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const dueDay = (row) => String(row.due_date || '').slice(0, 10);
@@ -38,14 +39,17 @@ const buildBillLines = (bucket) => {
         const slotName = n != null ? `Slot ${n}` : 'Slot';
         if (principalLeft > 0.001) {
             lines.push({
-                key: row.id || `slot-${index}`,
+                key: String(row.id || `slot-${index}`),
+                receivable_id: row.id || null,
                 label: slotName,
                 amount: principalLeft,
+                isFine: false,
             });
         }
         if (fineLeft > 0.001) {
             lines.push({
                 key: `fine-${row.id || index}`,
+                receivable_id: row.id || null,
                 label: `${slotName} fine`,
                 amount: Number(fineLeft.toFixed(2)),
                 isFine: true,
@@ -127,6 +131,7 @@ const combineUnpaidReceivables = (rows, asOf = today()) => {
             list_overdue: date < asOf,
             slot_numbers: slotNumbers,
             slot_label: formatSlotLabel(slotNumbers),
+            period_label: formatDeepavaliPeriodLabel(first.group, date),
         };
     }).sort((a, b) => {
         const byDate = dueDay(a).localeCompare(dueDay(b));
@@ -150,29 +155,99 @@ const getBillLines = (row, excludeFine = false) => {
         : source;
 };
 
-const BillLinesTable = ({ row, excludeFine = false, className = '' }) => {
-    const lines = getBillLines(row, excludeFine);
+const lineKeyOf = (line, index) => String(line?.key || `${line?.label || 'line'}-${index}`);
+
+const selectedPayPlan = (row, selectedKeys, excludeFine = false) => {
+    const keys = selectedKeys instanceof Set ? selectedKeys : new Set(selectedKeys || []);
+    const lines = getBillLines(row, false);
+    const selectedLines = lines.filter((line, index) => {
+        if (excludeFine && (line.isFine || line.key === 'fine' || String(line.key || '').startsWith('fine-'))) {
+            return false;
+        }
+        return keys.has(lineKeyOf(line, index));
+    });
+    const amount = Number(selectedLines.reduce((sum, line) => sum + Number(line.amount || 0), 0).toFixed(2));
+    const flags = {};
+    lines.forEach((line, index) => {
+        const receivableId = String(line.receivable_id || (!line.isFine ? line.key : '') || '');
+        if (!receivableId) return;
+        if (!flags[receivableId]) flags[receivableId] = { principal: false, fine: false, hasFine: false };
+        const on = keys.has(lineKeyOf(line, index));
+        if (line.isFine || String(line.key || '').startsWith('fine-')) {
+            flags[receivableId].hasFine = true;
+            if (on) flags[receivableId].fine = true;
+        } else if (on) {
+            flags[receivableId].principal = true;
+        }
+    });
+    const receivableIds = [];
+    const excludeFineIds = [];
+    Object.entries(flags).forEach(([id, flag]) => {
+        if (!flag.principal) return;
+        receivableIds.push(id);
+        if (flag.hasFine && !flag.fine) excludeFineIds.push(id);
+    });
+    return {
+        amount,
+        receivableIds,
+        excludeFineIds,
+        selectedLines,
+        excludeFine: Boolean(excludeFine) || (excludeFineIds.length > 0 && excludeFineIds.length === receivableIds.length),
+    };
+};
+
+const BillLinesTable = ({
+    row,
+    excludeFine = false,
+    className = '',
+    selectable = false,
+    selectedKeys,
+    onToggle,
+}) => {
+    const keys = selectedKeys instanceof Set ? selectedKeys : new Set(selectedKeys || []);
+    const lines = getBillLines(row, selectable ? false : excludeFine);
     if (!lines.length) return null;
-    const total = Number(lines.reduce((sum, line) => sum + Number(line.amount || 0), 0).toFixed(2));
-    const rowClass = 'grid grid-cols-[1fr_auto_7.5rem] items-baseline gap-x-2 px-4 py-1.5 text-sm';
+    const visible = selectable
+        ? lines
+        : lines.filter((line, index) => !keys.size || keys.has(lineKeyOf(line, index)));
+    const total = selectable
+        ? selectedPayPlan(row, keys).amount
+        : Number(visible.reduce((sum, line) => sum + Number(line.amount || 0), 0).toFixed(2));
+    const rowClass = selectable
+        ? 'grid grid-cols-[auto_1fr_auto_7.5rem] items-center gap-x-2 px-4 py-1.5 text-sm'
+        : 'grid grid-cols-[1fr_auto_7.5rem] items-baseline gap-x-2 px-4 py-1.5 text-sm';
     return (
         <div className={`rounded-lg border border-gray-200 overflow-hidden ${className}`}>
             <div className={`${rowClass} bg-red-500 text-white font-semibold uppercase tracking-wide text-[11px]`}>
+                {selectable ? <span /> : null}
                 <span>Slots</span>
                 <span />
                 <span className="text-right">Amount</span>
             </div>
-            {lines.map((line, index) => (
-                <div
-                    key={line.key || `${line.label}-${index}`}
-                    className={`${rowClass} text-gray-800 ${index ? 'border-t border-gray-100' : ''}`}
-                >
-                    <span>{line.label}</span>
-                    <span className="text-gray-400">-</span>
-                    <span className="text-right tabular-nums font-medium text-gray-900">{money(line.amount)}</span>
-                </div>
-            ))}
+            {visible.map((line, index) => {
+                const key = lineKeyOf(line, index);
+                const checked = !selectable || keys.has(key);
+                return (
+                    <div
+                        key={key}
+                        className={`${rowClass} text-gray-800 ${index ? 'border-t border-gray-100' : ''} ${selectable && !checked ? 'opacity-50' : ''}`}
+                    >
+                        {selectable ? (
+                            <input
+                                type="checkbox"
+                                className="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                                checked={checked}
+                                onChange={() => onToggle?.(key, line)}
+                            />
+                        ) : null}
+                        <span>{line.label}</span>
+                        <span className="text-gray-400">-</span>
+                        <span className="text-right tabular-nums font-medium text-gray-900">{money(line.amount)}</span>
+                    </div>
+                );
+            })}
             <div className={`${rowClass} font-semibold text-gray-900 border-t border-gray-200 bg-gray-50`}>
+                {selectable ? <span /> : null}
                 <span>Total</span>
                 <span>:</span>
                 <span className="text-right tabular-nums">{money(total)}</span>
@@ -196,6 +271,7 @@ const rowStatus = (row) => {
 const DeepavaliCollectionsPage = () => {
     const { user } = useUserContext();
     const {
+        groups,
         receivables,
         paymentMethods,
         company,
@@ -203,7 +279,20 @@ const DeepavaliCollectionsPage = () => {
         loading,
     } = useDeepavali();
 
-    const allRows = useMemo(() => combineUnpaidReceivables(receivables || []), [receivables]);
+    const allRows = useMemo(() => {
+        const combined = combineUnpaidReceivables(receivables || []);
+        const byId = {};
+        (groups || []).forEach((group) => {
+            if (group?.id) byId[String(group.id)] = group;
+        });
+        return combined.map((row) => {
+            const group = byId[String(row.group_id || row.group?.id || '')] || row.group;
+            return {
+                ...row,
+                period_label: formatDeepavaliPeriodLabel(group, dueDay(row)),
+            };
+        });
+    }, [receivables, groups]);
 
     const [filters, setFilters] = useState(emptyFilters);
     const [currentPage, setCurrentPage] = useState(1);
@@ -219,6 +308,7 @@ const DeepavaliCollectionsPage = () => {
     });
     const [billResult, setBillResult] = useState(null);
     const [savingPay, setSavingPay] = useState(false);
+    const [selectedLineKeys, setSelectedLineKeys] = useState([]);
 
     const payAmountOf = (row, skipFine) => {
         const full = Number(row.closing_balance || 0);
@@ -227,18 +317,55 @@ const DeepavaliCollectionsPage = () => {
     };
 
     const selectedAccount = paymentMethods.find((acc) => acc.id === rowPay.payment_method_id);
+    const payPlan = useMemo(
+        () => (payTarget ? selectedPayPlan(payTarget, selectedLineKeys) : { amount: 0, receivableIds: [], excludeFineIds: [], selectedLines: [], excludeFine: false }),
+        [payTarget, selectedLineKeys]
+    );
+
+    const applyLineSelection = (nextKeys, target = payTarget) => {
+        const unique = [...new Set(nextKeys.filter(Boolean))];
+        setSelectedLineKeys(unique);
+        if (!target) return;
+        const plan = selectedPayPlan(target, unique);
+        setRowPay((p) => ({
+            ...p,
+            exclude_fine: plan.excludeFine,
+            amount: String(plan.amount),
+        }));
+    };
+
+    const togglePayLine = (key, line) => {
+        if (!payTarget) return;
+        const lines = getBillLines(payTarget, false);
+        const selected = new Set(selectedLineKeys);
+        const isOn = selected.has(key);
+        if (isOn) selected.delete(key);
+        else selected.add(key);
+        const receivableId = String(line?.receivable_id || (!line?.isFine ? line?.key : '') || '');
+        if (receivableId) {
+            const principal = lines.find((item) => !item.isFine && String(item.receivable_id || item.key) === receivableId);
+            const fine = lines.find((item) => item.isFine && String(item.receivable_id) === receivableId);
+            if (line?.isFine && !isOn && principal) selected.add(lineKeyOf(principal, lines.indexOf(principal)));
+            if (!line?.isFine && isOn && fine) selected.delete(lineKeyOf(fine, lines.indexOf(fine)));
+        }
+        applyLineSelection([...selected], payTarget);
+    };
 
     const openPay = (row) => {
         if (!paymentMethods.length) {
             toast.error('Add a ledger account first, then pay from here.');
             return;
         }
-        setPayTarget(withPayBill(row));
+        const billed = withPayBill(row);
+        const lines = getBillLines(billed, false);
+        const keys = lines.map((line, index) => lineKeyOf(line, index));
+        setPayTarget(billed);
         setPayStep('form');
         setBillResult(null);
+        setSelectedLineKeys(keys);
         setRowPay({
             payment_method_id: paymentMethods[0]?.id || '',
-            amount: String(payAmountOf(row, false)),
+            amount: String(selectedPayPlan(billed, keys).amount || payAmountOf(billed, false)),
             payment_date: today(),
             exclude_fine: false,
         });
@@ -249,6 +376,7 @@ const DeepavaliCollectionsPage = () => {
         setPayTarget(null);
         setPayStep('form');
         setBillResult(null);
+        setSelectedLineKeys([]);
     };
 
     const goReview = () => {
@@ -257,7 +385,15 @@ const DeepavaliCollectionsPage = () => {
             return;
         }
         if (!rowPay.amount || Number(rowPay.amount) <= 0) {
-            toast.error('Enter a payment amount');
+            toast.error('Select at least one slot to pay');
+            return;
+        }
+        if (!payPlan.receivableIds.length) {
+            toast.error('Select at least one slot to pay');
+            return;
+        }
+        if (Number(rowPay.amount) > Number(payPlan.amount) + 0.001) {
+            toast.error('Amount cannot be more than the selected slots');
             return;
         }
         setPayStep('review');
@@ -268,12 +404,13 @@ const DeepavaliCollectionsPage = () => {
         setSavingPay(true);
         try {
             const result = await payReceivable({
-                receivable_id: payTarget.id,
-                receivable_ids: payTarget.receivable_ids?.length ? payTarget.receivable_ids : [payTarget.id],
+                receivable_id: payPlan.receivableIds[0] || payTarget.id,
+                receivable_ids: payPlan.receivableIds.length ? payPlan.receivableIds : [payTarget.id],
                 payment_method_id: rowPay.payment_method_id,
                 amount: Number(rowPay.amount),
                 payment_date: rowPay.payment_date,
-                exclude_fine: rowPay.exclude_fine,
+                exclude_fine: payPlan.excludeFine,
+                exclude_fine_ids: payPlan.excludeFineIds,
             });
             setBillResult(result);
             setPayStep('bill');
@@ -302,7 +439,9 @@ const DeepavaliCollectionsPage = () => {
                     transactedDate: receipt.payment_date,
                     createdAt: receipt.payment_date,
                     paymentAmount: receipt.paid_amount,
-                    lineItems: getBillLines(payTarget, rowPay.exclude_fine),
+                    lineItems: payPlan.selectedLines.length
+                        ? payPlan.selectedLines
+                        : getBillLines(payTarget, rowPay.exclude_fine),
                     lineTotal: receipt.paid_amount,
                 }}
             />
@@ -372,6 +511,7 @@ const DeepavaliCollectionsPage = () => {
         { title: 'Name', value: 'name' },
         { title: 'Phone', value: 'phone' },
         { title: 'Group', value: 'group' },
+        { title: 'Period', value: 'period' },
         { title: 'Slot', value: 'slot' },
         { title: 'Total', value: 'total', align: 'right' },
         { title: 'Paid', value: 'paid', align: 'right' },
@@ -388,6 +528,7 @@ const DeepavaliCollectionsPage = () => {
                 name: row.subscriber?.subscriber_name || '—',
                 phone: row.subscriber?.phone || '—',
                 group: row.group?.group_name || '—',
+                period: row.period_label || formatDeepavaliPeriodLabel(row.group, dueDay(row)),
                 slot: row.slot_label || formatSlotLabel([row.slot?.slot_number]),
                 total: money(Number(row.due_amount || 0) + Number(row.fine_amount || 0) + Number(row.arrears_amount || 0)),
                 paid: money(row.paid_amount),
@@ -502,6 +643,7 @@ const DeepavaliCollectionsPage = () => {
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Name</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Phone</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Group</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Period</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Slot</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Total</th>
                                     <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Paid</th>
@@ -522,6 +664,9 @@ const DeepavaliCollectionsPage = () => {
                                             </td>
                                             <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{row.subscriber?.phone || '—'}</td>
                                             <td className="px-4 py-3 text-sm text-gray-700">{row.group?.group_name || '—'}</td>
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
+                                                {row.period_label || formatDeepavaliPeriodLabel(row.group, dueDay(row))}
+                                            </td>
                                             <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{row.slot_label || formatSlotLabel([row.slot?.slot_number])}</td>
                                             <td className="px-4 py-3 text-sm text-right text-gray-900 whitespace-nowrap">{money(total)}</td>
                                             <td className="px-4 py-3 text-sm text-right text-emerald-700 whitespace-nowrap">{money(row.paid_amount)}</td>
@@ -555,7 +700,14 @@ const DeepavaliCollectionsPage = () => {
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
                                             <p className="font-semibold text-gray-900">{row.subscriber?.subscriber_name || '—'}</p>
-                                            <p className="text-xs text-gray-500">{row.group?.group_name || '—'}{(row.slot_label || formatSlotLabel([row.slot?.slot_number])) !== '—' ? ` · ${row.slot_label || formatSlotLabel([row.slot?.slot_number])}` : ''} · {dueDay(row)}</p>
+                                            <p className="text-xs text-gray-500">
+                                                {row.group?.group_name || '—'}
+                                                {' · '}
+                                                {row.period_label || formatDeepavaliPeriodLabel(row.group, dueDay(row))}
+                                                {(row.slot_label || formatSlotLabel([row.slot?.slot_number])) !== '—' ? ` · ${row.slot_label || formatSlotLabel([row.slot?.slot_number])}` : ''}
+                                                {' · '}
+                                                {dueDay(row)}
+                                            </p>
                                             <p className="text-xs text-gray-500">{row.subscriber?.phone || '—'}</p>
                                         </div>
                                         <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${status.className}`}>{status.label}</span>
@@ -664,7 +816,17 @@ const DeepavaliCollectionsPage = () => {
                                         <span className="text-gray-500">Group</span>
                                         <span className="font-semibold text-gray-900 text-right">{payTarget.group?.group_name || '—'}</span>
                                     </div>
-                                    <BillLinesTable row={payTarget} excludeFine={rowPay.exclude_fine} className="my-1" />
+                                    <div className="flex justify-between gap-3">
+                                        <span className="text-gray-500">Period</span>
+                                        <span className="font-semibold text-gray-900 text-right">
+                                            {payTarget.period_label || formatDeepavaliPeriodLabel(payTarget.group, dueDay(payTarget))}
+                                        </span>
+                                    </div>
+                                    <BillLinesTable
+                                        row={payTarget}
+                                        className="my-1"
+                                        selectedKeys={selectedLineKeys}
+                                    />
                                     <div className="flex justify-between gap-3">
                                         <span className="text-gray-500">Amount paid</span>
                                         <span className="font-semibold text-emerald-700">{money(billResult.receipt?.paid_amount || billResult.total)}</span>
@@ -697,7 +859,17 @@ const DeepavaliCollectionsPage = () => {
                                         <span className="text-gray-500">Group</span>
                                         <span className="font-semibold text-right">{payTarget.group?.group_name || '—'}</span>
                                     </div>
-                                    <BillLinesTable row={payTarget} excludeFine={rowPay.exclude_fine} className="my-1" />
+                                    <div className="flex justify-between gap-3">
+                                        <span className="text-gray-500">Period</span>
+                                        <span className="font-semibold text-right">
+                                            {payTarget.period_label || formatDeepavaliPeriodLabel(payTarget.group, dueDay(payTarget))}
+                                        </span>
+                                    </div>
+                                    <BillLinesTable
+                                        row={payTarget}
+                                        className="my-1"
+                                        selectedKeys={selectedLineKeys}
+                                    />
                                     <div className="flex justify-between gap-3"><span className="text-gray-500">Pay from</span><span className="font-semibold text-right">{selectedAccount?.account_name || '—'}</span></div>
                                     <div className="flex justify-between gap-3"><span className="text-gray-500">Amount</span><span className="font-semibold text-emerald-700">{money(rowPay.amount)}</span></div>
                                     <div className="flex justify-between gap-3"><span className="text-gray-500">Date</span><span className="font-semibold">{rowPay.payment_date}</span></div>
@@ -715,11 +887,23 @@ const DeepavaliCollectionsPage = () => {
                                 <div className="flex items-start justify-between gap-3">
                                     <div>
                                         <h3 className="text-lg font-bold text-gray-900">Pay receivable</h3>
-                                        <p className="text-sm text-gray-500 mt-0.5">{payTarget.subscriber?.subscriber_name} · {payTarget.group?.group_name || 'No group'}</p>
+                                        <p className="text-sm text-gray-500 mt-0.5">
+                                            {payTarget.subscriber?.subscriber_name}
+                                            {' · '}
+                                            {payTarget.period_label || formatDeepavaliPeriodLabel(payTarget.group, dueDay(payTarget))}
+                                            {' · '}
+                                            {payTarget.group?.group_name || 'No group'}
+                                        </p>
                                     </div>
                                     <button type="button" onClick={closePay} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg" aria-label="Close"><FiX /></button>
                                 </div>
-                                <BillLinesTable row={payTarget} excludeFine={rowPay.exclude_fine} />
+                                <BillLinesTable
+                                    row={payTarget}
+                                    selectable
+                                    selectedKeys={selectedLineKeys}
+                                    onToggle={togglePayLine}
+                                />
+                                <p className="text-xs text-gray-500">Tick the slots and fines you can pay now. Unchecked slots stay due.</p>
                                 {!paymentMethods.length && (
                                     <p className="text-sm text-amber-700">Add a ledger account on Ledger, then pay from here.</p>
                                 )}
@@ -757,24 +941,12 @@ const DeepavaliCollectionsPage = () => {
                                         className={`mt-1 ${fieldClass}`}
                                     />
                                 </label>
-                                {(Number(payTarget.fine_amount) > 0 || payTarget.group?.fine_enabled) && (
-                                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                                        <input
-                                            type="checkbox"
-                                            checked={!rowPay.exclude_fine}
-                                            onChange={(e) => {
-                                                const includeFine = e.target.checked;
-                                                setRowPay((p) => ({
-                                                    ...p,
-                                                    exclude_fine: !includeFine,
-                                                    amount: String(payAmountOf(payTarget, !includeFine)),
-                                                }));
-                                            }}
-                                        />
-                                        Add fine
-                                    </label>
-                                )}
-                                <button type="button" onClick={goReview} disabled={!paymentMethods.length} className="w-full py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold disabled:opacity-50">
+                                <button
+                                    type="button"
+                                    onClick={goReview}
+                                    disabled={!paymentMethods.length || !payPlan.receivableIds.length}
+                                    className="w-full py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold disabled:opacity-50"
+                                >
                                     Review payment
                                 </button>
                             </div>

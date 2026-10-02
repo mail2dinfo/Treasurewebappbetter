@@ -9,6 +9,7 @@ import { useUserContext } from '../../context/user_context';
 import { DP_BASE_PATH, DP_COLLECTOR_PATH } from '../../components/deepavaliChits/deepavaliMenuItems';
 import DeepavaliSubscriberDuesPDF from '../../components/deepavaliChits/DeepavaliSubscriberDuesPDF';
 import ReceivableReceitPdf from '../../components/PDF/ReceivableReceitPdf';
+import { formatDeepavaliPeriodLabel } from '../../utils/deepavaliPeriodLabel';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
@@ -18,12 +19,6 @@ const tenureUnit = (mode) => {
     if (kind === 'DAILY') return 'days';
     if (kind === 'WEEKLY') return 'weeks';
     return 'months';
-};
-const periodWord = (mode) => {
-    const kind = String(mode || 'MONTHLY').toUpperCase();
-    if (kind === 'DAILY') return 'Day';
-    if (kind === 'WEEKLY') return 'Week';
-    return 'Month';
 };
 
 const paymentStatusMeta = ({ paid, outstanding, date }) => {
@@ -99,10 +94,9 @@ const buildMemberSchedule = (group, receivables, subscriberId, slotList, receipt
     });
     return Object.values(byDate)
         .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-        .map((row, index) => {
-            const unit = periodWord(group?.mode);
-            const period = `${unit} ${index + 1}`;
-            const dueLabel = `Due ${index + 1}`;
+        .map((row) => {
+            const period = formatDeepavaliPeriodLabel(group, row.date);
+            const dueLabel = period;
             let fineNote = '—';
             if (Number(row.paidFine || 0) > 0) {
                 fineNote = `Fine ${money(row.paidFine)} paid for ${dueLabel}`;
