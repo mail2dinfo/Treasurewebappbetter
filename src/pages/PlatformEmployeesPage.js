@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import { FiArrowLeft, FiBarChart2, FiEdit2, FiEye, FiFileText, FiGrid, FiList, FiLogOut, FiMapPin, FiMinus, FiPlus, FiTrash2, FiUsers, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiBarChart2, FiEdit2, FiEye, FiFileText, FiGrid, FiLayers, FiList, FiLogOut, FiMapPin, FiMinus, FiPlus, FiTrash2, FiUsers, FiX } from 'react-icons/fi';
 import { API_BASE_URL, readApiResponse } from '../utils/apiConfig';
 import {
     CHIT_ADMINISTRATION_CATEGORIES,
@@ -56,6 +56,7 @@ import VehicleFinanceOfferLetterPDF from '../components/vehicleFinance/PDF/Vehic
 import VehicleFinanceCollectorAssignmentModal from '../components/vehicleFinance/VehicleFinanceCollectorAssignmentModal';
 import DailyCollectionCollectorAssignmentModal from '../components/dailyCollection/DailyCollectionCollectorAssignmentModal';
 import DailyCollectionCollectorDashboardModal from '../components/dailyCollection/DailyCollectionCollectorDashboardModal';
+import DeepavaliCollectorGroupAssignmentModal from '../components/deepavaliChits/DeepavaliCollectorGroupAssignmentModal';
 
 const MANAGER_SCOPE_PERMISSIONS = {
     CHIT_FUND: {
@@ -476,6 +477,7 @@ const MANAGER_SCOPE_PERMISSIONS = {
         collectorAdd: 'dp_employee_manage',
         collectorEdit: 'dp_employee_manage',
         collectorDelete: 'dp_employee_manage',
+        collectorAssignArea: 'dp_employee_manage',
         collectorOffer: null,
         managerView: 'dp_employee_manage',
         accountantAdd: 'dp_employee_manage',
@@ -1313,6 +1315,7 @@ const PlatformEmployeesPage = ({
     const [collectorModalTab, setCollectorModalTab] = useState('assign');
     const [vfAreaEmployee, setVfAreaEmployee] = useState(null);
     const [dcAreaEmployee, setDcAreaEmployee] = useState(null);
+    const [dpGroupEmployee, setDpGroupEmployee] = useState(null);
     const [dcDashboardEmployee, setDcDashboardEmployee] = useState(null);
     const [viewEmployee, setViewEmployee] = useState(null);
     const [offerLetterData, setOfferLetterData] = useState(null);
@@ -2489,6 +2492,18 @@ const PlatformEmployeesPage = ({
                                                                             <span className={textTitle}>IFSC: </span>
                                                                             {employeeUser.bankIfsc || employeeUser.bank_ifsc || '—'}
                                                                         </p>
+                                                                        {isCollectorEmployee && appCode === 'DEEPAVALI_CHITS' && (() => {
+                                                                            const dpGroups = (employee.dpCollectorGroups || [])
+                                                                                .map((row) => row?.group_name || row?.group?.group_name)
+                                                                                .map((value) => String(value || '').trim())
+                                                                                .filter(Boolean);
+                                                                            return (
+                                                                                <p className={`break-words ${textBody}`}>
+                                                                                    <span className={textTitle}>Groups: </span>
+                                                                                    {dpGroups.length ? dpGroups.join(', ') : '—'}
+                                                                                </p>
+                                                                            );
+                                                                        })()}
                                                                         {isCollectorEmployee && appCode === 'DAILY_COLLECTION' && (() => {
                                                                             const dcAreas = (employee.dcCollectorAreas || [])
                                                                                 .map((area) => area?.aob || area?.area?.aob)
@@ -2539,6 +2554,24 @@ const PlatformEmployeesPage = ({
                                                                             className={btnSecondary}
                                                                         >
                                                                             <FiEye /> View
+                                                                        </button>
+                                                                    )}
+                                                                    {isCollectorEmployee && appCode === 'DEEPAVALI_CHITS' && canAssignCollectorArea && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setDpGroupEmployee({
+                                                                                id: employeeProfile.id || employee.id,
+                                                                                parent_membership_id:
+                                                                                    employeeProfile.parentMembershipId
+                                                                                    || employeeProfile.parent_membership_id
+                                                                                    || ownerMembershipId,
+                                                                                name: employeeUser.name || employeeProfile.employee_name || 'Collector',
+                                                                                dpCollectorGroups: employee.dpCollectorGroups || [],
+                                                                            })}
+                                                                            className={btnAccent}
+                                                                            title="Assign groups like Chit Fund Area of Business"
+                                                                        >
+                                                                            <FiLayers /> Assign group
                                                                         </button>
                                                                     )}
                                                                     {isCollectorEmployee && appCode === 'DAILY_COLLECTION' && (isOwner || canViewCollectors) && (
@@ -3368,6 +3401,18 @@ const PlatformEmployeesPage = ({
                     onClose={() => setVfAreaEmployee(null)}
                     onAssigned={() => {
                         setVfAreaEmployee(null);
+                        loadData();
+                    }}
+                />
+            )}
+            {dpGroupEmployee && (
+                <DeepavaliCollectorGroupAssignmentModal
+                    employee={dpGroupEmployee}
+                    membershipId={ownerMembershipId}
+                    token={token}
+                    onClose={() => setDpGroupEmployee(null)}
+                    onAssigned={() => {
+                        setDpGroupEmployee(null);
                         loadData();
                     }}
                 />

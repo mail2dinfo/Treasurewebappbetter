@@ -3,6 +3,7 @@ import { API_BASE_URL } from '../../utils/apiConfig';
 import { useUserContext } from '../user_context';
 import { usePlatformAccess } from '../platformAccess_context';
 import { useCollectorReceivablesStream } from '../../components/collector/useCollectorReceivablesStream';
+import { useDpCollectionsStream } from '../../components/deepavaliChits/useDpCollectionsStream';
 
 const DeepavaliContext = createContext(null);
 
@@ -148,6 +149,15 @@ export const DeepavaliProvider = ({ children }) => {
     refreshLiveRef.current = refreshLive;
 
     useCollectorReceivablesStream({
+        enabled: Boolean(token && membershipId),
+        token,
+        parentMembershipId: membershipId,
+        onEvent: () => {
+            refreshLiveRef.current?.();
+        },
+    });
+
+    useDpCollectionsStream({
         enabled: Boolean(token && membershipId),
         token,
         parentMembershipId: membershipId,

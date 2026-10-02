@@ -12,7 +12,20 @@ const today = () => new Date().toISOString().slice(0, 10);
 const dueDay = (row) => String(row.due_date || '').slice(0, 10);
 const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
-const emptyFilters = { name: '', groupName: '', phone: '', date: '' };
+const emptyFilters = { name: '', groupName: '', phone: '', date: '', period: '' };
+
+const periodLabelOf = (row) => row?.period_label || formatDeepavaliPeriodLabel(row?.group, dueDay(row));
+
+const sortPeriodLabels = (labels) => [...labels].sort((a, b) => {
+    const pa = String(a).match(/^(\D+)\s+(\d+)$/);
+    const pb = String(b).match(/^(\D+)\s+(\d+)$/);
+    if (pa && pb) {
+        const byWord = pa[1].localeCompare(pb[1]);
+        if (byWord) return byWord;
+        return Number(pa[2]) - Number(pb[2]);
+    }
+    return String(a).localeCompare(String(b));
+});
 
 const principalLeftOf = (row) => {
     const principal = Number(row.due_amount || 0) + Number(row.arrears_amount || 0);
@@ -461,14 +474,21 @@ const DeepavaliCollectionsPage = () => {
         const groupName = String(filters.groupName || '').trim().toLowerCase();
         const phone = String(filters.phone || '').trim().toLowerCase();
         const date = String(filters.date || '').trim();
+        const period = String(filters.period || '').trim();
         return allRows.filter((row) => {
             if (name && !String(row.subscriber?.subscriber_name || '').toLowerCase().includes(name)) return false;
             if (groupName && !String(row.group?.group_name || '').toLowerCase().includes(groupName)) return false;
             if (phone && !String(row.subscriber?.phone || '').toLowerCase().includes(phone)) return false;
             if (date && dueDay(row) !== date) return false;
+            if (period && periodLabelOf(row) !== period) return false;
             return true;
         });
     }, [allRows, filters]);
+
+    const periodOptions = useMemo(
+        () => sortPeriodLabels([...new Set(allRows.map((row) => periodLabelOf(row)).filter(Boolean))]),
+        [allRows]
+    );
 
     useEffect(() => {
         setCurrentPage(1);
@@ -594,7 +614,7 @@ const DeepavaliCollectionsPage = () => {
                         <FiFilter className="w-5 h-5 text-gray-600" />
                         <h3 className="text-lg font-semibold text-gray-800">Filters</h3>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                         <label className="block text-sm font-medium text-gray-700">
                             Name
                             <input
@@ -630,6 +650,19 @@ const DeepavaliCollectionsPage = () => {
                                 onChange={(e) => setFilters((p) => ({ ...p, date: e.target.value }))}
                                 className={`mt-1 ${fieldClass}`}
                             />
+                        </label>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Period
+                            <select
+                                value={filters.period}
+                                onChange={(e) => setFilters((p) => ({ ...p, period: e.target.value }))}
+                                className={`mt-1 ${fieldClass}`}
+                            >
+                                <option value="">All periods</option>
+                                {periodOptions.map((label) => (
+                                    <option key={label} value={label}>{label}</option>
+                                ))}
+                            </select>
                         </label>
                     </div>
                 </div>
