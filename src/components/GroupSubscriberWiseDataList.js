@@ -115,6 +115,14 @@ const GroupSubscriberWiseDataList = ({ items }) => {
 
     const formatBillAmount = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN')}`;
 
+    const paymentsOf = (auctionItem) => {
+        const raw = auctionItem?.payments;
+        if (!Array.isArray(raw)) return [];
+        return raw
+            .flatMap((entry) => (Array.isArray(entry) ? entry : [entry]))
+            .filter((payment) => payment && (payment.id != null || payment.payment_amount != null));
+    };
+
     const dueNoForAuction = (auctionItem) => formatReceivableDueNo(auctionItem);
 
     const sendBillToSubscriber = (payment, auctionItem) => {
@@ -337,7 +345,7 @@ const GroupSubscriberWiseDataList = ({ items }) => {
                                                             <React.Fragment key={index}>
                                                                 <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200">
                                                                     <td className="px-4 py-3 flex items-center">
-                                                                        {item.payments?.length > 0 && (
+                                                                        {paymentsOf(item).length > 0 && (
                                                                             <button
                                                                                 onClick={() => toggleExpandRow(index)}
                                                                                 className="mr-3 p-1 text-custom-red hover:bg-red-100 rounded-full transition-colors duration-200"
@@ -351,12 +359,12 @@ const GroupSubscriberWiseDataList = ({ items }) => {
                                                                     <td className="px-4 py-3 text-sm font-medium text-green-600">₹{item.total_paid_amount || 0}</td>
                                                                     <td className="px-4 py-3 text-sm font-medium text-orange-600">₹{item.total_outstanding_balance || 0}</td>
                                                                     <td className="px-4 py-3 text-xs text-gray-500">
-                                                                        {item.payments?.length > 0 ? "Expand to download bills" : "-"}
+                                                                        {paymentsOf(item).length > 0 ? "Expand to download bills" : "-"}
                                                                     </td>
                                                                 </tr>
 
                                                                 {/* Expanded Payments */}
-                                                                {expandedRowIndex === index && item.payments?.length > 0 && (
+                                                                {expandedRowIndex === index && paymentsOf(item).length > 0 && (
                                                                     <tr>
                                                                         <td colSpan="6" className="bg-gray-50 p-0">
                                                                             <div className="p-4">
@@ -375,8 +383,8 @@ const GroupSubscriberWiseDataList = ({ items }) => {
                                                                                                 </tr>
                                                                                             </thead>
                                                                                             <tbody>
-                                                                                                {item.payments.map((p) => (
-                                                                                                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200">
+                                                                                                {paymentsOf(item).map((p, paymentIndex) => (
+                                                                                                    <tr key={p.id || `payment-${index}-${paymentIndex}`} className="border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200">
                                                                                                         <td className="px-3 py-2 text-sm font-semibold text-gray-800">{p.id}</td>
                                                                                                         <td className="px-3 py-2 text-sm text-gray-700">
                                                                                                             {p.transacted_date
