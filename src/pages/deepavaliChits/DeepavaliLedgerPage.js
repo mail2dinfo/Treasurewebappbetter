@@ -204,9 +204,17 @@ const DeepavaliLedgerPage = () => {
         || accounts.find((acc) => acc.id === row.ledger_account_id)?.account_name
         || '—';
 
-    const categoryNameOf = (row) => row.account?.category?.category_name
-        || accounts.find((acc) => acc.id === row.ledger_account_id)?.category?.category_name
-        || '';
+    const categoryNameOf = (row) => {
+        const tagged = String(row.narration || '').match(/Category:\s*([^|]+)/i);
+        if (tagged) return tagged[1].trim();
+        const ref = String(row.reference_type || '').toUpperCase();
+        if (ref === 'RECEIPT') return 'Collection';
+        if (ref === 'PAYABLE') return 'Expenses';
+        return row.category_name
+            || row.account?.category?.category_name
+            || accounts.find((acc) => acc.id === row.ledger_account_id)?.category?.category_name
+            || '';
+    };
 
     const formatPdfDate = (value) => {
         const date = new Date(value);

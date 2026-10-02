@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { FiPlus, FiEdit2, FiTrash2, FiPhone, FiMapPin, FiUser } from 'react-icons/fi';
+import React, { useEffect, useMemo, useState } from 'react';
+import { FiPlus, FiEdit2, FiTrash2, FiPhone, FiMapPin, FiUser, FiFilter } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { useDeepavali } from '../../context/deepavali/DeepavaliContext';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 const emptyForm = {
     subscriber_name: '',
@@ -17,6 +19,37 @@ const DeepavaliSubscribersPage = () => {
     const [form, setForm] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [nameFilter, setNameFilter] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+
+    const filteredSubscribers = useMemo(() => {
+        const name = String(nameFilter || '').trim().toLowerCase();
+        if (!name) return subscribers || [];
+        return (subscribers || []).filter((row) => String(row.subscriber_name || '').toLowerCase().includes(name));
+    }, [subscribers, nameFilter]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [nameFilter, pageSize]);
+
+    const pagination = useMemo(() => {
+        const totalItems = filteredSubscribers.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize) || 1);
+        const safePage = Math.min(currentPage, totalPages);
+        const startIndex = totalItems === 0 ? 0 : (safePage - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, totalItems);
+        return {
+            totalItems,
+            totalPages,
+            safePage,
+            startIndex,
+            endIndex,
+            pageItems: filteredSubscribers.slice(startIndex, endIndex),
+        };
+    }, [filteredSubscribers, currentPage, pageSize]);
+
+    const fieldClass = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent';
 
     const openAdd = () => {
         setEditing(null);
@@ -96,7 +129,7 @@ const DeepavaliSubscribersPage = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Subscribers</h1>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Subscribers ({pagination.totalItems})</h1>
                         <p className="text-sm text-gray-600 mt-1">Manage subscribers for Deepavali Chits</p>
                     </div>
                     <button
@@ -108,6 +141,26 @@ const DeepavaliSubscribersPage = () => {
                         Add Subscriber
                     </button>
                 </div>
+
+                {subscribers.length > 0 && (
+                    <div className="mb-5 bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                            <FiFilter className="w-5 h-5 text-gray-600" />
+                            <h3 className="text-lg font-semibold text-gray-800">Filters</h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <label className="block text-sm font-medium text-gray-700">
+                                Name
+                                <input
+                                    value={nameFilter}
+                                    onChange={(e) => setNameFilter(e.target.value)}
+                                    placeholder="Subscriber name"
+                                    className={`mt-1 ${fieldClass}`}
+                                />
+                            </label>
+                        </div>
+                    </div>
+                )}
 
                 {!subscribers.length && !loading && (
                     <div className="bg-white rounded-xl shadow-sm p-12 text-center">
@@ -140,7 +193,7 @@ const DeepavaliSubscribersPage = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {subscribers.map((row) => (
+                                    {pagination.pageItems.map((row) => (
                                         <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
@@ -183,7 +236,7 @@ const DeepavaliSubscribersPage = () => {
                         </div>
 
                         <div className="md:hidden space-y-4">
-                            {subscribers.map((row) => (
+                            {pagination.pageItems.map((row) => (
                                 <div key={row.id} className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -222,6 +275,59 @@ const DeepavaliSubscribersPage = () => {
                                 </div>
                             ))}
                         </div>
+
+                        {!loading && !pagination.totalItems && (
+                            <p className="bg-white rounded-xl shadow-sm px-4 py-8 text-sm text-gray-500 text-center">
+                                No subscribers match this name.
+                            </p>
+                        )}
+
+                        {pagination.totalItems > 0 && (
+                            <div className="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-gray-600">
+                                        <span>
+                                            Showing <span className="font-semibold text-gray-900">{pagination.startIndex + 1}</span>
+                                            {' '}to <span className="font-semibold text-gray-900">{pagination.endIndex}</span>
+                                            {' '}of <span className="font-semibold text-gray-900">{pagination.totalItems}</span>
+                                        </span>
+                                        <label className="flex items-center gap-2">
+                                            Per page
+                                            <select
+                                                value={pageSize}
+                                                onChange={(e) => setPageSize(Number(e.target.value))}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                                            >
+                                                {PAGE_SIZE_OPTIONS.map((size) => (
+                                                    <option key={size} value={size}>{size}</option>
+                                                ))}
+                                            </select>
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            disabled={pagination.safePage <= 1}
+                                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                            className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                                        >
+                                            Previous
+                                        </button>
+                                        <span className="text-sm text-gray-600">
+                                            Page <span className="font-semibold text-gray-900">{pagination.safePage}</span> of <span className="font-semibold text-gray-900">{pagination.totalPages}</span>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            disabled={pagination.safePage >= pagination.totalPages}
+                                            onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                                            className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
 

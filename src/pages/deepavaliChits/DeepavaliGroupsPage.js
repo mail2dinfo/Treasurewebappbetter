@@ -17,6 +17,12 @@ import { DP_BASE_PATH, DP_COLLECTOR_PATH } from '../../components/deepavaliChits
 const today = () => new Date().toISOString().slice(0, 10);
 const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+const STATUS_FILTERS = [
+    { value: '', label: 'All' },
+    { value: 'ACTIVE', label: 'Active' },
+    { value: 'DRAFT', label: 'Draft' },
+    { value: 'CLOSED', label: 'Closed' },
+];
 
 const emptyForm = {
     group_name: '',
@@ -72,13 +78,30 @@ const DeepavaliGroupsPage = ({ embedded = false }) => {
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(25);
+    const [statusFilter, setStatusFilter] = useState('');
+
+    const statusCounts = useMemo(() => {
+        const counts = { ALL: 0, ACTIVE: 0, DRAFT: 0, CLOSED: 0 };
+        (groups || []).forEach((row) => {
+            const status = String(row.status || 'DRAFT').toUpperCase();
+            counts.ALL += 1;
+            if (counts[status] != null) counts[status] += 1;
+        });
+        return counts;
+    }, [groups]);
+
+    const filteredGroups = useMemo(() => {
+        const status = String(statusFilter || '').toUpperCase();
+        if (!status) return groups || [];
+        return (groups || []).filter((row) => String(row.status || 'DRAFT').toUpperCase() === status);
+    }, [groups, statusFilter]);
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [pageSize]);
+    }, [pageSize, statusFilter]);
 
     const pagination = useMemo(() => {
-        const list = groups || [];
+        const list = filteredGroups;
         const totalItems = list.length;
         const totalPages = Math.max(1, Math.ceil(totalItems / pageSize) || 1);
         const safePage = Math.min(currentPage, totalPages);
@@ -92,7 +115,7 @@ const DeepavaliGroupsPage = ({ embedded = false }) => {
             endIndex,
             pageItems: list.slice(startIndex, endIndex),
         };
-    }, [groups, currentPage, pageSize]);
+    }, [filteredGroups, currentPage, pageSize]);
 
     const openGroup = (group) => {
         history.push(`${groupsPath}/${group.id}`);
@@ -177,13 +200,37 @@ const DeepavaliGroupsPage = ({ embedded = false }) => {
         }
     };
 
+    const statusChips = groups.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+            {STATUS_FILTERS.map((option) => {
+                const active = statusFilter === option.value;
+                const count = option.value ? (statusCounts[option.value] || 0) : statusCounts.ALL;
+                return (
+                    <button
+                        key={option.value || 'all'}
+                        type="button"
+                        onClick={() => setStatusFilter(active && option.value ? '' : option.value)}
+                        className={`px-3 py-1.5 rounded-full border text-sm font-semibold transition-colors ${
+                            active
+                                ? 'bg-red-500 text-white border-red-500'
+                                : 'bg-white text-gray-700 border-gray-200 hover:border-red-200 hover:text-red-700'
+                        }`}
+                    >
+                        {option.label} ({count})
+                    </button>
+                );
+            })}
+        </div>
+    );
+
     return (
         <div className={embedded ? '' : 'p-4 sm:p-6 lg:p-8'}>
             <div className={embedded ? '' : 'max-w-6xl mx-auto'}>
                 {!embedded && (
                 <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Groups</h1>
+                    <div className="min-w-0 space-y-3">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Groups ({statusCounts.ALL})</h1>
+                        {statusChips}
                     </div>
                     <button
                         type="button"
@@ -194,6 +241,10 @@ const DeepavaliGroupsPage = ({ embedded = false }) => {
                         Add Group
                     </button>
                 </div>
+                )}
+
+                {embedded && statusChips && (
+                    <div className="mb-4">{statusChips}</div>
                 )}
 
                 {loading && !groups.length && (
@@ -323,6 +374,11 @@ const DeepavaliGroupsPage = ({ embedded = false }) => {
                             </article>
                         );
                     })}
+                    {groups.length > 0 && !loading && !pagination.totalItems && (
+                        <p className="bg-white rounded-xl shadow-sm px-4 py-8 text-sm text-gray-500 text-center">
+                            No groups match this status.
+                        </p>
+                    )}
                 </div>
 
                 {pagination.totalItems > 0 && (

@@ -77,7 +77,7 @@ export const DeepavaliProvider = ({ children }) => {
         )));
         setReceivables(receivableRows || []);
         setReceipts(receiptRows || []);
-        setGroups((groupRows || []).filter((row) => String(row.status || '').toUpperCase() !== 'CLOSED'));
+        setGroups(groupRows || []);
         setPayables(payableRows || []);
         setReports(reportPayload);
     }, []);
@@ -248,6 +248,11 @@ export const DeepavaliProvider = ({ children }) => {
         return saved;
     }, [request]);
 
+    const deleteCategory = useCallback(async (id) => {
+        await request('/dp/ledger/categories/delete', { method: 'POST', body: { id } });
+        setCategories((prev) => prev.filter((row) => row.id !== id));
+    }, [request]);
+
     const saveAccount = useCallback(async (payload) => {
         const saved = await request('/dp/ledger/accounts', { method: 'POST', body: payload });
         setAccounts((prev) => {
@@ -404,6 +409,7 @@ export const DeepavaliProvider = ({ children }) => {
         disableEmployee,
         saveRole,
         saveCategory,
+        deleteCategory,
         saveAccount,
         deleteAccount,
         fetchEntries,

@@ -79,7 +79,11 @@ const DeepavaliCollectorGroupAssignmentModal = ({
         [groups, assignedIds]
     );
     const pendingGroups = useMemo(
-        () => groups.filter((group) => !assignedIds.includes(group.id) && !occupiedIds.has(group.id)),
+        () => groups.filter((group) =>
+            !assignedIds.includes(group.id)
+            && !occupiedIds.has(group.id)
+            && String(group.status || '').toUpperCase() !== 'CLOSED'
+        ),
         [assignedIds, groups, occupiedIds]
     );
     const takenGroups = useMemo(
