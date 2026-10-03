@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useDcSubscriberContext } from '../../context/dailyCollection/DcSubscriberContext';
 import SubscriberForm from '../../components/dailyCollection/SubscriberForm';
 import { FiPlus, FiEdit2, FiTrash2, FiPhone, FiMapPin, FiUser, FiAlertCircle, FiImage, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import Loading from '../../components/Loading';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 1000, 2000];
 
 const SubscribersPage = () => {
     const {
@@ -24,6 +26,28 @@ const SubscribersPage = () => {
     const [imagePreview, setImagePreview] = useState(null);
     const [previewImageUrl, setPreviewImageUrl] = useState(null);
     const [pageLoading, setPageLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [pageSize, subscribers.length]);
+
+    const pagination = useMemo(() => {
+        const totalItems = (subscribers || []).length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize) || 1);
+        const safePage = Math.min(currentPage, totalPages);
+        const startIndex = totalItems === 0 ? 0 : (safePage - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, totalItems);
+        return {
+            totalItems,
+            totalPages,
+            safePage,
+            startIndex,
+            endIndex,
+            pageItems: (subscribers || []).slice(startIndex, endIndex),
+        };
+    }, [subscribers, currentPage, pageSize]);
 
     useEffect(() => {
         let cancelled = false;
@@ -233,7 +257,7 @@ const SubscribersPage = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {subscribers.map((subscriber) => (
+                                    {pagination.pageItems.map((subscriber) => (
                                         <tr key={subscriber.dc_cust_id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-3">
@@ -343,7 +367,7 @@ const SubscribersPage = () => {
 
                         {/* Mobile Card View */}
                         <div className="md:hidden space-y-4">
-                            {subscribers.map((subscriber) => (
+                            {pagination.pageItems.map((subscriber) => (
                                 <div
                                     key={subscriber.dc_cust_id}
                                     className="bg-white rounded-xl shadow-sm p-4 border border-gray-200"
@@ -418,6 +442,53 @@ const SubscribersPage = () => {
                                 </div>
                             ))}
                         </div>
+
+                        {pagination.totalItems > 0 && (
+                            <div className="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-gray-600">
+                                        <span>
+                                            Showing <span className="font-semibold text-gray-900">{pagination.startIndex + 1}</span>
+                                            {' '}to <span className="font-semibold text-gray-900">{pagination.endIndex}</span>
+                                            {' '}of <span className="font-semibold text-gray-900">{pagination.totalItems}</span>
+                                        </span>
+                                        <label className="flex items-center gap-2">
+                                            Per page
+                                            <select
+                                                value={pageSize}
+                                                onChange={(e) => setPageSize(Number(e.target.value))}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                                            >
+                                                {PAGE_SIZE_OPTIONS.map((size) => (
+                                                    <option key={size} value={size}>{size}</option>
+                                                ))}
+                                            </select>
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            disabled={pagination.safePage <= 1}
+                                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                            className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                                        >
+                                            Previous
+                                        </button>
+                                        <span className="text-sm text-gray-600">
+                                            Page <span className="font-semibold text-gray-900">{pagination.safePage}</span> of <span className="font-semibold text-gray-900">{pagination.totalPages}</span>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            disabled={pagination.safePage >= pagination.totalPages}
+                                            onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                                            className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
 

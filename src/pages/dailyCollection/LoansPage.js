@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDailyCollectionContext } from '../../context/dailyCollection/DailyCollectionContext';
 import { useDcSubscriberContext } from '../../context/dailyCollection/DcSubscriberContext';
 import LoanDisbursementForm from '../../components/dailyCollection/LoanDisbursementForm';
 import LoanDetails from '../../components/dailyCollection/LoanDetails';
 import { FiPlus, FiEye, FiDollarSign, FiCalendar, FiCheckCircle, FiClock, FiImage, FiX, FiFilter, FiSearch } from 'react-icons/fi';
 import Loading from '../../components/Loading';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100, 1000, 2000];
 
 const LoansPage = () => {
     const { loans, products, isLoading, error, fetchLoans, fetchProducts, clearError } = useDailyCollectionContext();
@@ -22,6 +24,8 @@ const LoansPage = () => {
         principal: ''
     });
     const [showFilters, setShowFilters] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
 
     useEffect(() => {
         console.log('=== LOANS PAGE INITIALIZATION ===');
@@ -31,7 +35,7 @@ const LoansPage = () => {
         fetchSubscribers();
     }, [fetchProducts, fetchLoans, fetchSubscribers]);
 
-    const filteredLoans = loans.filter(loan => {
+    const filteredLoans = useMemo(() => loans.filter(loan => {
         // Status filter
         const loanStatus = loan.status?.toUpperCase();
         const activeTabStatus = activeTab?.toUpperCase();
@@ -68,7 +72,27 @@ const LoansPage = () => {
         }
 
         return true;
-    });
+    }), [loans, activeTab, filters]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab, filters, pageSize]);
+
+    const pagination = useMemo(() => {
+        const totalItems = filteredLoans.length;
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize) || 1);
+        const safePage = Math.min(currentPage, totalPages);
+        const startIndex = totalItems === 0 ? 0 : (safePage - 1) * pageSize;
+        const endIndex = Math.min(startIndex + pageSize, totalItems);
+        return {
+            totalItems,
+            totalPages,
+            safePage,
+            startIndex,
+            endIndex,
+            pageItems: filteredLoans.slice(startIndex, endIndex),
+        };
+    }, [filteredLoans, currentPage, pageSize]);
 
     // Debug logging for loans data
     useEffect(() => {
@@ -501,7 +525,7 @@ const LoansPage = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
-                                    {filteredLoans.map((loan) => {
+                                    {pagination.pageItems.map((loan) => {
                                         // Debug subscriber data for each loan
                                         const hasSubscriber = !!loan.subscriber;
                                         const imageUrl = loan.subscriber?.dc_cust_photo_s3_image || loan.subscriber?.dc_cust_photo;
@@ -632,7 +656,7 @@ const LoansPage = () => {
 
                         {/* Mobile Card View */}
                         <div className="md:hidden space-y-4">
-                            {filteredLoans.map((loan) => (
+                            {pagination.pageItems.map((loan) => (
                                 <div key={loan.id} className="bg-white rounded-xl shadow-sm p-4 border border-gray-200">
                                     {/* Header */}
                                     <div className="flex items-start justify-between mb-3">
@@ -726,6 +750,53 @@ const LoansPage = () => {
                                 </div>
                             ))}
                         </div>
+
+                        {pagination.totalItems > 0 && (
+                            <div className="mt-4 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-sm text-gray-600">
+                                        <span>
+                                            Showing <span className="font-semibold text-gray-900">{pagination.startIndex + 1}</span>
+                                            {' '}to <span className="font-semibold text-gray-900">{pagination.endIndex}</span>
+                                            {' '}of <span className="font-semibold text-gray-900">{pagination.totalItems}</span>
+                                        </span>
+                                        <label className="flex items-center gap-2">
+                                            Per page
+                                            <select
+                                                value={pageSize}
+                                                onChange={(e) => setPageSize(Number(e.target.value))}
+                                                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                                            >
+                                                {PAGE_SIZE_OPTIONS.map((size) => (
+                                                    <option key={size} value={size}>{size}</option>
+                                                ))}
+                                            </select>
+                                        </label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            disabled={pagination.safePage <= 1}
+                                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                            className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                                        >
+                                            Previous
+                                        </button>
+                                        <span className="text-sm text-gray-600">
+                                            Page <span className="font-semibold text-gray-900">{pagination.safePage}</span> of <span className="font-semibold text-gray-900">{pagination.totalPages}</span>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            disabled={pagination.safePage >= pagination.totalPages}
+                                            onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                                            className="px-3 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                                        >
+                                            Next
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
 
