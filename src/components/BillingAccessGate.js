@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useBilling } from '../context/billing_context';
 import BillingPaymentModal from './BillingPaymentModal';
-import { formatBillingAmount } from '../utils/billingPaymentUtils';
+import { formatBillingAmount, formatKindlyPayForMonth, formatBillingCycleDateRange } from '../utils/billingPaymentUtils';
 import { getBillingAppLabel } from '../utils/billingAppLabels';
 
 /**
@@ -108,7 +108,9 @@ const BillingAccessGate = ({ children }) => {
                         </h2>
                         <p className="mt-2 text-sm text-white/80">
                             {needsPaywall
-                                ? 'Pay outstanding billing cycles to reopen this app.'
+                                ? (outstandingCycles.length === 1
+                                    ? `${formatKindlyPayForMonth(outstandingCycles[0])} to reopen this app.`
+                                    : 'Kindly pay the pending months to reopen this app.')
                                 : 'Customer service stopped automatic billing. You can resume since there are no pending dues.'}
                         </p>
                     </div>
@@ -130,10 +132,10 @@ const BillingAccessGate = ({ children }) => {
                                         >
                                             <div>
                                                 <p className="text-sm font-semibold text-gray-900">
-                                                    Cycle {cycle.cycle_number}
+                                                    {formatKindlyPayForMonth(cycle)}
                                                 </p>
-                                                <p className="text-xs text-gray-500 capitalize">
-                                                    {cycle.status}
+                                                <p className="text-xs text-gray-500">
+                                                    {formatBillingCycleDateRange(cycle) || (cycle.status ? String(cycle.status) : '')}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-3">
@@ -195,7 +197,7 @@ const BillingAccessGate = ({ children }) => {
                 onConfirm={handlePay}
                 amount={payingCycle?.amount}
                 isSubmitting={isSubmitting}
-                title={`Pay Cycle ${payingCycle?.cycle_number || ''}`}
+                title={payingCycle ? formatKindlyPayForMonth(payingCycle) : 'Pay'}
             />
 
             {/* Keep children mounted but inaccessible behind gate */}

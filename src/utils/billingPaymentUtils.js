@@ -186,6 +186,43 @@ export const formatBillingAmount = (amount) => {
     }).format(amount || 0);
 };
 
+export const getBillingCycleMonthLabel = (cycle) => {
+    const raw = cycle?.cycle_start_date || cycle?.due_date || cycle?.cycle_end_date;
+    if (!raw) return null;
+    const date = new Date(raw);
+    if (Number.isNaN(date.getTime())) return null;
+    const month = date.toLocaleDateString('en-IN', { month: 'long' });
+    const year = date.getFullYear();
+    return year !== new Date().getFullYear() ? `${month} ${year}` : month;
+};
+
+const formatBillingDay = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    });
+};
+
+export const formatBillingCycleDateRange = (cycle) => {
+    const from = formatBillingDay(cycle?.cycle_start_date || cycle?.due_date);
+    const to = formatBillingDay(cycle?.cycle_end_date);
+    if (from && to) return `From ${from} to ${to}`;
+    if (from) return `From ${from}`;
+    return null;
+};
+
+export const formatKindlyPayForMonth = (cycle) => {
+    const month = getBillingCycleMonthLabel(cycle);
+    if (!month) {
+        return cycle?.cycle_number ? `Cycle ${cycle.cycle_number}` : 'Kindly pay';
+    }
+    return `For the month of ${month} kindly pay`;
+};
+
 export const getDismissStorageKey = (membershipId, totalDue, cycleCount, isExpiring = false) => {
     return `billingOverdueDismissed_${membershipId}_${totalDue}_${cycleCount}_${isExpiring ? 'expire' : 'pending'}`;
 };
