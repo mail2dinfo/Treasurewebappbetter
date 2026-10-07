@@ -309,9 +309,22 @@ export const DeepavaliProvider = ({ children }) => {
 
     const payReceivable = useCallback(async (payload) => {
         const saved = await request('/dp/collections/pay', { method: 'POST', body: payload });
-        await refreshAll();
+        try {
+            const [receivableRows, receiptRows, accountRows, dash] = await Promise.all([
+                request('/dp/receivables'),
+                request('/dp/receipts'),
+                request('/dp/ledger/accounts'),
+                request('/dp/dashboard'),
+            ]);
+            setReceivables(receivableRows || []);
+            setReceipts(receiptRows || []);
+            setAccounts(accountRows || []);
+            setDashboard(dash);
+        } catch (err) {
+            console.error('Deepavali pay refresh', err);
+        }
         return saved;
-    }, [refreshAll, request]);
+    }, [request]);
 
     const deleteReceipt = useCallback(async (id) => {
         await request('/dp/receipts/delete', { method: 'POST', body: { id } });
