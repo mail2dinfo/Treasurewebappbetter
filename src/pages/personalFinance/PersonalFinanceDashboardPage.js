@@ -200,6 +200,7 @@ const PersonalFinanceDashboardPage = () => {
     const [expenseCats, setExpenseCats] = useState([]);
 
     const [showTxnModal, setShowTxnModal] = useState(false);
+    const [editingTxn, setEditingTxn] = useState(null);
     const [showCatModal, setShowCatModal] = useState(false);
     const [showAccountModal, setShowAccountModal] = useState(false);
     const [editingAccount, setEditingAccount] = useState(null);
@@ -350,13 +351,30 @@ const PersonalFinanceDashboardPage = () => {
         });
     }, [txnType, incomeCats, expenseCats]);
 
-    const openTxnModal = async () => {
-        setTxnType('');
+    const closeTxnModal = () => {
+        setShowTxnModal(false);
+        setEditingTxn(null);
         setTxnTypeError('');
-        setAmount('');
-        setTxnDate(todayISO());
-        setNote('');
+    };
+
+    const openTxnModal = async (txn = null) => {
+        setTxnTypeError('');
         await ensureLookups();
+        if (txn?.id) {
+            setEditingTxn(txn);
+            setTxnType(txn.txn_type === 'INCOME' ? 'INCOME' : 'EXPENSE');
+            setAmount(txn.amount != null ? String(txn.amount) : '');
+            setAccountId(txn.account_id || txn.account?.id || '');
+            setCategoryId(txn.category_id || txn.category?.id || '');
+            setTxnDate(String(txn.txn_date || '').slice(0, 10) || todayISO());
+            setNote(txn.note || '');
+        } else {
+            setEditingTxn(null);
+            setTxnType('');
+            setAmount('');
+            setTxnDate(todayISO());
+            setNote('');
+        }
         setShowTxnModal(true);
     };
 
@@ -508,25 +526,35 @@ const PersonalFinanceDashboardPage = () => {
         }
         setSaving(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/pf/transactions`, {
-                method: 'POST',
-                headers: authHeaders,
-                body: JSON.stringify({
-                    txn_type: txnType,
-                    amount: Number(amount),
-                    account_id: accountId,
-                    category_id: categoryId,
-                    txn_date: txnDate,
-                    note: note.trim() || undefined,
-                    membershipId,
-                }),
-            });
+            const payload = {
+                txn_type: txnType,
+                amount: Number(amount),
+                account_id: accountId,
+                category_id: categoryId,
+                txn_date: txnDate,
+                note: note.trim() || undefined,
+                membershipId,
+            };
+            const res = await fetch(
+                editingTxn?.id
+                    ? `${API_BASE_URL}/pf/transactions/${editingTxn.id}`
+                    : `${API_BASE_URL}/pf/transactions`,
+                {
+                    method: editingTxn?.id ? 'PUT' : 'POST',
+                    headers: authHeaders,
+                    body: JSON.stringify(payload),
+                }
+            );
             const data = await res.json();
             if (!res.ok || data.error) {
                 throw new Error(data.message || 'Failed to save');
             }
-            toast.success(txnType === 'INCOME' ? 'Income logged' : 'Expense logged');
-            setShowTxnModal(false);
+            toast.success(
+                editingTxn?.id
+                    ? 'Entry updated'
+                    : (txnType === 'INCOME' ? 'Income logged' : 'Expense logged')
+            );
+            closeTxnModal();
             await fetchSummary();
             await ensureLookups();
         } catch (error) {
@@ -659,6 +687,21 @@ const PersonalFinanceDashboardPage = () => {
     );
     const totalAccountBalance = accounts.reduce((sum, a) => sum + (Number(a.current_balance) || 0), 0);
     const totalOpeningBalance = accounts.reduce((sum, a) => sum + (Number(a.opening_balance) || 0), 0);
+    const balanceByAccountType = ACCOUNT_TYPES.map((t) => {
+        const typeAccounts = accounts.filter(
+            (a) => String(a.account_type || 'OTHER').toUpperCase() === t.value
+        );
+        if (typeAccounts.length === 0) return null;
+        const amount = typeAccounts.reduce(
+            (sum, a) => sum + (Number(a.current_balance) || 0),
+            0
+        );
+        return {
+            ...t,
+            amount: Math.round(amount * 100) / 100,
+            count: typeAccounts.length,
+        };
+    }).filter(Boolean);
     // Header stats: opening is treated as starting money (part of Income)
     // so Balance = Income − Spent always holds.
     const periodIncome = Number(totals.income) || 0;
@@ -857,6 +900,19 @@ const PersonalFinanceDashboardPage = () => {
                                         <span className="text-sm font-medium text-yellow-800">
                                             Balance: {formatMoneyExact(headerTotals.net)}
                                         </span>
+                                        {balanceByAccountType.length > 0 && (
+                                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                                {balanceByAccountType.map((t) => (
+                                                    <span
+                                                        key={t.value}
+                                                        className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium ${typeBadgeClass(t.value)}`}
+                                                        title={`Cumulative closing of ${t.count} ${t.label.toLowerCase()} account${t.count === 1 ? '' : 's'}`}
+                                                    >
+                                                        {t.label} {formatMoneyExact(t.amount)}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -1070,7 +1126,7 @@ const PersonalFinanceDashboardPage = () => {
                                                     <th className="px-2 py-1.5 font-medium">Account</th>
                                                     <th className="px-2 py-1.5 font-medium text-right">Amount</th>
                                                     <th className="px-2 py-1.5 font-medium">Note</th>
-                                                    <th className="px-2 py-1.5 font-medium text-center w-10" />
+                                                    <th className="px-2 py-1.5 font-medium text-center w-16" />
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1103,18 +1159,34 @@ const PersonalFinanceDashboardPage = () => {
                                                             {txn.note || '—'}
                                                         </td>
                                                         <td className="px-2 py-1.5 text-center">
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    removeTransaction(txn);
-                                                                }}
-                                                                disabled={saving}
-                                                                className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50"
-                                                                title="Delete"
-                                                            >
-                                                                <FaTrash className="w-3 h-3" />
-                                                            </button>
+                                                            <div className="inline-flex items-center gap-0.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openTxnModal(txn);
+                                                                    }}
+                                                                    disabled={saving}
+                                                                    className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                                                                    title="Edit"
+                                                                    aria-label="Edit entry"
+                                                                >
+                                                                    <FaEdit className="w-3 h-3" />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        removeTransaction(txn);
+                                                                    }}
+                                                                    disabled={saving}
+                                                                    className="p-1 text-gray-400 hover:text-red-600 disabled:opacity-50"
+                                                                    title="Delete"
+                                                                    aria-label="Delete entry"
+                                                                >
+                                                                    <FaTrash className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -1428,16 +1500,18 @@ const PersonalFinanceDashboardPage = () => {
                             <div className="flex items-center justify-between mb-6">
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-900">
-                                        {txnType === 'INCOME'
-                                            ? 'Log Income'
-                                            : txnType === 'EXPENSE'
-                                                ? 'Log Expense'
-                                                : 'Add Entry'}
+                                        {editingTxn
+                                            ? 'Edit Entry'
+                                            : txnType === 'INCOME'
+                                                ? 'Log Income'
+                                                : txnType === 'EXPENSE'
+                                                    ? 'Log Expense'
+                                                    : 'Add Entry'}
                                     </h2>
                                 </div>
                                 <button
                                     type="button"
-                                    onClick={() => setShowTxnModal(false)}
+                                    onClick={closeTxnModal}
                                     className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full p-2 transition-colors duration-200"
                                 >
                                     <FaTimes className="w-6 h-6" />
@@ -1567,7 +1641,7 @@ const PersonalFinanceDashboardPage = () => {
                                 <div className="flex justify-end gap-3 pt-4">
                                     <button
                                         type="button"
-                                        onClick={() => setShowTxnModal(false)}
+                                        onClick={closeTxnModal}
                                         className="px-8 py-3 text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all duration-200 text-base font-medium shadow-sm hover:shadow-md"
                                     >
                                         Cancel
@@ -1577,7 +1651,7 @@ const PersonalFinanceDashboardPage = () => {
                                         disabled={saving}
                                         className="flex items-center gap-3 px-8 py-3 text-white rounded-xl transition-all duration-200 text-base font-bold bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 shadow-lg hover:shadow-xl disabled:opacity-50"
                                     >
-                                        {saving ? 'Saving…' : 'Save'}
+                                        {saving ? 'Saving…' : editingTxn ? 'Update' : 'Save'}
                                     </button>
                                 </div>
                             </form>
