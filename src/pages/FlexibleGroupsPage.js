@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useHistory, useLocation } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -432,8 +432,6 @@ const AddPayableModal = ({
 const AddDuesModal = ({
   open,
   onClose,
-  defaultEmi,
-  defaultDate,
   tenure,
   saving,
   previewLoading,
@@ -441,25 +439,28 @@ const AddDuesModal = ({
   onPreview,
   onSubmit,
 }) => {
-  const [auctDate, setAuctDate] = useState(todayISO());
+  const [step, setStep] = useState(1);
+  const [auctDate, setAuctDate] = useState('');
   const [emiValue, setEmiValue] = useState('');
   const [rowEmis, setRowEmis] = useState({});
   const [ready, setReady] = useState(false);
-  const [confirming, setConfirming] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
+  const fetchedDateRef = useRef('');
 
   useEffect(() => {
     if (!open) return;
-    setAuctDate(toISODate(defaultDate) || todayISO());
+    setStep(1);
+    setAuctDate('');
     setEmiValue('');
     setRowEmis({});
     setReady(false);
-    setConfirming(false);
     setSelectedIds([]);
+    fetchedDateRef.current = '';
   }, [open]);
 
   useEffect(() => {
-    if (!open || !auctDate) return undefined;
+    if (!open || step !== 2 || !auctDate) return undefined;
+    if (fetchedDateRef.current === auctDate) return undefined;
     let cancelled = false;
     setReady(false);
     (async () => {
@@ -468,13 +469,13 @@ const AddDuesModal = ({
         customer_due: 0,
       });
       if (cancelled) return;
+      if (ok) fetchedDateRef.current = auctDate;
       setReady(!!ok);
     })();
     return () => {
       cancelled = true;
     };
-    // onPreview is recreated each render — do not depend on it
-  }, [open, auctDate]);
+  }, [open, auctDate, step]);
 
   useEffect(() => {
     if (!ready || !preview?.receivables) return;
@@ -554,9 +555,17 @@ const AddDuesModal = ({
     else setSelectedIds(rows.map((row) => String(row.group_subscriber_id)));
   };
 
+  const goStep2 = () => {
+    if (!auctDate) {
+      toast.error('Choose a due date first');
+      return;
+    }
+    setStep(2);
+  };
+
   const handleSave = () => {
     if (!auctDate) {
-      toast.error('Enter due date');
+      toast.error('Choose a due date first');
       return;
     }
     if (!rows.length) {
@@ -573,20 +582,20 @@ const AddDuesModal = ({
       );
       return;
     }
-    setConfirming(true);
+    setStep(3);
   };
 
   const handleConfirmProcess = () => {
     if (!selectedRows.length) {
       toast.error('Tick at least one subscriber to bill');
-      setConfirming(false);
+      setStep(2);
       return;
     }
     if (missingAmounts.length) {
       toast.error(
         `Enter due amount for: ${missingAmounts.map((row) => row.name).join(', ')}`
       );
-      setConfirming(false);
+      setStep(2);
       return;
     }
     onSubmit({
@@ -608,14 +617,173 @@ const AddDuesModal = ({
       <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[95vh] overflow-y-auto shadow-2xl">
         <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-white">
-            {confirming ? 'Confirm monthly due' : 'Add monthly due'}
+            {step === 3 ? 'Confirm monthly due' : 'Add monthly due'}
           </h2>
           <button type="button" onClick={onClose} className="text-white/80 hover:text-white p-2">
             <FiX className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 space-y-4">
-          {confirming ? (
+        <div className="px-6 pt-4">
+          <p className="text-xs font-medium text-gray-500">
+            Step {step} of 3
+            {step === 1 ? ' — Due date' : step === 2 ? ' — Amount & subscribers' : ' — Preview & confirm'}
+          </p>
+        </div>
+        <div className="p-6 space-y-4 pt-3">
+          {step === 1 && (
+            <>
+              <p className="text-sm text-gray-600">Choose the due date first. No date is selected by default.</p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due date *</label>
+                <input
+                  type="date"
+                  value={auctDate}
+                  onChange={(e) => setAuctDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={onClose} className="flex-1 px-4 py-3 bg-gray-100 rounded-lg">
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!auctDate}
+                  onClick={goStep2}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due amount</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={emiValue}
+                  placeholder="Enter due"
+                  onChange={(e) => applyOnSchedule(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Full-ticket due. Split tickets (for example 1A / 1B at 50%) get this amount × their share.
+                </p>
+              </div>
+
+              {previewLoading && (
+                <p className="text-sm text-gray-500">Loading subscribers…</p>
+              )}
+
+              {ready && (
+                <>
+                  {(preview?.skipped || []).length > 0 && (
+                    <p className="text-xs text-gray-500">
+                      Skipped (tenure complete): {preview.skipped.map((s) => s.name).join(', ')}
+                    </p>
+                  )}
+                  {(preview?.already_billed_this_date || []).length > 0 && (
+                    <p className="text-xs text-gray-500">
+                      Already billed on this date: {preview.already_billed_this_date.map((s) => s.name).join(', ')}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-600">
+                    Ticked subscribers are billed now. Unticked subscribers keep their pending dues.
+                    Selected {selectedRows.length} of {rows.length}.
+                  </p>
+                  <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                    <table className="w-full text-sm">
+                      <thead className="bg-red-50 text-red-800">
+                        <tr>
+                          <th className="px-3 py-2 text-left w-10">
+                            <input
+                              type="checkbox"
+                              checked={allSelected}
+                              onChange={toggleAllSelected}
+                              aria-label="Select all subscribers"
+                            />
+                          </th>
+                          <th className="px-3 py-2 text-left">Subscriber</th>
+                          <th className="px-3 py-2 text-left">Ticket</th>
+                          <th className="px-3 py-2 text-left">Share</th>
+                          <th className="px-3 py-2 text-left">Due no.</th>
+                          <th className="px-3 py-2 text-left">Due</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((row) => (
+                          <tr key={row.group_subscriber_id} className={`border-t ${selectedSet.has(String(row.group_subscriber_id)) ? '' : 'opacity-50'}`}>
+                            <td className="px-3 py-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedSet.has(String(row.group_subscriber_id))}
+                                onChange={() => toggleSelected(row.group_subscriber_id)}
+                                aria-label={`Bill ${row.name}`}
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="font-semibold">{row.name}</div>
+                              {row.delayed && (
+                                <div className="text-xs text-amber-700">Late joiner — enter due manually</div>
+                              )}
+                            </td>
+                            <td className="px-3 py-2">{row.accountshare_id || '—'}</td>
+                            <td className="px-3 py-2">{Number(row.accountshare_percentage) || 100}%</td>
+                            <td className="px-3 py-2">{row.due_number} / {tenure || row.tenure}</td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="number"
+                                min="0"
+                                value={row.emiRaw}
+                                placeholder={row.delayed ? 'Enter due' : ''}
+                                onChange={(e) =>
+                                  setRowEmis((prev) => ({
+                                    ...prev,
+                                    [String(row.group_subscriber_id)]: e.target.value,
+                                  }))
+                                }
+                                className={`w-28 px-2 py-1 border rounded-lg ${
+                                  row.delayed && row.emi == null ? 'border-amber-400 bg-amber-50' : ''
+                                }`}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                        {!rows.length && (
+                          <tr>
+                            <td colSpan={6} className="px-3 py-6 text-center text-gray-500">
+                              No subscribers still need dues
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setStep(1)} className="flex-1 px-4 py-3 bg-gray-100 rounded-lg">
+                  Back
+                </button>
+                <button
+                  type="button"
+                  disabled={saving || previewLoading || !ready || !rows.length || !selectedRows.length}
+                  onClick={handleSave}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 3 && (
             <>
               <p className="text-sm text-gray-600">
                 Review the dues below. This will create receivables for{' '}
@@ -667,7 +835,7 @@ const AddDuesModal = ({
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setConfirming(false)}
+                  onClick={() => setStep(2)}
                   disabled={saving}
                   className="flex-1 px-4 py-3 bg-gray-100 rounded-lg"
                 >
@@ -682,143 +850,6 @@ const AddDuesModal = ({
                   {saving ? 'Processing…' : 'Confirm'}
                 </button>
               </div>
-            </>
-          ) : (
-            <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Due date *</label>
-              <input
-                type="date"
-                value={auctDate}
-                onChange={(e) => {
-                  setAuctDate(e.target.value);
-                  setConfirming(false);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Due</label>
-              <input
-                type="number"
-                min="0"
-                value={emiValue}
-                placeholder="Enter due"
-                onChange={(e) => applyOnSchedule(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Full-ticket due. Split tickets (for example 1A / 1B at 50%) get this amount × their share.
-              </p>
-            </div>
-          </div>
-
-          {previewLoading && (
-            <p className="text-sm text-gray-500">Loading subscribers…</p>
-          )}
-
-          {ready && (
-            <>
-              {(preview?.skipped || []).length > 0 && (
-                <p className="text-xs text-gray-500">
-                  Skipped (tenure complete): {preview.skipped.map((s) => s.name).join(', ')}
-                </p>
-              )}
-              {(preview?.already_billed_this_date || []).length > 0 && (
-                <p className="text-xs text-gray-500">
-                  Already billed on this date: {preview.already_billed_this_date.map((s) => s.name).join(', ')}
-                </p>
-              )}
-              <p className="text-xs text-gray-600">
-                Ticked subscribers are billed now. Unticked subscribers keep their pending dues.
-                Selected {selectedRows.length} of {rows.length}.
-              </p>
-              <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                <table className="w-full text-sm">
-                  <thead className="bg-red-50 text-red-800">
-                    <tr>
-                      <th className="px-3 py-2 text-left w-10">
-                        <input
-                          type="checkbox"
-                          checked={allSelected}
-                          onChange={toggleAllSelected}
-                          aria-label="Select all subscribers"
-                        />
-                      </th>
-                      <th className="px-3 py-2 text-left">Subscriber</th>
-                      <th className="px-3 py-2 text-left">Ticket</th>
-                      <th className="px-3 py-2 text-left">Share</th>
-                      <th className="px-3 py-2 text-left">Due no.</th>
-                      <th className="px-3 py-2 text-left">Due</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.group_subscriber_id} className={`border-t ${selectedSet.has(String(row.group_subscriber_id)) ? '' : 'opacity-50'}`}>
-                        <td className="px-3 py-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedSet.has(String(row.group_subscriber_id))}
-                            onChange={() => toggleSelected(row.group_subscriber_id)}
-                            aria-label={`Bill ${row.name}`}
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="font-semibold">{row.name}</div>
-                          {row.delayed && (
-                            <div className="text-xs text-amber-700">Late joiner — enter due manually</div>
-                          )}
-                        </td>
-                        <td className="px-3 py-2">{row.accountshare_id || '—'}</td>
-                        <td className="px-3 py-2">{Number(row.accountshare_percentage) || 100}%</td>
-                        <td className="px-3 py-2">{row.due_number} / {tenure || row.tenure}</td>
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            min="0"
-                            value={row.emiRaw}
-                            placeholder={row.delayed ? 'Enter due' : ''}
-                            onChange={(e) =>
-                              setRowEmis((prev) => ({
-                                ...prev,
-                                [String(row.group_subscriber_id)]: e.target.value,
-                              }))
-                            }
-                            className={`w-28 px-2 py-1 border rounded-lg ${
-                              row.delayed && row.emi == null ? 'border-amber-400 bg-amber-50' : ''
-                            }`}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                    {!rows.length && (
-                      <tr>
-                        <td colSpan={6} className="px-3 py-6 text-center text-gray-500">
-                          No subscribers still need dues
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-3 bg-gray-100 rounded-lg">
-              Cancel
-            </button>
-            <button
-              type="button"
-              disabled={saving || previewLoading || !ready || !rows.length || !selectedRows.length}
-              onClick={handleSave}
-              className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50"
-            >
-              Process Monthly Due
-            </button>
-          </div>
             </>
           )}
         </div>
@@ -1265,8 +1296,6 @@ const FlexibleGroupsContent = ({ data, onRefresh }) => {
           setShowDues(false);
           setPreview(null);
         }}
-        defaultEmi={emi || dueStatus?.emi || 0}
-        defaultDate={nextAuctionDate}
         tenure={dueStatus?.tenure || results.totalTenture}
         saving={savingDues}
         previewLoading={previewLoading}
