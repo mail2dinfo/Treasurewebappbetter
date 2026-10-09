@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { useDcLiveEvents } from '../../context/dailyCollection/dcLiveEvents_context';
-import { FiFilter, FiMapPin, FiUser, FiSearch, FiRefreshCw, FiAlertCircle, FiDownload, FiCheck, FiX } from 'react-icons/fi';
+import { FiFilter, FiMapPin, FiUser, FiSearch, FiRefreshCw, FiAlertCircle, FiDownload, FiCheck, FiX, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import RouteMapModal from '../../components/RouteMapModal';
 import { pdf } from '@react-pdf/renderer';
@@ -22,6 +22,20 @@ const downloadPdfBlob = async (documentNode, fileName) => {
 };
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+const areaIdOf = (row) => String(
+    row?.subscriber?.dc_aob_id
+    || row?.subscriber?.area?.id
+    || row?.dc_aob_id
+    || ''
+);
+
+const areaNameOf = (row) => String(
+    row?.subscriber?.area_name
+    || row?.area_name
+    || row?.subscriber?.area?.aob
+    || ''
+).trim();
 
 const CollectionsPage = ({ collectorScoped = false }) => {
     const { user } = useUserContext();
@@ -48,8 +62,11 @@ const CollectionsPage = ({ collectorScoped = false }) => {
         subscriberName: '',
         amount: '',
         status: 'due', // due (today + overdue), all, today, overdue, future
-        disbursementDate: ''
+        disbursementDate: '',
+        area: '',
     });
+    const [areas, setAreas] = useState([]);
+    const [filtersOpen, setFiltersOpen] = useState(true);
 
     // Payment form
     const [paymentForm, setPaymentForm] = useState({
@@ -164,11 +181,33 @@ const CollectionsPage = ({ collectorScoped = false }) => {
         }
     }, [user]);
 
+    const fetchAreas = useCallback(async () => {
+        if (!user?.results?.token) return;
+        try {
+            const membershipId = user?.results?.userAccounts?.[0]?.parent_membership_id;
+            const url = `${API_BASE_URL}/dc/aob?parent_membership_id=${membershipId}`;
+            const res = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Bearer ${user.results.token}`,
+                    "Content-Type": "application/json",
+                },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setAreas(data.results || data.data || []);
+            }
+        } catch (error) {
+            console.error('Error fetching areas:', error);
+        }
+    }, [user]);
+
     useEffect(() => {
         fetchReceivables();
         fetchLedgerAccounts();
         fetchCompanies();
-    }, [user, filters, fetchCompanies, fetchReceivables, fetchLedgerAccounts]);
+        fetchAreas();
+    }, [user, filters, fetchCompanies, fetchReceivables, fetchLedgerAccounts, fetchAreas]);
 
     useDcLiveEvents(() => {
         fetchReceivables({ silent: true });
@@ -235,8 +274,38 @@ const CollectionsPage = ({ collectorScoped = false }) => {
             });
         }
 
+        if (filters.area) {
+            const wanted = String(filters.area).trim().toLowerCase();
+            filtered = filtered.filter((r) => {
+                const id = areaIdOf(r).toLowerCase();
+                const name = areaNameOf(r).toLowerCase();
+                return id === wanted || name === wanted;
+            });
+        }
+
         return filtered;
-    }, [receivables, filters.subscriberName, filters.amount, filters.disbursementDate]);
+    }, [receivables, filters.subscriberName, filters.amount, filters.disbursementDate, filters.area]);
+
+    const areaFilterOptions = useMemo(() => {
+        const byId = new Map();
+        (areas || []).forEach((area) => {
+            const id = String(area.id || '');
+            const name = String(area.aob || '').trim();
+            if (!id || !name) return;
+            byId.set(id, { id, name, count: 0 });
+        });
+        receivables.forEach((row) => {
+            const id = areaIdOf(row);
+            const name = areaNameOf(row);
+            if (!id && !name) return;
+            const key = id || name.toLowerCase();
+            const current = byId.get(key) || { id: key, name: name || 'Area', count: 0 };
+            current.count += 1;
+            if (name) current.name = name;
+            byId.set(key, current);
+        });
+        return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    }, [areas, receivables]);
 
     const pagination = useMemo(() => {
         const totalItems = filteredReceivables.length;
@@ -564,7 +633,8 @@ const CollectionsPage = ({ collectorScoped = false }) => {
                                 subscriberName: '',
                                 amount: '',
                                 status: 'due',
-                                disbursementDate: ''
+                                disbursementDate: '',
+                                area: '',
                             })}
                             className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                         >
@@ -583,11 +653,31 @@ const CollectionsPage = ({ collectorScoped = false }) => {
 
                 {/* Filters */}
                 <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <FiFilter className="w-5 h-5 text-gray-600" />
-                        <h3 className="text-lg font-semibold text-gray-800">Filters</h3>
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <FiFilter className="w-5 h-5 text-gray-600 shrink-0" />
+                            <h3 className="text-lg font-semibold text-gray-800">Filters</h3>
+                            {!filtersOpen && (
+                                <span className="text-xs text-gray-500 truncate">
+                                    {filters.area
+                                        ? (areaFilterOptions.find((option) => String(option.id) === String(filters.area))?.name || 'Area')
+                                        : 'All areas'}
+                                </span>
+                            )}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setFiltersOpen((open) => !open)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 shrink-0"
+                            aria-expanded={filtersOpen}
+                        >
+                            {filtersOpen ? <FiChevronUp className="w-4 h-4" /> : <FiChevronDown className="w-4 h-4" />}
+                            {filtersOpen ? 'Minimize' : 'Maximize'}
+                        </button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                    {filtersOpen && (
+                    <div className="mt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                             <select
@@ -621,6 +711,19 @@ const CollectionsPage = ({ collectorScoped = false }) => {
                             />
                         </div>
                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Area</label>
+                            <select
+                                value={filters.area}
+                                onChange={(e) => setFilters({ ...filters, area: e.target.value })}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="">All areas</option>
+                                {areaFilterOptions.map((option) => (
+                                    <option key={option.id} value={option.id}>{option.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Subscriber</label>
                             <input
                                 type="text"
@@ -650,6 +753,35 @@ const CollectionsPage = ({ collectorScoped = false }) => {
                             />
                         </div>
                     </div>
+                    {areaFilterOptions.length > 0 && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 mr-1">
+                                Areas
+                            </span>
+                            {areaFilterOptions.map((option) => {
+                                const active = String(filters.area) === String(option.id);
+                                return (
+                                    <button
+                                        key={option.id}
+                                        type="button"
+                                        onClick={() => setFilters((p) => ({
+                                            ...p,
+                                            area: active ? '' : option.id,
+                                        }))}
+                                        className={`px-3 py-1.5 rounded-full border text-sm font-semibold transition-colors ${
+                                            active
+                                                ? 'bg-red-500 text-white border-red-500'
+                                                : 'bg-white text-gray-700 border-gray-200 hover:border-red-200 hover:text-red-700'
+                                        }`}
+                                    >
+                                        {option.name}{option.count ? ` (${option.count})` : ''}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+                    </div>
+                    )}
                 </div>
 
                 {/* Receivables Table */}
