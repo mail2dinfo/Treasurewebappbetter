@@ -446,6 +446,7 @@ const AddDuesModal = ({
   const [rowEmis, setRowEmis] = useState({});
   const [ready, setReady] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
     if (!open) return;
@@ -454,6 +455,7 @@ const AddDuesModal = ({
     setRowEmis({});
     setReady(false);
     setConfirming(false);
+    setSelectedIds([]);
   }, [open]);
 
   useEffect(() => {
@@ -492,6 +494,7 @@ const AddDuesModal = ({
       }
     });
     setRowEmis(next);
+    setSelectedIds(recs.map((row) => String(row.group_subscriber_id)));
   }, [ready, preview, auctDate]);
 
   useEffect(() => {
@@ -534,7 +537,22 @@ const AddDuesModal = ({
     setEmiValue(value);
   };
 
-  const missingAmounts = rows.filter((row) => row.emi == null);
+  const selectedSet = new Set(selectedIds.map(String));
+  const selectedRows = rows.filter((row) => selectedSet.has(String(row.group_subscriber_id)));
+  const allSelected = rows.length > 0 && selectedRows.length === rows.length;
+  const missingAmounts = selectedRows.filter((row) => row.emi == null);
+
+  const toggleSelected = (id) => {
+    const key = String(id);
+    setSelectedIds((prev) => (
+      prev.includes(key) ? prev.filter((item) => item !== key) : [...prev, key]
+    ));
+  };
+
+  const toggleAllSelected = () => {
+    if (allSelected) setSelectedIds([]);
+    else setSelectedIds(rows.map((row) => String(row.group_subscriber_id)));
+  };
 
   const handleSave = () => {
     if (!auctDate) {
@@ -543,6 +561,10 @@ const AddDuesModal = ({
     }
     if (!rows.length) {
       toast.error('No subscribers to bill');
+      return;
+    }
+    if (!selectedRows.length) {
+      toast.error('Tick at least one subscriber to bill');
       return;
     }
     if (missingAmounts.length) {
@@ -555,6 +577,11 @@ const AddDuesModal = ({
   };
 
   const handleConfirmProcess = () => {
+    if (!selectedRows.length) {
+      toast.error('Tick at least one subscriber to bill');
+      setConfirming(false);
+      return;
+    }
     if (missingAmounts.length) {
       toast.error(
         `Enter due amount for: ${missingAmounts.map((row) => row.name).join(', ')}`
@@ -565,15 +592,16 @@ const AddDuesModal = ({
     onSubmit({
       auct_date: auctDate,
       customer_due: Number.isFinite(emiNum) ? emiNum : 0,
-      receivables: rows.map((row) => ({
+      group_subscriber_ids: selectedRows.map((row) => row.group_subscriber_id),
+      receivables: selectedRows.map((row) => ({
         group_subscriber_id: row.group_subscriber_id,
         receivable_amount: Number(row.emi) || 0,
       })),
-      advance_next_date: true,
+      advance_next_date: selectedRows.length === rows.length,
     });
   };
 
-  const dueTotal = rows.reduce((sum, row) => sum + (Number(row.emi) || 0), 0);
+  const dueTotal = selectedRows.reduce((sum, row) => sum + (Number(row.emi) || 0), 0);
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
@@ -591,9 +619,13 @@ const AddDuesModal = ({
             <>
               <p className="text-sm text-gray-600">
                 Review the dues below. This will create receivables for{' '}
+                <span className="font-semibold">{selectedRows.length}</span> of{' '}
                 <span className="font-semibold">{rows.length}</span> subscriber
                 {rows.length === 1 ? '' : 's'} on{' '}
-                <span className="font-semibold">{formatDisplayDate(auctDate)}</span>.
+                <span className="font-semibold">{formatDisplayDate(auctDate)}</span>
+                {selectedRows.length < rows.length
+                  ? '. Unticked subscribers keep their current pending dues.'
+                  : '.'}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
@@ -617,7 +649,7 @@ const AddDuesModal = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((row) => (
+                    {selectedRows.map((row) => (
                       <tr key={row.group_subscriber_id} className="border-t">
                         <td className="px-3 py-2 font-semibold">{row.name}</td>
                         <td className="px-3 py-2">{row.accountshare_id || '—'}</td>
@@ -694,10 +726,27 @@ const AddDuesModal = ({
                   Skipped (tenure complete): {preview.skipped.map((s) => s.name).join(', ')}
                 </p>
               )}
+              {(preview?.already_billed_this_date || []).length > 0 && (
+                <p className="text-xs text-gray-500">
+                  Already billed on this date: {preview.already_billed_this_date.map((s) => s.name).join(', ')}
+                </p>
+              )}
+              <p className="text-xs text-gray-600">
+                Ticked subscribers are billed now. Unticked subscribers keep their pending dues.
+                Selected {selectedRows.length} of {rows.length}.
+              </p>
               <div className="overflow-x-auto border border-gray-200 rounded-lg">
                 <table className="w-full text-sm">
                   <thead className="bg-red-50 text-red-800">
                     <tr>
+                      <th className="px-3 py-2 text-left w-10">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={toggleAllSelected}
+                          aria-label="Select all subscribers"
+                        />
+                      </th>
                       <th className="px-3 py-2 text-left">Subscriber</th>
                       <th className="px-3 py-2 text-left">Ticket</th>
                       <th className="px-3 py-2 text-left">Share</th>
@@ -707,7 +756,15 @@ const AddDuesModal = ({
                   </thead>
                   <tbody>
                     {rows.map((row) => (
-                      <tr key={row.group_subscriber_id} className="border-t">
+                      <tr key={row.group_subscriber_id} className={`border-t ${selectedSet.has(String(row.group_subscriber_id)) ? '' : 'opacity-50'}`}>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedSet.has(String(row.group_subscriber_id))}
+                            onChange={() => toggleSelected(row.group_subscriber_id)}
+                            aria-label={`Bill ${row.name}`}
+                          />
+                        </td>
                         <td className="px-3 py-2">
                           <div className="font-semibold">{row.name}</div>
                           {row.delayed && (
@@ -738,7 +795,7 @@ const AddDuesModal = ({
                     ))}
                     {!rows.length && (
                       <tr>
-                        <td colSpan={5} className="px-3 py-6 text-center text-gray-500">
+                        <td colSpan={6} className="px-3 py-6 text-center text-gray-500">
                           No subscribers still need dues
                         </td>
                       </tr>
@@ -755,7 +812,7 @@ const AddDuesModal = ({
             </button>
             <button
               type="button"
-              disabled={saving || previewLoading || !ready || !rows.length}
+              disabled={saving || previewLoading || !ready || !rows.length || !selectedRows.length}
               onClick={handleSave}
               className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50"
             >
