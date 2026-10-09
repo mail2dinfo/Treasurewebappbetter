@@ -485,10 +485,37 @@ const DeepavaliCollectionsPage = () => {
         });
     }, [allRows, filters]);
 
+    const listTotals = useMemo(() => filteredRows.reduce((acc, row) => {
+        const total = Number(row.due_amount || 0) + Number(row.fine_amount || 0) + Number(row.arrears_amount || 0);
+        const paid = Number(row.paid_amount || 0);
+        const outstanding = row.is_paid ? 0 : Number(row.closing_balance || 0);
+        acc.total += total;
+        acc.paid += paid;
+        acc.outstanding += outstanding;
+        return acc;
+    }, { total: 0, paid: 0, outstanding: 0 }), [filteredRows]);
+
     const periodOptions = useMemo(
         () => sortPeriodLabels([...new Set(allRows.map((row) => periodLabelOf(row)).filter(Boolean))]),
         [allRows]
     );
+
+    const groupFilterOptions = useMemo(() => {
+        const counts = {};
+        allRows.forEach((row) => {
+            const name = String(row.group?.group_name || '').trim();
+            if (!name) return;
+            counts[name] = (counts[name] || 0) + 1;
+        });
+        (groups || []).forEach((group) => {
+            const name = String(group?.group_name || '').trim();
+            if (!name) return;
+            if (!(name in counts)) counts[name] = 0;
+        });
+        return Object.keys(counts)
+            .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+            .map((name) => ({ name, count: counts[name] }));
+    }, [allRows, groups]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -627,11 +654,17 @@ const DeepavaliCollectionsPage = () => {
                         <label className="block text-sm font-medium text-gray-700">
                             Group name
                             <input
+                                list="dp-receivable-group-names"
                                 value={filters.groupName}
                                 onChange={(e) => setFilters((p) => ({ ...p, groupName: e.target.value }))}
-                                placeholder="Group name"
+                                placeholder="Type or pick a group"
                                 className={`mt-1 ${fieldClass}`}
                             />
+                            <datalist id="dp-receivable-group-names">
+                                {groupFilterOptions.map((option) => (
+                                    <option key={option.name} value={option.name} />
+                                ))}
+                            </datalist>
                         </label>
                         <label className="block text-sm font-medium text-gray-700">
                             Phone
@@ -665,6 +698,35 @@ const DeepavaliCollectionsPage = () => {
                             </select>
                         </label>
                     </div>
+                    {groupFilterOptions.length > 0 && (
+                        <div className="mt-4 flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500 mr-1">
+                                Groups
+                            </span>
+                            {groupFilterOptions.map((option) => {
+                                const typed = String(filters.groupName || '').trim().toLowerCase();
+                                const active = typed
+                                    && String(option.name).toLowerCase() === typed;
+                                return (
+                                    <button
+                                        key={option.name}
+                                        type="button"
+                                        onClick={() => setFilters((p) => ({
+                                            ...p,
+                                            groupName: active ? '' : option.name,
+                                        }))}
+                                        className={`px-3 py-1.5 rounded-full border text-sm font-semibold transition-colors ${
+                                            active
+                                                ? 'bg-red-500 text-white border-red-500'
+                                                : 'bg-white text-gray-700 border-gray-200 hover:border-red-200 hover:text-red-700'
+                                        }`}
+                                    >
+                                        {option.name} ({option.count})
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -722,6 +784,25 @@ const DeepavaliCollectionsPage = () => {
                                     );
                                 })}
                             </tbody>
+                            {pagination.totalItems > 0 && (
+                                <tfoot className="bg-gray-50 border-t-2 border-gray-200">
+                                    <tr>
+                                        <td className="px-4 py-3 text-sm font-semibold text-gray-800" colSpan={6}>
+                                            Total
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900 whitespace-nowrap">
+                                            {money(listTotals.total)}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-right font-semibold text-emerald-800 whitespace-nowrap">
+                                            {money(listTotals.paid)}
+                                        </td>
+                                        <td className="px-4 py-3 text-sm text-right font-semibold text-red-700 whitespace-nowrap">
+                                            {money(listTotals.outstanding)}
+                                        </td>
+                                        <td colSpan={2} />
+                                    </tr>
+                                </tfoot>
+                            )}
                         </table>
                     </div>
                     <div className="md:hidden divide-y divide-gray-100">
@@ -765,6 +846,22 @@ const DeepavaliCollectionsPage = () => {
                     </div>
                     {loading && !allRows.length && (
                         <p className="px-4 py-8 text-sm text-gray-500 text-center">Loading receivables…</p>
+                    )}
+                    {pagination.totalItems > 0 && (
+                        <div className="md:hidden grid grid-cols-3 gap-2 text-center text-xs px-4 py-3 border-t-2 border-gray-200 bg-gray-50">
+                            <div>
+                                <p className="text-gray-500 font-semibold uppercase">Total</p>
+                                <p className="font-bold text-gray-900">{money(listTotals.total)}</p>
+                            </div>
+                            <div>
+                                <p className="text-emerald-700 font-semibold uppercase">Paid</p>
+                                <p className="font-bold text-emerald-800">{money(listTotals.paid)}</p>
+                            </div>
+                            <div>
+                                <p className="text-red-600 font-semibold uppercase">Outstanding</p>
+                                <p className="font-bold text-red-700">{money(listTotals.outstanding)}</p>
+                            </div>
+                        </div>
                     )}
                     {!loading && !pagination.totalItems && (
                         <p className="px-4 py-8 text-sm text-gray-500 text-center">No receivables match these filters.</p>
