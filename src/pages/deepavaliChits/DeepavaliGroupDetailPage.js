@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
 import { PDFDownloadLink, pdf } from '@react-pdf/renderer';
-import { FiArrowLeft, FiCalendar, FiDownload, FiEye, FiPhone, FiUserPlus, FiUsers, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiCalendar, FiDownload, FiEye, FiPhone, FiTrash2, FiUserPlus, FiUsers, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { useDeepavali } from '../../context/deepavali/DeepavaliContext';
 import { useUserContext } from '../../context/user_context';
@@ -10,6 +10,7 @@ import { DP_BASE_PATH, DP_COLLECTOR_PATH } from '../../components/deepavaliChits
 import DeepavaliSubscriberDuesPDF from '../../components/deepavaliChits/DeepavaliSubscriberDuesPDF';
 import ReceivableReceitPdf from '../../components/PDF/ReceivableReceitPdf';
 import { formatDeepavaliPeriodLabel } from '../../utils/deepavaliPeriodLabel';
+import { useDpPermission } from '../../components/deepavaliChits/useDpPermission';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
@@ -151,8 +152,10 @@ const DeepavaliGroupDetailPage = () => {
     const history = useHistory();
     const location = useLocation();
     const { user } = useUserContext();
-    const { groups, subscribers, receivables, receipts, payables, paymentMethods, company, enrolSlot, loading } = useDeepavali();
+    const { groups, subscribers, receivables, receipts, payables, paymentMethods, company, enrolSlot, purgeEnrolment, loading } = useDeepavali();
     const collector = (location.pathname || '').includes('/collector');
+    const { canAccess } = useDpPermission();
+    const canPurgeEnrolment = canAccess('dp_group_slot_delete');
     const groupsPath = collector ? `${DP_COLLECTOR_PATH}/groups` : `${DP_BASE_PATH}/groups`;
     const subscribersPath = collector ? `${DP_COLLECTOR_PATH}/subscribers` : `${DP_BASE_PATH}/subscribers`;
 
@@ -168,6 +171,7 @@ const DeepavaliGroupDetailPage = () => {
     const [joinDate, setJoinDate] = useState(today());
     const [addSlotCount, setAddSlotCount] = useState('1');
     const [unsubSlot, setUnsubSlot] = useState(null);
+    const [purgeTarget, setPurgeTarget] = useState(null);
 
     const pdfCompany = useMemo(() => {
         if (company?.company_name) {
@@ -265,6 +269,77 @@ const DeepavaliGroupDetailPage = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const confirmPurge = async () => {
+        if (!purgeTarget || !canPurgeEnrolment) return;
+        setSaving(true);
+        try {
+            if (purgeTarget.kind === 'slot') {
+                await purgeEnrolment({ slot_id: purgeTarget.slot.id });
+                toast.success(
+                    `Slot ${purgeTarget.slot.slot_number} was deleted with its dues, collections, payables and ledger entries.`
+                );
+            } else {
+                await purgeEnrolment({
+                    group_id: groupId,
+                    subscriber_id: purgeTarget.subscriberId,
+                });
+                toast.success(
+                    `${purgeTarget.name} was removed from this group. All slots, dues, collections, payables and ledger entries were deleted.`
+                );
+            }
+            const leaveView = purgeTarget.leaveView;
+            setPurgeTarget(null);
+            if (leaveView) history.push(`${groupsPath}/${groupId}`);
+        } catch (err) {
+            toast.error(err.message || 'Could not delete');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const PurgeConfirmModal = () => {
+        if (!purgeTarget) return null;
+        const isSlot = purgeTarget.kind === 'slot';
+        return createPortal(
+            <div
+                className="fixed inset-0 z-[220] bg-black/50 flex items-center justify-center p-4"
+                onClick={() => {
+                    if (!saving) setPurgeTarget(null);
+                }}
+            >
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
+                    <h3 className="text-lg font-bold text-gray-900 text-center">
+                        {isSlot ? `Delete slot ${purgeTarget.slot.slot_number}?` : `Delete ${purgeTarget.name} from this group?`}
+                    </h3>
+                    <p className="text-sm text-gray-600 text-center mt-2">
+                        {isSlot
+                            ? 'This slot and its receivables, collections, payables and related ledger entries will be permanently removed. Other slots stay.'
+                            : `This removes the subscriber from this group and permanently deletes all ${purgeTarget.slotCount || 0} slot${Number(purgeTarget.slotCount) === 1 ? '' : 's'}, receivables, collections, payables and related ledger entries. The subscriber record itself is kept.`}
+                    </p>
+                    <div className="flex gap-3 mt-5">
+                        <button
+                            type="button"
+                            onClick={() => setPurgeTarget(null)}
+                            disabled={saving}
+                            className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={confirmPurge}
+                            disabled={saving}
+                            className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold disabled:opacity-50"
+                        >
+                            {saving ? 'Deleting…' : 'Delete'}
+                        </button>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        );
     };
 
     const goBack = () => {
@@ -664,6 +739,23 @@ const DeepavaliGroupDetailPage = () => {
                                                     Unsubscribe
                                                 </button>
                                             )}
+                                            {canPurgeEnrolment && (
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center justify-center p-1.5 rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-700"
+                                                    onClick={() => setPurgeTarget({
+                                                        kind: 'slot',
+                                                        slot,
+                                                        name: viewMember.name,
+                                                        subscriberId: viewMember.subscriberId,
+                                                        leaveView: viewMember.slots.length <= 1,
+                                                    })}
+                                                    title="Delete slot"
+                                                    aria-label={`Delete slot ${slot.slot_number}`}
+                                                >
+                                                    <FiTrash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -792,6 +884,7 @@ const DeepavaliGroupDetailPage = () => {
                     </div>,
                     document.body
                 )}
+                <PurgeConfirmModal />
             </div>
         );
     }
@@ -922,14 +1015,33 @@ const DeepavaliGroupDetailPage = () => {
                                                         <PaymentBillLinks subscriberId={member.subscriberId} subscriberName={name} />
                                                     </td>
                                                     <td className="px-6 py-3 text-right whitespace-nowrap">
-                                                        <button
-                                                            type="button"
-                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold"
-                                                            onClick={() => openView(member)}
-                                                        >
-                                                            <FiEye className="w-4 h-4" />
-                                                            View
-                                                        </button>
+                                                        <div className="inline-flex items-center justify-end gap-2">
+                                                            <button
+                                                                type="button"
+                                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold"
+                                                                onClick={() => openView(member)}
+                                                            >
+                                                                <FiEye className="w-4 h-4" />
+                                                                View
+                                                            </button>
+                                                            {canPurgeEnrolment && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="inline-flex items-center justify-center p-2 rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-700"
+                                                                    onClick={() => setPurgeTarget({
+                                                                        kind: 'member',
+                                                                        subscriberId: member.subscriberId,
+                                                                        name,
+                                                                        slotCount: related.length,
+                                                                        leaveView: false,
+                                                                    })}
+                                                                    title="Delete from group"
+                                                                    aria-label={`Delete ${name} from this group`}
+                                                                >
+                                                                    <FiTrash2 className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );
@@ -980,15 +1092,32 @@ const DeepavaliGroupDetailPage = () => {
                                             <div className="mt-3 flex items-center justify-between gap-2">
                                                 <PaymentBillLinks subscriberId={member.subscriberId} subscriberName={name} />
                                             </div>
-                                            <div className="mt-3">
+                                            <div className="mt-3 flex gap-2">
                                                 <button
                                                     type="button"
-                                                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2"
+                                                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2"
                                                     onClick={() => openView(member)}
                                                 >
                                                     <FiEye className="w-4 h-4" />
                                                     View
                                                 </button>
+                                                {canPurgeEnrolment && (
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center justify-center p-2 rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-700"
+                                                        onClick={() => setPurgeTarget({
+                                                            kind: 'member',
+                                                            subscriberId: member.subscriberId,
+                                                            name,
+                                                            slotCount: related.length,
+                                                            leaveView: false,
+                                                        })}
+                                                        title="Delete from group"
+                                                        aria-label={`Delete ${name} from this group`}
+                                                    >
+                                                        <FiTrash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -1078,6 +1207,7 @@ const DeepavaliGroupDetailPage = () => {
                 </div>,
                 document.body
             )}
+            <PurgeConfirmModal />
         </div>
     );
 };

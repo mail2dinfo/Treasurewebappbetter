@@ -378,6 +378,12 @@ export const DeepavaliProvider = ({ children }) => {
         return saved;
     }, [refreshAll, request]);
 
+    const purgeEnrolment = useCallback(async (payload) => {
+        const saved = await request('/dp/groups/purge-enrolment', { method: 'POST', body: payload });
+        await refreshAll();
+        return saved;
+    }, [refreshAll, request]);
+
     const activateGroup = useCallback(async (id) => {
         const saved = await request('/dp/groups/activate', { method: 'POST', body: { id } });
         await refreshAll();
@@ -435,6 +441,7 @@ export const DeepavaliProvider = ({ children }) => {
         saveGroup,
         deleteGroup,
         enrolSlot,
+        purgeEnrolment,
         activateGroup,
         payPayable,
         settleSubscriber,

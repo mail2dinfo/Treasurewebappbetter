@@ -20,6 +20,7 @@ export const DP_FEATURE_TO_MENU = {
     dp_subscriber_delete: 'subscribers',
     dp_collections: 'collections',
     dp_groups: 'groups',
+    dp_group_slot_delete: 'groups',
     dp_payables: 'payables',
     dp_ledger: 'ledger',
     dp_reports: 'reports',
@@ -33,6 +34,7 @@ export const DP_COLLECTOR_OPT_IN_FEATURES = [
     'dp_subscriber_add',
     'dp_subscriber_edit',
     'dp_subscriber_delete',
+    'dp_group_slot_delete',
 ];
 
 export const menusFromGrantedFeatures = (hasPermission, fallback = DP_COLLECTOR_MENU_IDS) => {

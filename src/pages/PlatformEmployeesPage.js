@@ -695,6 +695,7 @@ const FALLBACK_APP_CATALOG = [
             fallbackFeature('dp_company_manage', 'Manage Company', 'Administration', ['USER']),
             fallbackFeature('dp_employee_manage', 'Manage Employees', 'Administration', ['USER', 'MANAGER']),
             fallbackFeature('dp_groups', 'Groups', 'Operations', ['USER', 'MANAGER']),
+            fallbackFeature('dp_group_slot_delete', 'Delete slots', 'Groups', ['USER', 'MANAGER', 'COLLECTOR']),
             fallbackFeature('dp_subscribers', 'View', 'Subscribers', ['USER', 'MANAGER', 'COLLECTOR']),
             fallbackFeature('dp_subscriber_add', 'Add', 'Subscribers', ['USER', 'MANAGER', 'COLLECTOR']),
             fallbackFeature('dp_subscriber_edit', 'Edit', 'Subscribers', ['USER', 'MANAGER', 'COLLECTOR']),
