@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useUserContext } from '../../context/user_context';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { useDcLiveEvents } from '../../context/dailyCollection/dcLiveEvents_context';
@@ -49,6 +49,7 @@ const CollectionsPage = ({ collectorScoped = false }) => {
     const [selectedSubscriberForRoute, setSelectedSubscriberForRoute] = useState(null);
     const [companies, setCompanies] = useState([]);
     const [receiptData, setReceiptData] = useState(null);
+    const keepPaymentModalOpenRef = useRef(false);
     const [isDownloadingBill, setIsDownloadingBill] = useState(false);
     const [isDownloadingReport, setIsDownloadingReport] = useState(false);
     const [isPaying, setIsPaying] = useState(false);
@@ -115,6 +116,9 @@ const CollectionsPage = ({ collectorScoped = false }) => {
                 setSelectedReceivable((current) => {
                     if (!current) return current;
                     const updated = list.find((item) => item.id === current.id);
+                    if (keepPaymentModalOpenRef.current) {
+                        return updated ? { ...current, ...updated } : current;
+                    }
                     if (!updated || updated.is_paid) {
                         setShowPaymentModal(false);
                         return null;
@@ -378,7 +382,21 @@ const CollectionsPage = ({ collectorScoped = false }) => {
         };
     }, [companies]);
 
+    const openCollectModal = (receivable) => {
+        keepPaymentModalOpenRef.current = false;
+        setReceiptData(null);
+        setSelectedReceivable(receivable);
+        setPaymentForm({
+            amount: receivable.due_amount || receivable.amount || 0,
+            paymentMethod: '',
+            paymentDate: new Date().toISOString().split('T')[0],
+            notes: '',
+        });
+        setShowPaymentModal(true);
+    };
+
     const closePaymentModal = () => {
+        keepPaymentModalOpenRef.current = false;
         setShowPaymentModal(false);
         setSelectedReceivable(null);
         setReceiptData(null);
@@ -424,7 +442,14 @@ const CollectionsPage = ({ collectorScoped = false }) => {
 
     const handleSendBillOnWhatsApp = () => {
         const url = buildWhatsAppBillUrl(receiptData);
-        if (!url) return;
+        if (!url) {
+            alert('Unable to open WhatsApp. Please try again.');
+            return;
+        }
+        if (!String(receiptData?.subscriberPhone || '').replace(/\D/g, '')) {
+            alert('Subscriber phone number is missing.');
+            return;
+        }
         window.open(url, '_blank', 'noopener,noreferrer');
     };
 
@@ -503,6 +528,7 @@ const CollectionsPage = ({ collectorScoped = false }) => {
                 );
                 const closingBefore = parseFloat(loan.closing_balance ?? 0);
 
+                keepPaymentModalOpenRef.current = true;
                 setReceiptData({
                     billNumber: receipt.bill_number ?? receipt.billNumber ?? '-',
                     receiptId: receipt.id,
@@ -531,7 +557,7 @@ const CollectionsPage = ({ collectorScoped = false }) => {
                     remainingAmount,
                     notes: paymentForm.notes || '',
                 });
-                fetchReceivables();
+                fetchReceivables({ silent: true });
                 fetchLedgerAccounts();
             } else {
                 const error = await res.json();
@@ -952,17 +978,7 @@ const CollectionsPage = ({ collectorScoped = false }) => {
                                                     {!receivable.is_paid && (
                                                         <button
                                                             type="button"
-                                                            onClick={() => {
-                                                                setReceiptData(null);
-                                                                setSelectedReceivable(receivable);
-                                                                setPaymentForm({
-                                                                    amount: receivable.due_amount || receivable.amount || 0,
-                                                                    paymentMethod: '',
-                                                                    paymentDate: new Date().toISOString().split('T')[0],
-                                                                    notes: ''
-                                                                });
-                                                                setShowPaymentModal(true);
-                                                            }}
+                                                            onClick={() => openCollectModal(receivable)}
                                                             className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium"
                                                         >
                                                             Collect
@@ -1042,17 +1058,7 @@ const CollectionsPage = ({ collectorScoped = false }) => {
                                         {!receivable.is_paid && (
                                             <button
                                                 type="button"
-                                                onClick={() => {
-                                                    setReceiptData(null);
-                                                    setSelectedReceivable(receivable);
-                                                    setPaymentForm({
-                                                        amount: receivable.due_amount || receivable.amount || 0,
-                                                        paymentMethod: '',
-                                                        paymentDate: new Date().toISOString().split('T')[0],
-                                                        notes: ''
-                                                    });
-                                                    setShowPaymentModal(true);
-                                                }}
+                                                onClick={() => openCollectModal(receivable)}
                                                 className="flex-1 min-w-[7rem] bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium"
                                             >
                                                 Collect
@@ -1177,20 +1183,20 @@ const CollectionsPage = ({ collectorScoped = false }) => {
                                     <div className="flex flex-col gap-3">
                                         <button
                                             type="button"
+                                            onClick={handleSendBillOnWhatsApp}
+                                            className="w-full py-3 px-4 bg-[#25D366] text-white font-semibold rounded-lg hover:bg-[#1ebe5d] transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <FaWhatsapp className="w-5 h-5" />
+                                            Send Bill to Subscriber
+                                        </button>
+                                        <button
+                                            type="button"
                                             onClick={handleDownloadReceiptPdf}
                                             disabled={isDownloadingBill}
                                             className="w-full py-2.5 px-4 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                                         >
                                             <FiDownload className="w-4 h-4" />
                                             {isDownloadingBill ? 'Preparing Bill...' : 'Download Bill'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={handleSendBillOnWhatsApp}
-                                            className="w-full py-2.5 px-4 bg-[#25D366] text-white font-semibold rounded-lg hover:bg-[#1ebe5d] transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <FaWhatsapp className="w-5 h-5" />
-                                            Send Bill on WhatsApp
                                         </button>
                                         <button
                                             type="button"
