@@ -3,7 +3,8 @@ const deployEnv = (process.env.REACT_APP_DEPLOY_ENV || '').toLowerCase();
 const isProduction = deployEnv === 'production';
 
 const RENDER_DEV_API_BASE = 'https://treasure-services-mani.onrender.com/api/v1';
-const RENDER_PROD_API_BASE = 'https://treasure-mani.onrender.com/api/v1';
+//const RENDER_PROD_API_BASE = 'https://treasure-mani.onrender.com/api/v1';
+const RENDER_PROD_API_BASE = 'https://treasure-services-mani-v1.onrender.com/api/v1';
 
 const normalizeApiBaseUrl = (url) => {
     if (!url) return null;
@@ -27,7 +28,8 @@ const defaultApiBaseUrl = isProduction ? RENDER_PROD_API_BASE : RENDER_DEV_API_B
 export const API_BASE_URL = configuredApiBaseUrl || defaultApiBaseUrl;
 
 export const WEBSOCKET_URL = isProduction
-    ? 'wss://treasure-mani.onrender.com'
+    //? 'wss://treasure-mani.onrender.com'
+       ? 'wss://treasure-services-mani-v1.onrender.com'
     : 'wss://treasure-services-mani.onrender.com';
 
 export const IS_PRODUCTION_DEPLOY = isProduction;
